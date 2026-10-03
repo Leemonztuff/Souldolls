@@ -38,6 +38,8 @@ export interface MapSign {
   x: number;
   y: number;
   text: string;
+  shopCategory?: string;
+  shopMode?: 'buy' | 'sell';
 }
 
 export interface EncounterEntry {

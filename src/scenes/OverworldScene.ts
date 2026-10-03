@@ -8,6 +8,7 @@ import { OverworldCamera } from '../render/overworld/OverworldCamera';
 import { CameraDebugOverlay } from '../render/overworld/CameraDebugOverlay';
 import { OverworldPlayer } from '../systems/OverworldPlayer';
 import { BillboardCharacter } from '../render/overworld/BillboardCharacter';
+import { GlobalAtlasDebugOverlay } from '../render/overworld/AtlasDebugOverlay';
 import { WorldGraph } from '../data/maps/worldGraph';
 import { MapData, MapNPC } from '../types/maps';
 import { GlobalInput } from '../core/Input';
@@ -48,9 +49,7 @@ export class OverworldScene implements IScene {
   private selectedMenuIndex = 0;
   private menuItemsList = [
     { label: '🐾 EQUIPO', action: () => GlobalSceneManager.pushScene('CreatureDetail') },
-    { label: '🛠 TALLER DE ARTÍFICES', action: () => GlobalSceneManager.pushScene('Workshop') },
     { label: '🔗 VINCULAR ALMAS', action: () => GlobalSceneManager.pushScene('SoulBinding') },
-    { label: '🎒 MERCADO / TIENDA', action: () => GlobalSceneManager.pushScene('Shop') },
     { label: '📖 CÓDICE DE ALMAS', action: () => GlobalSceneManager.pushScene('Pokedex') },
     { label: '📜 MISIONES (J)', action: () => GlobalSceneManager.pushScene('QuestLog') },
     {
@@ -149,6 +148,7 @@ export class OverworldScene implements IScene {
     const spawnDir = params?.dir || savedState.player.direction || 'down';
 
     await this.loadMap(mapIdToLoad, spawnX, spawnY, spawnDir, true);
+    GlobalAtlasDebugOverlay.setCamera(GlobalThreeRenderer.camera);
 
     // 4. Build Pixi HUD
     this.buildHUD();
@@ -164,7 +164,7 @@ export class OverworldScene implements IScene {
       const wildCreature = StatCalculator.createCreatureInstance(encounter.speciesId, encounter.level);
       const saveState = GlobalSaveService.getCurrentState();
       if (saveState.party.length === 0) {
-        saveState.party.push(StatCalculator.createCreatureInstance('flamin', 5));
+        saveState.party.push(StatCalculator.createCreatureInstance('maga', 5));
       }
 
       GlobalSceneManager.pushScene('Battle', {
@@ -526,16 +526,16 @@ export class OverworldScene implements IScene {
     const width = GlobalPixiRenderer.width;
 
     const bg = new Graphics();
-    bg.roundRect(-260, -24, 520, 48, 10);
+    bg.roundRect(-280, -28, 560, 56, 12);
     bg.fill({ color: COLOR_NUM.smokedWood, alpha: 0.95 });
-    bg.stroke({ color: COLOR_NUM.gold, width: 1.5 });
+    bg.stroke({ color: COLOR_NUM.gold, width: 2 });
     toast.addChild(bg);
 
     const txt = new Text({
       text: message,
       style: new TextStyle({
         fontFamily: FONTS.hud,
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: 'bold',
         fill: COLOR_HEX.parchment,
         letterSpacing: 0.5,
@@ -592,6 +592,7 @@ export class OverworldScene implements IScene {
     const pz = this.player ? this.player.character.worldZ : 8;
     this.cameraController.setBounds(0, this.currentMap ? this.currentMap.width : 30, 0, this.currentMap ? this.currentMap.height : 30);
     this.cameraController.recenterOnPlayer(px, pz, true);
+    GlobalAtlasDebugOverlay.setCamera(GlobalThreeRenderer.camera);
   }
 
   public update(dt: number): void {
@@ -606,8 +607,9 @@ export class OverworldScene implements IScene {
     const pz = this.player.character.worldZ;
 
     // 2. Update Map Animations, Lighting & Camera
-    this.mapRenderer.update(dt);
+    this.mapRenderer.update(dt, this.cameraController.currentYaw, 0.72, px, pz);
     this.mapRenderer.updateOcclusion(px, pz, GlobalThreeRenderer.camera.position);
+    GlobalAtlasDebugOverlay.setMapContext(this.currentMap, Math.round(px), Math.round(pz));
 
     this.sunLight.position.set(px + 10, 22, pz + 12);
     this.sunLight.target.position.set(px, 0, pz);
@@ -705,9 +707,25 @@ export class OverworldScene implements IScene {
         if (this.currentMap.id === 'interior_center' && hit.target.x === 8 && hit.target.y === 2) {
           GlobalAudioService.playSfx('select');
           GlobalSceneManager.pushScene('StorageBox');
+        } else if (hit.target.shopCategory) {
+          // Req. 7: TIENDA INTERACTIVA (Cuerpos, Armas, Cristales, Souls, Encargos)
+          GlobalAudioService.playSfx('select');
+          if (hit.target.shopCategory === 'quests') {
+            GlobalSceneManager.pushScene('QuestLog');
+          } else {
+            GlobalSceneManager.pushScene('Shop', { mode: 'buy', category: hit.target.shopCategory });
+          }
+        } else if (hit.target.shopMode) {
+          // Req. 7: Mostrador abre el menú Comprar/Vender
+          GlobalAudioService.playSfx('select');
+          GlobalSceneManager.pushScene('Shop', { mode: hit.target.shopMode || 'buy' });
         } else {
           this.openSimpleDialogue('Cartel', [hit.target.text]);
         }
+      } else if (hit.type === 'decor') {
+        // Bloque 36 Req. 6: Interactive Overworld Decor (doll_arm_buried, sparkle_hidden, mana_berry_plant, bones)
+        GlobalAudioService.playSfx('select');
+        this.openSimpleDialogue(hit.target.title, hit.target.lines);
       } else if (hit.type === 'water') {
         this.openSimpleDialogue('Agua', ['El agua es cristalina y profunda.']);
       }
@@ -784,20 +802,20 @@ export class OverworldScene implements IScene {
     curtain.on('pointerdown', () => this.closeMenu());
     this.menuContainer.addChild(curtain);
 
-    // Right-aligned pause panel
-    const panelWidth = 320;
-    const panelHeight = Math.min(height - 60, this.menuItemsList.length * 56 + 100);
-    const panelX = width - panelWidth - 30;
+    // Right-aligned pause panel (Mobile First: 360px wide with touch-friendly spacing)
+    const panelWidth = 360;
+    const panelHeight = Math.min(height - 40, this.menuItemsList.length * 56 + 100);
+    const panelX = width - panelWidth - 25;
     const panelY = (height - panelHeight) / 2;
 
     const panelBg = new Graphics();
-    panelBg.roundRect(panelX, panelY, panelWidth, panelHeight, 12);
+    panelBg.roundRect(panelX, panelY, panelWidth, panelHeight, 14);
     panelBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.96 });
     panelBg.stroke({ color: COLOR_NUM.bronze, width: 3 });
     this.menuContainer.addChild(panelBg);
 
     // Inner hairline frame
-    panelBg.roundRect(panelX + 4, panelY + 4, panelWidth - 8, panelHeight - 8, 8);
+    panelBg.roundRect(panelX + 4, panelY + 4, panelWidth - 8, panelHeight - 8, 10);
     panelBg.stroke({ color: COLOR_NUM.gold, width: 1, alpha: 0.35 });
 
     // Header
@@ -805,7 +823,7 @@ export class OverworldScene implements IScene {
       text: '⚙️ MENÚ PRINCIPAL',
       style: new TextStyle({
         fontFamily: FONTS.title,
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         fill: COLOR_HEX.gold,
         letterSpacing: 2,
@@ -816,11 +834,11 @@ export class OverworldScene implements IScene {
     header.position.set(panelX + panelWidth / 2, panelY + 36);
     this.menuContainer.addChild(header);
 
-    // Menu options
+    // Menu options (Mobile First: 50px tall touch targets, 16px bold typography)
     const itemStartY = panelY + 70;
     this.menuItemsList.forEach((item, idx) => {
       const isSel = idx === this.selectedMenuIndex;
-      const itemY = itemStartY + idx * 48;
+      const itemY = itemStartY + idx * 54;
 
       const itemBtn = new Container();
       itemBtn.position.set(panelX + 16, itemY);
@@ -828,23 +846,23 @@ export class OverworldScene implements IScene {
       itemBtn.cursor = 'pointer';
 
       const btnBg = new Graphics();
-      btnBg.roundRect(0, 0, panelWidth - 32, 42, 6);
+      btnBg.roundRect(0, 0, panelWidth - 32, 48, 8);
       btnBg.fill({ color: isSel ? COLOR_NUM.gold : COLOR_NUM.smokedWood, alpha: 0.95 });
-      btnBg.stroke({ color: isSel ? COLOR_NUM.white : COLOR_NUM.bronze, width: isSel ? 1.5 : 1 });
+      btnBg.stroke({ color: isSel ? COLOR_NUM.white : COLOR_NUM.bronze, width: isSel ? 2 : 1 });
       itemBtn.addChild(btnBg);
 
       const btnText = new Text({
         text: item.label,
         style: new TextStyle({
           fontFamily: FONTS.hud,
-          fontSize: 13,
+          fontSize: 15,
           fontWeight: 'bold',
           fill: isSel ? COLOR_HEX.inkCrypt : COLOR_HEX.parchment,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
         }),
       });
       btnText.anchor.set(0, 0.5);
-      btnText.position.set(16, 21);
+      btnText.position.set(16, 24);
       itemBtn.addChild(btnText);
 
       itemBtn.on('pointerdown', (e) => {
@@ -957,26 +975,26 @@ export class OverworldScene implements IScene {
     bg.roundRect(boxX + 4, boxY + 4, boxWidth - 8, boxHeight - 8, 8);
     bg.stroke({ color: COLOR_NUM.gold, width: 1, alpha: 0.3 });
 
-    // Speaker Name Tag (Big & Bold)
+    // Speaker Name Tag (Big & Bold - Mobile First: 16px)
     if (node.speakerName) {
       const nameTag = new Graphics();
-      nameTag.roundRect(boxX + 24, boxY - 20, 240, 40, 6);
+      nameTag.roundRect(boxX + 24, boxY - 22, 260, 44, 8);
       nameTag.fill({ color: COLOR_NUM.bronze });
-      nameTag.stroke({ color: COLOR_NUM.gold, width: 1.5 });
+      nameTag.stroke({ color: COLOR_NUM.gold, width: 2 });
       this.dialogueBoxContainer.addChild(nameTag);
 
       const nameTxt = new Text({
         text: node.speakerName.toUpperCase(),
         style: new TextStyle({
           fontFamily: FONTS.title,
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: 'bold',
           fill: COLOR_HEX.parchment,
-          letterSpacing: 1,
+          letterSpacing: 1.2,
         }),
       });
       nameTxt.anchor.set(0.5);
-      nameTxt.position.set(boxX + 24 + 120, boxY);
+      nameTxt.position.set(boxX + 24 + 130, boxY);
       this.dialogueBoxContainer.addChild(nameTxt);
     }
 
@@ -991,7 +1009,7 @@ export class OverworldScene implements IScene {
       textLeftOffset = 120;
     }
 
-    // Text Display (Large & Highly Legible)
+    // Text Display (Mobile First: 18px font with 26px line height)
     this.typewriterFullText = node.text;
     this.typewriterCurrentLength = 0;
     this.typewriterTimer = 0;
@@ -1001,9 +1019,9 @@ export class OverworldScene implements IScene {
       text: '',
       style: new TextStyle({
         fontFamily: FONTS.body,
-        fontSize: 15,
+        fontSize: 18,
         fontWeight: '600',
-        lineHeight: 22,
+        lineHeight: 26,
         fill: COLOR_HEX.parchment,
         wordWrap: true,
         wordWrapWidth: boxWidth - textLeftOffset - 40,
@@ -1020,30 +1038,30 @@ export class OverworldScene implements IScene {
     this.optionsContainers = [];
     if (!node.options || node.options.length === 0) return;
 
-    const optHeight = 52;
-    const startY = boxY - (node.options.length * (optHeight + 8)) - 14;
+    const optHeight = 56;
+    const startY = boxY - (node.options.length * (optHeight + 10)) - 14;
 
     node.options.forEach((opt, idx) => {
       const optBox = new Container();
-      optBox.position.set(boxX + boxWidth - 440, startY + idx * (optHeight + 8));
+      optBox.position.set(boxX + boxWidth - 460, startY + idx * (optHeight + 10));
       optBox.eventMode = 'static';
       optBox.cursor = 'pointer';
 
       const bg = new Graphics();
       const isSel = idx === this.selectedOptionIndex;
-      bg.roundRect(0, 0, 440, optHeight, 8);
+      bg.roundRect(0, 0, 460, optHeight, 10);
       bg.fill({ color: isSel ? COLOR_NUM.gold : COLOR_NUM.smokedWood, alpha: 0.95 });
-      bg.stroke({ color: isSel ? COLOR_NUM.white : COLOR_NUM.bronze, width: isSel ? 1.5 : 1 });
+      bg.stroke({ color: isSel ? COLOR_NUM.white : COLOR_NUM.bronze, width: isSel ? 2 : 1.5 });
       optBox.addChild(bg);
 
       const label = new Text({
         text: opt.label,
         style: new TextStyle({
           fontFamily: FONTS.hud,
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: 'bold',
           fill: isSel ? COLOR_HEX.inkCrypt : COLOR_HEX.parchment,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
         }),
       });
       label.position.set(20, 16);

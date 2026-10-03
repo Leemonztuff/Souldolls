@@ -1,4 +1,4 @@
-import { Application, Container } from 'pixi.js';
+import { Application, Container, TextureSource } from 'pixi.js';
 
 export class PixiRenderer {
   private static instance: PixiRenderer;
@@ -16,6 +16,7 @@ export class PixiRenderer {
 
   public width = 960;
   public height = 720;
+  public resolution = 1;
   private isInitialized = false;
 
   private constructor() {}
@@ -27,21 +28,27 @@ export class PixiRenderer {
     return PixiRenderer.instance;
   }
 
-  public async init(container: HTMLElement, width = 1280, height = 720): Promise<void> {
+  public async init(container: HTMLElement, width = 960, height = 720): Promise<void> {
     if (this.isInitialized) return;
 
     this.container = container;
-    this.width = width;
-    this.height = height;
+    this.width = Math.round(width);
+    this.height = Math.round(height);
+    this.resolution = Math.min(window.devicePixelRatio || 1, 3);
+
+    // Configurar valores por defecto de texturas PixiJS v8 para pixel-art nítido
+    TextureSource.defaultOptions.scaleMode = 'nearest';
+    TextureSource.defaultOptions.autoGenerateMipmaps = false;
 
     this.app = new Application();
     await this.app.init({
       width: this.width,
       height: this.height,
       backgroundAlpha: 0, // Transparent overlay over Three.js canvas
-      resolution: window.devicePixelRatio || 1,
+      resolution: this.resolution,
       autoDensity: true,
-      antialias: true,
+      antialias: false,
+      roundPixels: true,
     });
 
     this.stage = this.app.stage;
@@ -71,9 +78,8 @@ export class PixiRenderer {
     );
 
     const canvas = this.app.canvas as HTMLCanvasElement;
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
     canvas.style.display = 'block';
+    canvas.style.imageRendering = 'pixelated';
 
     this.container.innerHTML = '';
     this.container.appendChild(canvas);
@@ -82,11 +88,13 @@ export class PixiRenderer {
   }
 
   public resize(width: number, height: number): void {
-    this.width = width;
-    this.height = height;
+    this.width = Math.round(width);
+    this.height = Math.round(height);
+    this.resolution = Math.min(window.devicePixelRatio || 1, 3);
 
     if (this.app && this.app.renderer) {
-      this.app.renderer.resize(width, height);
+      this.app.renderer.resolution = this.resolution;
+      this.app.renderer.resize(this.width, this.height);
     }
   }
 

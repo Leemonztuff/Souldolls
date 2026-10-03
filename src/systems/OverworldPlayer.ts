@@ -6,6 +6,7 @@ import { GlobalAudioService } from '../services/AudioService';
 import { GlobalEventBus } from '../core/EventBus';
 import { GlobalSaveService } from '../services/SaveService';
 import { EncounterSystem } from './EncounterSystem';
+import { GlobalOverworldDecor } from '../render/overworld/DecorRenderer';
 
 export class OverworldPlayer {
   public character: BillboardCharacter;
@@ -205,6 +206,9 @@ export class OverworldPlayer {
   }
 
   private onTileEnter(x: number, y: number): void {
+    // Bloque 36: Trigger tall-grass squash, leaf particles & berry regrowth step counter
+    GlobalOverworldDecor.onPlayerStep(x, y);
+
     const warp = this.mapData.warps?.find((w) => w.x === x && w.y === y);
     if (warp) {
       GlobalEventBus.emit('map:warp', {
@@ -237,7 +241,7 @@ export class OverworldPlayer {
     }
   }
 
-  public interactAhead(): { type: 'npc' | 'sign' | 'water' | 'empty'; target?: any } {
+  public interactAhead(): { type: 'npc' | 'sign' | 'decor' | 'water' | 'empty'; target?: any } {
     const offset = this.getDirectionOffset(this.character.direction);
     const targetX = this.gridX + offset.x;
     const targetY = this.gridY + offset.y;
@@ -247,6 +251,18 @@ export class OverworldPlayer {
       if (npc) {
         return { type: 'npc', target: npc };
       }
+
+      // Check if interacting across a counter/bench
+      const twoStepsX = targetX + offset.x;
+      const twoStepsY = targetY + offset.y;
+      const npcAcrossCounter = this.mapData.npcs.find((n) => n.x === twoStepsX && n.y === twoStepsY);
+      const decorAhead = this.mapData.decor && this.mapData.decor[targetY] ? this.mapData.decor[targetY][targetX] : null;
+      if (
+        npcAcrossCounter &&
+        (decorAhead === 'counter' || decorAhead === 'building_wall' || decorAhead === 'counter_scale' || this.mapData.collision[targetY]?.[targetX])
+      ) {
+        return { type: 'npc', target: npcAcrossCounter };
+      }
     }
 
     if (this.mapData.signs) {
@@ -254,6 +270,12 @@ export class OverworldPlayer {
       if (sign) {
         return { type: 'sign', target: sign };
       }
+    }
+
+    // Bloque 36 Req. 6: Interactive Overworld Decor (doll_arm_buried, sparkle_hidden, mana_berry_plant, bones)
+    const decorHit = GlobalOverworldDecor.interactAt(targetX, targetY, this.gridX, this.gridY);
+    if (decorHit) {
+      return { type: 'decor', target: decorHit };
     }
 
     if (

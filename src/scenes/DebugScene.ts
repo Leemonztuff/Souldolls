@@ -12,7 +12,7 @@ import { StatCalculator } from '../systems/battle/StatCalculator';
 import { Direction } from '../types';
 import { SoulDollSpriteFactory, ChassisMaterial, SpriteView } from '../render/procedural/SoulDollSpriteFactory';
 
-type DebugTab = 'creatures' | 'characters' | 'tiles' | 'lab';
+type DebugTab = 'creatures' | 'characters' | 'tiles' | 'lab' | 'battle_test';
 
 export class DebugScene implements IScene {
   public name = 'Debug';
@@ -30,12 +30,23 @@ export class DebugScene implements IScene {
   private maxScrollY = 0;
 
   // Lab Inspector State (Bloque 19)
-  private labSpeciesId = 'flamin';
+  private labSpeciesId = 'maga';
   private labChassisMat: ChassisMaterial = 'wood';
   private labWeaponId = 'baculo_fuego';
-  private labView: SpriteView = 'front';
+  private labView: SpriteView = 'side_r';
   private labFrame = 0;
   private labBrokenParts = { head: 15, torso: 40, arms: 20, legs: 25 };
+
+  // Battle Test State (Bloque 37 Req 7)
+  private btFlipOverride = false;
+  private btIntegerScale = true;
+  private btShowBoundingBoxes = true;
+  private btShowAnchorsAndGrid = true;
+  private btNativeSize = false;
+  private btFps = 60;
+  private btFpsFrames = 0;
+  private btFpsAccum = 0;
+  private btFpsText?: Text;
 
   public async enter(): Promise<void> {
     GlobalPixiRenderer.clearAllLayers();
@@ -87,17 +98,18 @@ export class DebugScene implements IScene {
       { id: 'characters', label: '2. ENTRENADORES' },
       { id: 'tiles', label: '3. TILES' },
       { id: 'lab', label: '4. VISOR CAPAS' },
+      { id: 'battle_test', label: '5. COMBATE TEST' },
     ];
 
     tabs.forEach((tab, index) => {
       const tabBtn = new Container();
-      tabBtn.position.set(240 + index * 165, 10);
+      tabBtn.position.set(220 + index * 145, 10);
       tabBtn.eventMode = 'static';
       tabBtn.cursor = 'pointer';
 
       const isActive = tab.id === this.activeTab;
       const tabBg = new Graphics();
-      tabBg.roundRect(0, 0, 195, 48, 8);
+      tabBg.roundRect(0, 0, 140, 48, 8);
       tabBg.fill({ color: isActive ? 0x0284c7 : 0x1e293b });
       tabBg.stroke({ color: isActive ? 0xffffff : 0x334155, width: 2 });
       tabBtn.addChild(tabBg);
@@ -106,13 +118,13 @@ export class DebugScene implements IScene {
         text: tab.label,
         style: new TextStyle({
           fontFamily: 'monospace, system-ui',
-          fontSize: 16,
+          fontSize: 13,
           fontWeight: '900',
           fill: isActive ? '#ffffff' : '#94a3b8',
         }),
       });
       tabLabel.anchor.set(0.5);
-      tabLabel.position.set(97, 24);
+      tabLabel.position.set(70, 24);
       tabBtn.addChild(tabLabel);
 
       tabBtn.on('pointerdown', () => {
@@ -192,6 +204,8 @@ export class DebugScene implements IScene {
       this.renderTilesGrid();
     } else if (this.activeTab === 'lab') {
       this.renderLabTab();
+    } else if (this.activeTab === 'battle_test') {
+      this.renderBattleTestTab();
     }
   }
 
@@ -485,6 +499,18 @@ export class DebugScene implements IScene {
   }
 
   public update(dt: number): void {
+    // 0. Update FPS counter
+    this.btFpsFrames++;
+    this.btFpsAccum += dt;
+    if (this.btFpsAccum >= 0.5) {
+      this.btFps = Math.round(this.btFpsFrames / this.btFpsAccum);
+      this.btFpsFrames = 0;
+      this.btFpsAccum = 0;
+      if (this.btFpsText && !this.btFpsText.destroyed) {
+        this.btFpsText.text = `FPS: ${this.btFps}`;
+      }
+    }
+
     // 1. Animate character walk cycles
     this.animTimer += dt * 4;
     const frame = Math.floor(this.animTimer) % 3;
@@ -512,6 +538,8 @@ export class DebugScene implements IScene {
       // Tab cycle
       if (this.activeTab === 'creatures') this.activeTab = 'characters';
       else if (this.activeTab === 'characters') this.activeTab = 'tiles';
+      else if (this.activeTab === 'tiles') this.activeTab = 'lab';
+      else if (this.activeTab === 'lab') this.activeTab = 'battle_test';
       else this.activeTab = 'creatures';
       this.scrollY = 0;
       GlobalAudioService.playSfx('select');
@@ -522,6 +550,258 @@ export class DebugScene implements IScene {
   public close(): void {
     GlobalAudioService.playSfx('cancel');
     GlobalSceneManager.popScene();
+  }
+
+  private renderBattleTestTab(): void {
+    const box = new Container();
+    box.roundPixels = true;
+    box.position.set(16, 10);
+
+    // Left Controls Panel
+    const ctrlPanel = new Container();
+    ctrlPanel.position.set(0, 0);
+    const ctrlBg = new Graphics();
+    ctrlBg.roundRect(0, 0, 350, 500, 10);
+    ctrlBg.fill({ color: 0x0f172a, alpha: 0.95 });
+    ctrlBg.stroke({ color: 0x38bdf8, width: 2 });
+    ctrlPanel.addChild(ctrlBg);
+
+    const title = new Text({
+      text: '⚔️ PRUEBA DE COMBATE (BLOQUE 37)',
+      style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: '900', fill: '#38bdf8' }),
+    });
+    title.position.set(16, 14);
+    ctrlPanel.addChild(title);
+
+    this.btFpsText = new Text({
+      text: `FPS: ${this.btFps}`,
+      style: new TextStyle({ fontFamily: 'monospace', fontSize: 14, fontWeight: '900', fill: '#10b981' }),
+    });
+    this.btFpsText.position.set(260, 14);
+    ctrlPanel.addChild(this.btFpsText);
+
+    const toggles = [
+      {
+        label: `1. Orientación (Flip): ${this.btFlipOverride ? 'INVERTIDO' : 'NORMAL'}`,
+        active: this.btFlipOverride,
+        onClick: () => {
+          this.btFlipOverride = !this.btFlipOverride;
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `2. Escala Entera: ${this.btIntegerScale ? 'ON (Floor)' : 'OFF (Float)'}`,
+        active: this.btIntegerScale,
+        onClick: () => {
+          this.btIntegerScale = !this.btIntegerScale;
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `3. Bounding Boxes: ${this.btShowBoundingBoxes ? 'ON' : 'OFF'}`,
+        active: this.btShowBoundingBoxes,
+        onClick: () => {
+          this.btShowBoundingBoxes = !this.btShowBoundingBoxes;
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `4. Anclas y Grid Píxel: ${this.btShowAnchorsAndGrid ? 'ON' : 'OFF'}`,
+        active: this.btShowAnchorsAndGrid,
+        onClick: () => {
+          this.btShowAnchorsAndGrid = !this.btShowAnchorsAndGrid;
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `5. Tamaño: ${this.btNativeSize ? 'NATIVO (1x)' : 'ESCALADO'}`,
+        active: this.btNativeSize,
+        onClick: () => {
+          this.btNativeSize = !this.btNativeSize;
+          this.renderActiveTab();
+        },
+      },
+    ];
+
+    toggles.forEach((t, idx) => {
+      const btn = new Container();
+      btn.position.set(16, 48 + idx * 44);
+      btn.eventMode = 'static';
+      btn.cursor = 'pointer';
+
+      const bBg = new Graphics();
+      bBg.roundRect(0, 0, 318, 36, 6);
+      bBg.fill({ color: t.active ? 0x0284c7 : 0x1e293b });
+      bBg.stroke({ color: t.active ? 0xffffff : 0x475569, width: 1.5 });
+      btn.addChild(bBg);
+
+      const bTxt = new Text({
+        text: t.label,
+        style: new TextStyle({ fontFamily: 'monospace', fontSize: 12, fontWeight: 'bold', fill: '#ffffff' }),
+      });
+      bTxt.position.set(12, 10);
+      btn.addChild(bTxt);
+
+      btn.on('pointerdown', () => {
+        GlobalAudioService.playSfx('select');
+        t.onClick();
+      });
+
+      ctrlPanel.addChild(btn);
+    });
+
+    // Launch full interactive BattleScene button
+    const launchBtn = new Container();
+    launchBtn.position.set(16, 285);
+    launchBtn.eventMode = 'static';
+    launchBtn.cursor = 'pointer';
+
+    const lBg = new Graphics();
+    lBg.roundRect(0, 0, 318, 44, 8);
+    lBg.fill({ color: 0x16a34a });
+    lBg.stroke({ color: 0xffffff, width: 2 });
+    launchBtn.addChild(lBg);
+
+    const lTxt = new Text({
+      text: '▶ ABRIR BATALLA REAL DE PRUEBA',
+      style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: '900', fill: '#ffffff' }),
+    });
+    lTxt.anchor.set(0.5);
+    lTxt.position.set(159, 22);
+    launchBtn.addChild(lTxt);
+
+    launchBtn.on('pointerdown', () => {
+      GlobalAudioService.playSfx('confirm');
+      const ally = StatCalculator.createCreatureInstance('maga', 12);
+      const enemy = StatCalculator.createCreatureInstance('maga', 10);
+      GlobalSceneManager.popScene();
+      GlobalSceneManager.pushScene('Battle', {
+        battleType: 'wild',
+        playerParty: [ally],
+        opponentParty: [enemy],
+        biome: 'pasto',
+      });
+    });
+    ctrlPanel.addChild(launchBtn);
+
+    box.addChild(ctrlPanel);
+
+    // Right Arena Preview Panel
+    const arenaW = 540;
+    const arenaH = 500;
+    const arena = new Container();
+    arena.roundPixels = true;
+    arena.position.set(366, 0);
+
+    const arenaBg = new Graphics();
+    arenaBg.roundRect(0, 0, arenaW, arenaH, 10);
+    arenaBg.fill({ color: 0x0f172a });
+    arenaBg.stroke({ color: 0x38bdf8, width: 2 });
+    arena.addChild(arenaBg);
+
+    const allyCx = 145;
+    const allyCy = 415;
+    const enemyCx = 395;
+    const enemyCy = 235;
+
+    // Platforms + Elliptical shadows (alpha 0.35)
+    const platG = new Graphics();
+    platG.ellipse(enemyCx, enemyCy, 86, 26);
+    platG.fill({ color: 0x2a1f2d, alpha: 0.88 });
+    platG.stroke({ color: 0x8a6a3b, width: 2 });
+    platG.ellipse(allyCx, allyCy, 100, 30);
+    platG.fill({ color: 0x2a1f2d, alpha: 0.88 });
+    platG.stroke({ color: 0x8a6a3b, width: 2 });
+
+    platG.ellipse(enemyCx, enemyCy, 42, 12);
+    platG.fill({ color: 0x000000, alpha: 0.35 });
+    platG.ellipse(allyCx, allyCy, 48, 14);
+    platG.fill({ color: 0x000000, alpha: 0.35 });
+    arena.addChild(platG);
+
+    // Sprites: side_r for ally (facing right), side_r with negative scale.x for enemy (facing left)
+    const texSideR = GlobalAssetRegistry.getCreatureSpritePixi('maga', 'side_r');
+    const nativeH = Math.max(1, texSideR.height || 162);
+
+    const allyTargetH = arenaH * 0.38;
+    const enemyTargetH = arenaH * 0.30;
+
+    const allyScale = this.btNativeSize
+      ? 1
+      : this.btIntegerScale
+      ? Math.max(1, Math.floor(allyTargetH / nativeH))
+      : Number((allyTargetH / nativeH).toFixed(2));
+    const enemyScale = this.btNativeSize
+      ? 1
+      : this.btIntegerScale
+      ? Math.max(1, Math.floor(enemyTargetH / nativeH))
+      : Number((enemyTargetH / nativeH).toFixed(2));
+
+    const allySign = this.btFlipOverride ? -1 : 1;
+    const enemySign = this.btFlipOverride ? 1 : -1;
+
+    const opSpr = new Sprite(texSideR);
+    opSpr.anchor.set(0.5, 1.0);
+    opSpr.roundPixels = true;
+    opSpr.scale.set(enemySign * enemyScale, enemyScale);
+    opSpr.position.set(enemyCx, enemyCy);
+    arena.addChild(opSpr);
+
+    const plSpr = new Sprite(texSideR);
+    plSpr.anchor.set(0.5, 1.0);
+    plSpr.roundPixels = true;
+    plSpr.scale.set(allySign * allyScale, allyScale);
+    plSpr.position.set(allyCx, allyCy);
+    arena.addChild(plSpr);
+
+    // Debug Overlays (Bounding boxes, anchors, pixel grid)
+    const dbgG = new Graphics();
+    const drawOverlay = (spr: Sprite, sc: number, col: number) => {
+      const w = Math.round(spr.texture.width * sc);
+      const h = Math.round(spr.texture.height * sc);
+      const ax = Math.round(spr.position.x);
+      const ay = Math.round(spr.position.y);
+      const left = Math.round(ax - w / 2);
+      const top = Math.round(ay - h);
+
+      if (this.btShowAnchorsAndGrid && sc >= 2) {
+        const step = Math.max(2, Math.round(sc));
+        for (let x = left; x <= left + w; x += step) {
+          dbgG.moveTo(x, top);
+          dbgG.lineTo(x, top + h);
+        }
+        for (let y = top; y <= top + h; y += step) {
+          dbgG.moveTo(left, y);
+          dbgG.lineTo(left + w, y);
+        }
+        dbgG.stroke({ color: 0xffffff, width: 1, alpha: 0.16 });
+      }
+      if (this.btShowBoundingBoxes) {
+        dbgG.rect(left, top, w, h);
+        dbgG.stroke({ color: col, width: 2 });
+      }
+      if (this.btShowAnchorsAndGrid) {
+        dbgG.moveTo(ax - 10, ay);
+        dbgG.lineTo(ax + 10, ay);
+        dbgG.moveTo(ax, ay - 10);
+        dbgG.lineTo(ax, ay + 10);
+        dbgG.stroke({ color: 0xfacc15, width: 2 });
+      }
+    };
+    drawOverlay(plSpr, allyScale, 0x38bdf8);
+    drawOverlay(opSpr, enemyScale, 0xf43f5e);
+    arena.addChild(dbgG);
+
+    const infoLabel = new Text({
+      text: `Nativo: ${texSideR.width}x${texSideR.height} px (sin verde, 1px pad) | Aliada: scale=(${plSpr.scale.x}, ${plSpr.scale.y}) | Enemiga: scale=(${opSpr.scale.x}, ${opSpr.scale.y})`,
+      style: new TextStyle({ fontFamily: 'monospace', fontSize: 11, fill: '#f8fafc' }),
+    });
+    infoLabel.position.set(14, arenaH - 28);
+    arena.addChild(infoLabel);
+
+    box.addChild(arena);
+    this.contentContainer.addChild(box);
+    this.maxScrollY = 0;
   }
 
   private renderLabTab(): void {
@@ -732,16 +1012,16 @@ export class DebugScene implements IScene {
     viewTitle.position.set(16, 345);
     leftPanel.addChild(viewTitle);
 
-    const views: SpriteView[] = ['front', 'back', 'icon', 'attack'];
+    const views: SpriteView[] = ['side_r', 'front', 'back', 'icon', 'attack'];
     views.forEach((v, idx) => {
       const isSel = this.labView === v;
       const btn = new Container();
-      btn.position.set(16 + idx * 110, 365);
+      btn.position.set(16 + idx * 88, 365);
       btn.eventMode = 'static';
       btn.cursor = 'pointer';
 
       const bg = new Graphics();
-      bg.roundRect(0, 0, 102, 26, 4);
+      bg.roundRect(0, 0, 82, 26, 4);
       bg.fill({ color: isSel ? 0x7e22ce : 0x1e293b });
       bg.stroke({ color: isSel ? 0xffffff : 0x334155, width: 1.5 });
       btn.addChild(bg);
@@ -751,7 +1031,7 @@ export class DebugScene implements IScene {
         style: new TextStyle({ fontFamily: 'monospace', fontSize: 10, fontWeight: 'bold', fill: '#ffffff' }),
       });
       label.anchor.set(0.5);
-      label.position.set(51, 13);
+      label.position.set(41, 13);
       btn.addChild(label);
 
       btn.on('pointerdown', () => {
@@ -813,11 +1093,13 @@ export class DebugScene implements IScene {
       frame: this.labFrame,
     });
 
-    const tex = Texture.from({ resource: previewCanvas });
+    const tex = GlobalAssetRegistry.createCrispPixiTexture(previewCanvas);
     const sprite = new Sprite(tex);
     sprite.anchor.set(0.5);
+    sprite.roundPixels = true;
     sprite.position.set(180, 140);
-    sprite.scale.set(3.5);
+    const previewScale = Math.max(1, Math.floor(200 / Math.max(1, previewCanvas.height)));
+    sprite.scale.set(previewScale);
     rightPanel.addChild(sprite);
 
     // Layer Info Box

@@ -4,6 +4,7 @@ import { GlobalSaveService } from '../../services/SaveService';
 import { GlobalQuestSystem } from '../quest/QuestSystem';
 import { GlobalAudioService } from '../../services/AudioService';
 import { GlobalEventBus } from '../../core/EventBus';
+import { GlobalSceneManager } from '../../core/SceneManager';
 import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { MOVES_DATA } from '../../data/moves/moves';
 import { CreatureInstance } from '../../types';
@@ -144,10 +145,16 @@ export class DialogueSystem {
       this.awardCreature(eff.giveCreature.speciesId, eff.giveCreature.level);
     }
 
-    // 5. Heal Party
+    // 5. Heal Party & Restore Body Parts (Souldoll Parts)
     if (eff.healParty) {
       state.party.forEach((c) => {
         c.currentHp = c.maxHp;
+        if (c.partHP && c.maxPartHP) {
+          c.partHP.head = c.maxPartHP.head;
+          c.partHP.torso = c.maxPartHP.torso;
+          c.partHP.arms = c.maxPartHP.arms;
+          c.partHP.legs = c.maxPartHP.legs;
+        }
         c.status = null;
         c.moves.forEach((m) => {
           m.currentPp = m.maxPp;
@@ -155,7 +162,7 @@ export class DialogueSystem {
       });
       GlobalAudioService.playSfx('confirm');
       GlobalEventBus.emit('toast:message', {
-        text: '💖 ¡Todo tu equipo ha sido completamente curado!',
+        text: '💖 ¡El ki de tus Souldolls y todos sus chasis han sido restaurados al 100%!',
         duration: 2500,
       });
     }
@@ -173,6 +180,20 @@ export class DialogueSystem {
     }
     if (eff.completeQuest) {
       GlobalQuestSystem.completeQuest(eff.completeQuest);
+    }
+
+    // 7. Open Integrated Scenes (Shop, Workshop, StorageBox)
+    if (eff.openShop) {
+      GlobalAudioService.playSfx('select');
+      GlobalSceneManager.pushScene('Shop', { mode: eff.shopMode || 'buy' });
+    }
+    if (eff.openWorkshop) {
+      GlobalAudioService.playSfx('select');
+      GlobalSceneManager.pushScene('Workshop');
+    }
+    if (eff.openStorageBox) {
+      GlobalAudioService.playSfx('select');
+      GlobalSceneManager.pushScene('StorageBox');
     }
 
     GlobalSaveService.save(GlobalSaveService.getActiveSlot());

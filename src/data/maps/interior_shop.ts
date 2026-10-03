@@ -1,8 +1,8 @@
 import { MapData } from '../../types/maps';
 import { TileType } from '../../render/procedural/TileFactory';
 
-const W = 10;
-const H = 8;
+const W = 12;
+const H = 10;
 
 const ground: TileType[][] = Array.from({ length: H }, () =>
   Array.from({ length: W }, () => 'interior_floor')
@@ -14,7 +14,7 @@ const collision: boolean[][] = Array.from({ length: H }, () =>
   Array.from({ length: W }, () => false)
 );
 
-// Perimeter walls
+// 1. Perimeter walls
 for (let x = 0; x < W; x++) {
   decor[0][x] = 'wall';
   collision[0][x] = true;
@@ -28,24 +28,53 @@ for (let y = 0; y < H; y++) {
   collision[y][W - 1] = true;
 }
 
-// Exit rug at bottom (x: 5, y: 7)
-collision[7][5] = false;
+// Exit doorway at bottom (x: 5, 6, y: 9)
+collision[H - 1][5] = false;
+collision[H - 1][6] = false;
+decor[H - 1][5] = 'door';
+decor[H - 1][6] = 'door';
 
-// Shop Counter (y: 3, x: 2..5)
-for (let x = 2; x <= 5; x++) {
-  decor[3][x] = 'building_wall';
-  collision[3][x] = true;
+// 2. Back wall shelves (y: 1, x: 2..9)
+for (let x = 2; x <= 9; x++) {
+  collision[1][x] = true;
+  decor[1][x] = 'shelf';
 }
 
-// Merchandise shelves (y: 1..2, x: 7..8; y: 4..5, x: 8)
-[[1, 7], [1, 8], [2, 7], [2, 8], [4, 8], [5, 8]].forEach(([y, x]) => {
-  decor[y][x] = 'building_wall';
-  collision[y][x] = true;
-});
+// 3. Counter (y: 4, x: 4..7)
+for (let x = 4; x <= 7; x++) {
+  collision[4][x] = true;
+  decor[4][x] = 'counter';
+}
+
+// 4. Left side: Mannequins and Safe (x: 1, y: 3..6)
+collision[3][1] = true;
+decor[3][1] = 'mannequin';
+collision[4][1] = true;
+decor[4][1] = 'mannequin';
+collision[5][1] = true;
+decor[5][1] = 'mannequin';
+collision[6][1] = true;
+decor[6][1] = 'safe';
+
+// 5. Right side: Weapon rack, Crystals, Notice board (x: 10, y: 3..6)
+collision[3][10] = true;
+decor[3][10] = 'weapon_rack';
+collision[4][10] = true;
+decor[4][10] = 'crystals';
+collision[5][10] = true;
+decor[5][10] = 'crystals';
+collision[6][10] = true;
+decor[6][10] = 'notice_board';
+
+// 6. Vitrinas (x: 3, y: 6 and x: 8, y: 6)
+collision[6][3] = true;
+decor[6][3] = 'vitrina';
+collision[6][8] = true;
+decor[6][8] = 'vitrina';
 
 export const INTERIOR_SHOP_MAP: MapData = {
   id: 'interior_shop',
-  name: 'Tienda de Objetos',
+  name: 'Mercado de Artífices',
   category: 'interior',
   indoor: true,
   width: W,
@@ -56,15 +85,102 @@ export const INTERIOR_SHOP_MAP: MapData = {
   collision,
   signs: [
     {
+      x: 1,
+      y: 3,
+      shopCategory: 'bodies',
+      text: '🤖 EXPOSITOR DE CHASIS\n"Cuerpos de marioneta artesanales. Toca para ver catálogo de Cuerpos."',
+    },
+    {
+      x: 1,
+      y: 4,
+      shopCategory: 'bodies',
+      text: '🤖 EXPOSITOR DE CHASIS\n"Chasis reforzados de hierro y madera con ranuras de equipo."',
+    },
+    {
+      x: 1,
+      y: 5,
+      shopCategory: 'bodies',
+      text: '🤖 EXPOSITOR DE CHASIS\n"Marionetas de alta resonancia espiritual para almas avanzadas."',
+    },
+    {
+      x: 1,
+      y: 6,
+      shopCategory: 'gear',
+      text: '🔒 CAJA FUERTE DEL GREMIO\n"Depósito seguro de reliquias y armamento de artífices."',
+    },
+    {
+      x: 10,
+      y: 3,
+      shopCategory: 'gear',
+      text: '⚔️ ARMERO DE RELIQUIAS\n"Armas y reliquias de combate. Pulsa A para ver catálogo."',
+    },
+    {
+      x: 10,
+      y: 4,
+      shopCategory: 'crystals',
+      text: '💎 VITRINA DE CRISTALES\n"Cristales de ki puro y maná para reforzar tus almas."',
+    },
+    {
+      x: 10,
+      y: 5,
+      shopCategory: 'crystals',
+      text: '💎 PEDESTAL DE CRISTALES\n"Cristales resonadores elementales."',
+    },
+    {
+      x: 10,
+      y: 6,
+      shopCategory: 'quests',
+      text: '📋 TABLÓN DE ENCARGOS\n"Misiones activas y pedidos de los Artífices."',
+    },
+    {
+      x: 3,
+      y: 6,
+      shopCategory: 'bottles',
+      text: '🧪 VITRINA DE SOUL BOTTLES\n"Recipientes para capturar almas salvajes en praderas y bosques."',
+    },
+    {
+      x: 8,
+      y: 6,
+      shopCategory: 'elixirs',
+      text: '🍷 BOTICARIO DE ELIXIRES\n"Elixires de restauración de ki y purgas de corrupción."',
+    },
+    {
+      x: 4,
+      y: 4,
+      shopMode: 'buy',
+      text: '🏛 MOSTRADOR DE MERCADER\n"Menú de Compra y Venta del Mercado de Artífices."',
+    },
+    {
+      x: 5,
+      y: 4,
+      shopMode: 'buy',
+      text: '🏛 MOSTRADOR DE MERCADER\n"Menú de Compra y Venta del Mercado de Artífices."',
+    },
+    {
+      x: 6,
+      y: 4,
+      shopMode: 'buy',
+      text: '🏛 MOSTRADOR DE MERCADER\n"Menú de Compra y Venta del Mercado de Artífices."',
+    },
+    {
       x: 7,
-      y: 1,
-      text: '📦 ESTANTE DE PRODUCTOS\n"Cápsulas: $200 | Pociones: $300 | Antídotos: $100 | Revivir: $1500"',
+      y: 4,
+      shopMode: 'buy',
+      text: '🏛 MOSTRADOR DE MERCADER\n"Menú de Compra y Venta del Mercado de Artífices."',
     },
   ],
   warps: [
     {
       x: 5,
-      y: 7,
+      y: 9,
+      targetMapId: 'villa_brote',
+      targetX: 22,
+      targetY: 18,
+      targetDirection: 'down',
+    },
+    {
+      x: 6,
+      y: 9,
       targetMapId: 'villa_brote',
       targetX: 22,
       targetY: 18,
@@ -75,19 +191,19 @@ export const INTERIOR_SHOP_MAP: MapData = {
   npcs: [
     {
       id: 'npc_shop_clerk',
-      name: 'Tendero',
+      name: 'Mercader Artífice',
       paletteId: 'clerk',
-      x: 3,
-      y: 2,
+      x: 5,
+      y: 3,
       direction: 'down',
       dialogueLines: [
-        '¡Buenas! Bienvenido a la Tienda de Villa Brote.',
-        '¿En qué puedo servirte hoy? Tenemos las mejores Cápsulas y suministros médicos para tu viaje.',
+        '¡Bienvenido al Mercado de Artífices de Villa Brote!',
+        'Tenemos los mejores recipientes Soul Bottles, elixires de ki y chasis para tus Souldolls.',
       ],
     },
   ],
   spawnPoints: {
-    default: { x: 5, y: 6, direction: 'up' },
+    default: { x: 5, y: 8, direction: 'up' },
   },
   ambientMusic: 'shop',
   sunlightColor: 0xffedd5,

@@ -25,6 +25,13 @@ export class ShopScene implements IScene {
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
 
+    if (params?.mode) {
+      this.mode = params.mode;
+    }
+    if (params?.category) {
+      this.activeCategory = params.category;
+    }
+
     this.container = new Container();
     this.container.position.set(0, 0);
 

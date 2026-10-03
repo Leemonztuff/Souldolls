@@ -15,5 +15,25 @@
     "torso": 0.5,
     "arms": 0.2,
     "legs": 0.15
+  },
+  "battleFacing": {
+    "ally": "right",
+    "enemy": "left"
+  },
+  "roleViews": {
+    "ally": "side_r",
+    "enemy": "side_r"
+  },
+  "allyHeightPct": 0.38,
+  "enemyHeightPct": 0.30,
+  "nativeTargetHeightPx": 160,
+  "shadowAlpha": 0.35,
+  "layout": {
+    "enemyPlatform": { "xPct": 0.72, "yPct": 0.36, "rxPct": 0.16, "ryPct": 0.055 },
+    "allyPlatform": { "xPct": 0.28, "yPct": 0.58, "rxPct": 0.20, "ryPct": 0.065 },
+    "enemyHud": { "xPct": 0.03, "yPct": 0.03, "wPct": 0.42, "hPct": 0.13 },
+    "allyHud": { "xPct": 0.55, "yPct": 0.41, "wPct": 0.42, "hPct": 0.17 },
+    "narratorBox": { "xPct": 0.025, "yPct": 0.62, "wPct": 0.95, "hPct": 0.11 },
+    "menuBox": { "xPct": 0.025, "yPct": 0.75, "wPct": 0.95, "hPct": 0.22 }
   }
 }

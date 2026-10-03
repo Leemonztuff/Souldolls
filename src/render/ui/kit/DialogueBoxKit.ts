@@ -35,7 +35,7 @@ export class DialogueBoxKit extends Container {
       text: '',
       style: new TextStyle({
         fontFamily: FONTS.title,
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 'bold',
         fill: COLOR_HEX.gold,
         stroke: { color: COLOR_HEX.inkCrypt, width: 3 },
@@ -59,16 +59,16 @@ export class DialogueBoxKit extends Container {
     this.portraitSprite = new Graphics();
     this.portraitContainer.addChild(this.portraitSprite);
 
-    // Message text (offset for portrait)
+    // Message text (Mobile First: 17px with 24px line height for crisp readability)
     this.messageText = new Text({
       text: '',
       style: new TextStyle({
         fontFamily: FONTS.body,
-        fontSize: 14,
+        fontSize: 17,
         fill: COLOR_HEX.parchment,
         wordWrap: true,
         wordWrapWidth: config.width - 150,
-        lineHeight: 20,
+        lineHeight: 24,
       }),
     });
     this.messageText.position.set(124, 24);

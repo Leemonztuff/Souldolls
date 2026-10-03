@@ -18,6 +18,9 @@ export interface DialogueEffect {
   advanceQuest?: { questId: string; objectiveId?: string; amount?: number };
   completeQuest?: string;
   openShop?: boolean;
+  shopMode?: 'buy' | 'sell';
+  openWorkshop?: boolean;
+  openStorageBox?: boolean;
   startBattle?: { trainerId?: string; speciesId?: string; level?: number };
 }
 

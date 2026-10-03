@@ -3,7 +3,7 @@ import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { GlobalSaveService } from '../../services/SaveService';
 
 export type ChassisMaterial = 'wood' | 'iron' | 'crystal' | 'stone' | 'clay' | 'bone';
-export type SpriteView = 'front' | 'back' | 'icon' | 'attack';
+export type SpriteView = 'front' | 'back' | 'side_r' | 'side_l' | 'icon' | 'attack';
 
 export interface LayeredRenderConfig {
   speciesId: string;
@@ -20,6 +20,8 @@ export interface LayeredRenderConfig {
 export interface CreatureSpriteSet {
   front: HTMLCanvasElement;
   back: HTMLCanvasElement;
+  side_r: HTMLCanvasElement;
+  side_l: HTMLCanvasElement;
   icon: HTMLCanvasElement;
   attack?: HTMLCanvasElement;
 }
@@ -28,29 +30,254 @@ export class SoulDollSpriteFactory {
   private static cache: Map<string, HTMLCanvasElement> = new Map();
   private static customSpritesheet: HTMLImageElement | null = null;
   private static customSpritesheetLoaded = false;
+  private static keyedViewsCache: Map<string, HTMLCanvasElement> = new Map();
+  private static onSheetReadyCallbacks: Array<() => void> = [];
 
   static {
-    // Preload custom spritesheet if running in browser
+    // Preload processed battle spritesheet (or fallback raw JPG with runtime keyOutGreen)
     if (typeof window !== 'undefined') {
-      const img = new Image();
-      img.src = '/Assets/524060170_1790895365875586.jpg';
-      img.onload = () => {
-        this.customSpritesheet = img;
+      const pngImg = new Image();
+      pngImg.src = '/Assets/maga_battle_sheet.png';
+      pngImg.onload = () => {
+        this.customSpritesheet = pngImg;
         this.customSpritesheetLoaded = true;
-        // Clear cache so that it re-renders using the real spritesheet
+        this.processLoadedSpritesheet(pngImg, true);
         this.cache.clear();
+        this.onSheetReadyCallbacks.forEach((cb) => cb());
       };
-      img.onerror = () => {
-        // Retry with relative lowercase fallback
-        const fallbackImg = new Image();
-        fallbackImg.src = './Assets/524060170_1790895365875586.jpg';
-        fallbackImg.onload = () => {
-          this.customSpritesheet = fallbackImg;
+      pngImg.onerror = () => {
+        const jpgImg = new Image();
+        jpgImg.src = '/Assets/524060170_1790895365875586.jpg';
+        jpgImg.onload = () => {
+          this.customSpritesheet = jpgImg;
           this.customSpritesheetLoaded = true;
+          this.processLoadedSpritesheet(jpgImg, false);
           this.cache.clear();
+          this.onSheetReadyCallbacks.forEach((cb) => cb());
         };
       };
     }
+  }
+
+  public static onSpritesheetReady(cb: () => void): void {
+    if (this.customSpritesheetLoaded) {
+      cb();
+    } else {
+      this.onSheetReadyCallbacks.push(cb);
+    }
+  }
+
+  /**
+   * Req 2: Procesa una imagen o canvas eliminando el fondo verde (chroma key + despill g = max(r,b))
+   * una sola vez al cargar y cachea el canvas resultante.
+   */
+  public static keyOutGreen(
+    source: HTMLImageElement | HTMLCanvasElement,
+    targetGreen: [number, number, number] = [26, 174, 6],
+    tolerance = 58
+  ): HTMLCanvasElement {
+    const w = source.width;
+    const h = source.height;
+    const { canvas, ctx } = this.createCanvas(w, h);
+    ctx.drawImage(source, 0, 0);
+
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const [bgR, bgG, bgB] = targetGreen;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      if (a === 0) continue;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      const dist = Math.hypot(r - bgR, g - bgG, b - bgB);
+      const greenExcess = g - Math.max(r, b);
+
+      if (dist <= tolerance || (greenExcess > 48 && g > 95 && r < 115 && b < 115)) {
+        data[i] = 0;
+        data[i + 1] = 0;
+        data[i + 2] = 0;
+        data[i + 3] = 0;
+      } else if (greenExcess > 12) {
+        // Despill: en bordes, g = max(r,b)
+        data[i + 1] = Math.max(r, b);
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas;
+  }
+
+  /**
+   * Recorta un canvas al bounding box de los píxeles opacos con 1 px de padding transparente.
+   */
+  public static trimToOpaqueBoundingBox(source: HTMLCanvasElement, padding = 1): HTMLCanvasElement {
+    const w = source.width;
+    const h = source.height;
+    const ctx = source.getContext('2d')!;
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    let minX = w;
+    let maxX = -1;
+    let minY = h;
+    let maxY = -1;
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const a = data[(y * w + x) * 4 + 3];
+        if (a > 16) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX < minX || maxY < minY) {
+      return source;
+    }
+
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+    const outW = cropW + padding * 2;
+    const outH = cropH + padding * 2;
+
+    const { canvas: outCanvas, ctx: outCtx } = this.createCanvas(outW, outH);
+    outCtx.drawImage(source, minX, minY, cropW, cropH, padding, padding, cropW, cropH);
+    return outCanvas;
+  }
+
+  /**
+   * Segmenta la hoja por columnas vacías, reduce a cuadrícula nativa (~160px alto) si viene en alta resolución,
+   * y recorta cada vista con 1 px de padding.
+   */
+  private static processLoadedSpritesheet(img: HTMLImageElement, isPreKeyedPng: boolean): void {
+    const keyedSheet = isPreKeyedPng ? this.keyOutGreen(img, [26, 174, 6], 42) : this.keyOutGreen(img, [26, 174, 6], 58);
+    const w = keyedSheet.width;
+    const h = keyedSheet.height;
+    const ctx = keyedSheet.getContext('2d')!;
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    // Detectar columnas no vacías para separar las 4 vistas sin cajas fijas
+    const colCounts = new Int32Array(w);
+    for (let x = 0; x < w; x++) {
+      let c = 0;
+      for (let y = 0; y < h; y++) {
+        if (data[(y * w + x) * 4 + 3] > 16) c++;
+      }
+      colCounts[x] = c;
+    }
+
+    const minPixelsPerCol = h > 500 ? 5 : 1;
+    const minSegWidth = w > 1000 ? 20 : 8;
+    const segments: Array<[number, number]> = [];
+    let inSeg = false;
+    let startX = 0;
+    for (let x = 0; x < w; x++) {
+      if (colCounts[x] >= minPixelsPerCol) {
+        if (!inSeg) {
+          inSeg = true;
+          startX = x;
+        }
+      } else if (inSeg) {
+        if (x - startX >= minSegWidth) segments.push([startX, x - 1]);
+        inSeg = false;
+      }
+    }
+    if (inSeg && w - startX >= minSegWidth) {
+      segments.push([startX, w - 1]);
+    }
+
+    const viewNames: SpriteView[] = ['front', 'side_r', 'back', 'side_l'];
+    segments.forEach(([sx, ex], idx) => {
+      const vName = viewNames[idx] || 'side_r';
+      const segW = ex - sx + 1;
+      const { canvas: rawSeg, ctx: segCtx } = this.createCanvas(segW, h);
+      segCtx.drawImage(keyedSheet, sx, 0, segW, h, 0, 0, segW, h);
+      const trimmed = this.trimToOpaqueBoundingBox(rawSeg, 1);
+
+      // Si es la imagen JPG original (~1412px de alto), reducir por bloques (nearest/mediana) a ~160px
+      if (trimmed.height > 300) {
+        const targetH = 160;
+        const scale = trimmed.height / targetH;
+        const targetW = Math.max(1, Math.round(trimmed.width / scale));
+        const { canvas: downCanvas, ctx: downCtx } = this.createCanvas(targetW, targetH);
+        downCtx.imageSmoothingEnabled = false;
+        downCtx.drawImage(trimmed, 0, 0, targetW, targetH);
+        this.keyedViewsCache.set(vName, this.trimToOpaqueBoundingBox(downCanvas, 1));
+      } else {
+        this.keyedViewsCache.set(vName, trimmed);
+      }
+    });
+  }
+
+  public static hasRealView(_speciesId: string, view: SpriteView): boolean {
+    if (this.keyedViewsCache.has(view)) {
+      return true;
+    }
+    return view !== 'side_l';
+  }
+
+  /**
+   * Aplica recoloreado de paleta elemental sobre el sprite base (vestido rojo/naranja -> color de la clase)
+   * manteniendo intactos la piel, ojos, madera del chasis y bordes oscuros.
+   */
+  private static applySpeciesPaletteShift(canvas: HTMLCanvasElement, speciesId: string): void {
+    if (speciesId === 'maga' || speciesId === 'starter') return;
+
+    const ctx = canvas.getContext('2d')!;
+    const w = canvas.width;
+    const h = canvas.height;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const d = imgData.data;
+
+    // Mapa de tinte objetivo por clase para píxeles cálidos del atuendo/sombrero
+    const tintMap: Record<string, [number, number, number]> = {
+      archimaga: [220, 38, 38],
+      sacerdotisa: [34, 197, 94],
+      hierofante: [22, 163, 74],
+      gladiadora: [217, 119, 6],
+      titanide: [245, 158, 11],
+      paladin: [217, 119, 6],
+      templario: [245, 158, 11],
+      bruja: [168, 85, 247],
+      hechicera: [192, 132, 252],
+      hidromante: [56, 189, 248],
+      cantora_marea: [14, 165, 233],
+      monje: [250, 204, 21],
+      maestro_trueno: [234, 179, 8],
+      asesina: [100, 116, 139],
+      espectro: [139, 92, 246],
+    };
+
+    const target = tintMap[speciesId];
+    if (!target) return;
+
+    const [tR, tG, tB] = target;
+
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 16) continue;
+      const r = d[i];
+      const g = d[i + 1];
+      const b = d[i + 2];
+
+      // Detectar píxeles de tela roja/escarlata/púrpura del atuendo sin tocar la piel clara (r>195, g>145, b>120)
+      const isSkin = r > 185 && g > 135 && b > 110 && r > g && g > b;
+      const isFabricRed = !isSkin && r > 110 && r > g * 1.35 && b < r * 0.75;
+      const isDarkHatOrCape = !isSkin && r > 60 && b > 55 && g < Math.min(r, b) * 0.85;
+
+      if (isFabricRed || isDarkHatOrCape) {
+        const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 180;
+        d[i] = Math.min(255, Math.max(0, Math.round(tR * lum)));
+        d[i + 1] = Math.min(255, Math.max(0, Math.round(tG * lum)));
+        d[i + 2] = Math.min(255, Math.max(0, Math.round(tB * lum)));
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
   }
 
   /**
@@ -111,114 +338,115 @@ export class SoulDollSpriteFactory {
       return this.cache.get(cacheKey)!;
     }
 
-    const size = view === 'icon' ? 32 : 64;
-    const { canvas, ctx } = this.createCanvas(size, size);
-
     // CHECK IF CUSTOM REAL SPRITESHEET IS PRESENT AND PREFERRED
-    // We map custom spritesheet to the starter species ('maga' or 'archimaga') for a fantastic visual showcase
-    const useRealSpritesheet = this.customSpritesheetLoaded && this.customSpritesheet && (speciesId === 'maga' || speciesId === 'starter');
+    const useRealSpritesheet =
+      this.customSpritesheetLoaded &&
+      this.keyedViewsCache.size > 0;
 
-    if (useRealSpritesheet && view !== 'icon' && this.customSpritesheet) {
-      ctx.save();
-      const img = this.customSpritesheet;
-      const totalWidth = img.width;
-      const totalHeight = img.height;
-      const frameWidth = totalWidth / 4;
-      const frameHeight = totalHeight;
+    if (useRealSpritesheet && view !== 'icon') {
+      let targetView: SpriteView = view;
+      if (view === 'attack') targetView = 'side_r';
+      const baseViewCanvas =
+        this.keyedViewsCache.get(targetView) ||
+        this.keyedViewsCache.get('side_r') ||
+        this.keyedViewsCache.get('front');
 
-      let colIndex = 0; // default front 3/4
-      if (view === 'front') {
-        colIndex = 0; // Frente 3/4
-      } else if (view === 'back') {
-        colIndex = 3; // Atrás 3/4 (espaldas 3/4 for player)
-      } else if (view === 'attack') {
-        colIndex = 0; // Frente 3/4 as fallback
-      }
+      if (baseViewCanvas) {
+        const { canvas: nativeCanvas, ctx: nCtx } = this.createCanvas(baseViewCanvas.width, baseViewCanvas.height);
+        nCtx.drawImage(baseViewCanvas, 0, 0);
 
-      // Draw custom spritesheet frame resized into 64x64
-      ctx.drawImage(
-        img,
-        colIndex * frameWidth,
-        0,
-        frameWidth,
-        frameHeight,
-        0,
-        0,
-        size,
-        size
-      );
+        this.applySpeciesPaletteShift(nativeCanvas, speciesId);
 
-      // Render custom glamour layers / overlay depending on the 'atrevido' mode
-      if (outfitStyle === 'atrevido') {
-        // Glamour magic aura overlay (soft pink / gold sparks)
-        ctx.fillStyle = '#ff8fbb';
-        ctx.shadowColor = '#9b6bff';
-        ctx.shadowBlur = 8;
-        ctx.globalAlpha = 0.25;
-        ctx.beginPath();
-        ctx.arc(32, 34, 18, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-        ctx.shadowBlur = 0;
-      }
-
-      // Overlay status condition on top
-      this.drawAccessoryAndStatusLayer(ctx, { classId: 'maga' }, status, view);
-
-      // Overlay broken parts cracks
-      if (config.brokenParts) {
-        this.drawDamageLayer(ctx, config.brokenParts, view);
-      }
-
-      ctx.restore();
-    } else {
-      // FALLBACK TO PROCEDURAL LAYERS
-      const species = CREATURES_DATA[speciesId] || CREATURES_DATA['maga'];
-
-      if (view === 'icon') {
-        this.drawIconView(ctx, species, mat);
-      } else {
-        ctx.save();
-        // Apply posture tilt if legs broken
-        const isLegsBroken = config.brokenParts && config.brokenParts.legs <= 0;
-        if (isLegsBroken) {
-          ctx.translate(32, 40);
-          ctx.rotate(view === 'back' ? -0.12 : 0.12);
-          ctx.translate(-32, -36);
+        if (outfitStyle === 'atrevido') {
+          nCtx.fillStyle = '#ff8fbb';
+          nCtx.globalAlpha = 0.18;
+          nCtx.fillRect(
+            Math.floor(baseViewCanvas.width * 0.25),
+            Math.floor(baseViewCanvas.height * 0.35),
+            Math.floor(baseViewCanvas.width * 0.5),
+            Math.floor(baseViewCanvas.height * 0.3)
+          );
+          nCtx.globalAlpha = 1.0;
         }
 
-        // Layer 1: Chassis / Material Body
-        this.drawChassisLayer(ctx, mat, view, config.brokenParts);
-
-        // Layer 2: Class Outfit (respecting classic vs bold outfitStyle)
-        this.drawClassOutfitLayer(ctx, species, view, outfitStyle);
-
-        // Layer 3: Weapon
-        this.drawWeaponLayer(ctx, species, weaponId, view, frame, config.brokenParts);
-
-        // Layer 4: Accessories & Status
-        this.drawAccessoryAndStatusLayer(ctx, species, status, view);
-
-        // Layer 5: Damage / Broken parts overlays
-        if (config.brokenParts) {
-          this.drawDamageLayer(ctx, config.brokenParts, view);
-        }
-
-        ctx.restore();
+        const trimmed = this.trimToOpaqueBoundingBox(nativeCanvas, 1);
+        this.cache.set(cacheKey, trimmed);
+        return trimmed;
       }
     }
 
-    this.cache.set(cacheKey, canvas);
-    return canvas;
+    const species = CREATURES_DATA[speciesId] || CREATURES_DATA['maga'];
+
+    if (view === 'icon') {
+      const { canvas, ctx } = this.createCanvas(32, 32);
+      this.drawIconView(ctx, species, mat);
+      this.cache.set(cacheKey, canvas);
+      return canvas;
+    }
+
+    // Procedural humanoid canvas (drawn at 64x64, then scaled by integer 2x to ~124px native height and cropped to bounding box + 1px padding)
+    const { canvas: rawCanvas, ctx } = this.createCanvas(64, 64);
+    ctx.save();
+    const isLegsBroken = config.brokenParts && config.brokenParts.legs <= 0;
+    if (isLegsBroken) {
+      ctx.translate(32, 40);
+      ctx.rotate(view === 'back' ? -0.12 : 0.12);
+      ctx.translate(-32, -36);
+    }
+
+    // Layer 1: Chassis / Material Body
+    this.drawChassisLayer(ctx, mat, view, config.brokenParts);
+
+    // Layer 2: Class Outfit (respecting classic vs bold outfitStyle and 3/4 right facing)
+    this.drawClassOutfitLayer(ctx, species, view, outfitStyle);
+
+    // Layer 3: Weapon
+    this.drawWeaponLayer(ctx, species, weaponId, view, frame, config.brokenParts);
+
+    // Layer 4: Accessories & Status
+    this.drawAccessoryAndStatusLayer(ctx, species, status, view);
+
+    // Layer 5: Damage / Broken parts overlays
+    if (config.brokenParts) {
+      this.drawDamageLayer(ctx, config.brokenParts, view);
+    }
+
+    ctx.restore();
+
+    // Scale procedural sprite by exact integer 2x so its native height (~124px) matches the ~120-160px native pixel grid
+    const trimmed64 = this.trimToOpaqueBoundingBox(rawCanvas, 0);
+    const nativeScale = 2;
+    const { canvas: upCanvas, ctx: upCtx } = this.createCanvas(
+      trimmed64.width * nativeScale,
+      trimmed64.height * nativeScale
+    );
+    upCtx.imageSmoothingEnabled = false;
+    upCtx.drawImage(
+      trimmed64,
+      0,
+      0,
+      trimmed64.width,
+      trimmed64.height,
+      0,
+      0,
+      trimmed64.width * nativeScale,
+      trimmed64.height * nativeScale
+    );
+
+    const finalCanvas = this.trimToOpaqueBoundingBox(upCanvas, 1);
+    this.cache.set(cacheKey, finalCanvas);
+    return finalCanvas;
   }
 
   /**
-   * Generates full sprite set (front, back, icon, attack)
+   * Generates full sprite set (front, back, side_r, side_l, icon, attack)
    */
   public static generateSpriteSet(species: any, mat: ChassisMaterial = 'wood'): CreatureSpriteSet {
     return {
       front: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'front' }),
       back: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'back' }),
+      side_r: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'side_r' }),
+      side_l: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'side_l' }),
       icon: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'icon' }),
       attack: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'attack', frame: 1 }),
     };
@@ -437,8 +665,9 @@ export class SoulDollSpriteFactory {
     // Eyes
     if (view !== 'back') {
       ctx.fillStyle = pal.gold;
-      ctx.fillRect(cx - 4, cy - 16, 3, 3);
-      ctx.fillRect(cx + 1, cy - 16, 3, 3);
+      const eyeOffsetX = view === 'side_r' ? 2 : 0;
+      ctx.fillRect(cx - 4 + eyeOffsetX, cy - 16, 3, 3);
+      ctx.fillRect(cx + 1 + eyeOffsetX, cy - 16, 3, 3);
     }
   }
 

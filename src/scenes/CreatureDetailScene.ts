@@ -114,7 +114,7 @@ export class CreatureDetailScene implements IScene {
     const c = this.party[this.currentIndex];
     if (!c) return;
 
-    const species = CREATURES_DATA[c.speciesId] || CREATURES_DATA['flamin'];
+    const species = CREATURES_DATA[c.speciesId] || CREATURES_DATA['maga'];
 
     // -------------------------------------------------------------
     // LEFT PANEL: SPRITE, IDENTITY, HP/EXP, ABILITY, HELD ITEM, AMISTAD

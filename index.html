@@ -61,33 +61,33 @@
     </div>
 
     <!-- On-Screen Immersive HUD Overlay: Floats seamlessly over the canvas -->
-    <div id="touch-controls-hud" class="absolute inset-0 w-full h-full z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+    <div id="touch-controls-hud" class="absolute inset-0 w-full h-full z-20 pointer-events-none flex flex-col justify-between p-2 sm:p-5">
       
       <!-- TOP HUD BAR: Utility and camera adjustments -->
       <div class="w-full flex items-start justify-between pointer-events-auto">
         
         <!-- Left: Cam Rotate controls (Semi-transparent capsules) -->
-        <div class="flex items-center gap-1.5 sm:gap-2.5">
-          <button id="btn-touch-l" class="hud-btn px-2.5 sm:px-4 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-[#F2E6C9] font-mono font-bold text-xs sm:text-sm rounded-lg shadow-lg flex items-center gap-1">
-            <span class="text-[#5FE3D2]">↶ L</span>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="btn-touch-l" class="hud-btn px-3 sm:px-4 py-2 sm:py-2.5 bg-[#14101C]/70 backdrop-blur-md border border-[#8A6A3B]/50 text-[#F2E6C9] font-mono font-bold text-xs sm:text-sm rounded-xl shadow-lg flex items-center gap-1.5 active:scale-95">
+            <span class="text-[#5FE3D2]">↶ CÁM</span>
           </button>
-          <button id="btn-touch-r" class="hud-btn px-2.5 sm:px-4 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-[#F2E6C9] font-mono font-bold text-xs sm:text-sm rounded-lg shadow-lg flex items-center gap-1">
-            <span class="text-[#5FE3D2]">R ↷</span>
+          <button id="btn-touch-r" class="hud-btn px-3 sm:px-4 py-2 sm:py-2.5 bg-[#14101C]/70 backdrop-blur-md border border-[#8A6A3B]/50 text-[#F2E6C9] font-mono font-bold text-xs sm:text-sm rounded-xl shadow-lg flex items-center gap-1.5 active:scale-95">
+            <span class="text-[#5FE3D2]">CÁM ↷</span>
           </button>
         </div>
 
         <!-- Center Header: Resonancia Indicator -->
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-[#14101C]/75 backdrop-blur-md border border-[#8A6A3B]/30 rounded-full shadow-md text-xs font-mono font-bold">
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#14101C]/75 backdrop-blur-md border border-[#8A6A3B]/30 rounded-full shadow-md text-xs font-mono font-bold">
           <span class="w-2 h-2 rounded-full bg-[#5FE3D2] shadow-[0_0_8px_rgba(95,227,210,0.9)] animate-pulse"></span>
           <span class="text-[#F2E6C9] tracking-wider text-[10px]">KI RESONANCIA</span>
         </div>
 
         <!-- Right: Utility pills (Run, Art Debug) -->
-        <div class="flex items-center gap-1.5 sm:gap-2">
-          <button id="btn-touch-run" class="hud-btn px-3 sm:px-4 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-xs font-bold text-[#E8B84A] rounded-lg shadow-lg flex items-center gap-1">
+        <div class="flex items-center gap-2 sm:gap-2.5">
+          <button id="btn-touch-run" class="hud-btn px-3.5 sm:px-4 py-2 sm:py-2.5 bg-[#14101C]/70 backdrop-blur-md border border-[#8A6A3B]/50 text-xs sm:text-sm font-bold text-[#E8B84A] rounded-xl shadow-lg flex items-center gap-1.5 active:scale-95">
             ⚡ CORRER
           </button>
-          <button id="btn-touch-debug" class="hud-btn px-2.5 sm:px-3 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-xs font-bold text-[#5FE3D2] rounded-lg shadow-lg">
+          <button id="btn-touch-debug" class="hud-btn px-3 sm:px-3.5 py-2 sm:py-2.5 bg-[#14101C]/70 backdrop-blur-md border border-[#8A6A3B]/50 text-xs sm:text-sm font-bold text-[#5FE3D2] rounded-xl shadow-lg active:scale-95">
             🛠 ARTE
           </button>
         </div>
@@ -98,68 +98,70 @@
       <div class="flex-1"></div>
 
       <!-- BOTTOM HUD BAR: Floating D-Pad (Left) and Action Buttons (Right) -->
-      <div class="w-full flex items-end justify-between pointer-events-auto">
+      <div class="w-full flex items-end justify-between pointer-events-auto pb-1 sm:pb-2">
         
         <!-- Left Corner: Floating Translucent Cross D-PAD -->
-        <div class="flex flex-col items-center gap-1">
-          <div id="dpad-container" class="relative w-28 h-28 sm:w-34 sm:h-34 flex items-center justify-center">
+        <div class="flex flex-col items-center gap-1.5">
+          <span class="animate-fade-out pointer-events-none px-2.5 py-1 rounded-md bg-[#14101C]/80 border border-[#5FE3D2]/40 backdrop-blur-md text-[11px] sm:text-xs font-mono text-[#5FE3D2] font-bold uppercase tracking-widest shadow-md">MOVER</span>
+          <div id="dpad-container" class="relative w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 flex items-center justify-center">
             <!-- Glass outer disc -->
-            <div class="absolute inset-0 bg-[#14101C]/50 backdrop-blur-md rounded-full border border-[#8A6A3B]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.5)]"></div>
+            <div class="absolute inset-0 bg-[#14101C]/60 backdrop-blur-md rounded-full border border-[#8A6A3B]/40 shadow-[inset_0_2px_10px_rgba(0,0,0,0.6),0_4px_16px_rgba(0,0,0,0.6)]"></div>
             
             <!-- Cross Buttons -->
             <!-- Up -->
-            <button id="btn-touch-up" class="dpad-arrow absolute top-0.5 w-8 sm:w-10 h-9 sm:h-11 bg-transparent active:bg-[#5FE3D2]/35 rounded-t-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+            <button id="btn-touch-up" class="dpad-arrow absolute top-1 w-11 sm:w-12 md:w-14 h-12 sm:h-14 bg-transparent active:bg-[#5FE3D2]/35 rounded-t-xl flex items-center justify-center text-[#F2E6C9] text-xl sm:text-2xl font-black transition-colors">
               ▲
             </button>
             <!-- Down -->
-            <button id="btn-touch-down" class="dpad-arrow absolute bottom-0.5 w-8 sm:w-10 h-9 sm:h-11 bg-transparent active:bg-[#5FE3D2]/35 rounded-b-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+            <button id="btn-touch-down" class="dpad-arrow absolute bottom-1 w-11 sm:w-12 md:w-14 h-12 sm:h-14 bg-transparent active:bg-[#5FE3D2]/35 rounded-b-xl flex items-center justify-center text-[#F2E6C9] text-xl sm:text-2xl font-black transition-colors">
               ▼
             </button>
             <!-- Left -->
-            <button id="btn-touch-left" class="dpad-arrow absolute left-0.5 w-9 sm:w-11 h-8 sm:h-10 bg-transparent active:bg-[#5FE3D2]/35 rounded-l-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+            <button id="btn-touch-left" class="dpad-arrow absolute left-1 w-12 sm:w-14 md:w-16 h-11 sm:h-12 md:h-14 bg-transparent active:bg-[#5FE3D2]/35 rounded-l-xl flex items-center justify-center text-[#F2E6C9] text-xl sm:text-2xl font-black transition-colors">
               ◀
             </button>
             <!-- Right -->
-            <button id="btn-touch-right" class="dpad-arrow absolute right-0.5 w-9 sm:w-11 h-8 sm:h-10 bg-transparent active:bg-[#5FE3D2]/35 rounded-r-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+            <button id="btn-touch-right" class="dpad-arrow absolute right-1 w-12 sm:w-14 md:w-16 h-11 sm:h-12 md:h-14 bg-transparent active:bg-[#5FE3D2]/35 rounded-r-xl flex items-center justify-center text-[#F2E6C9] text-xl sm:text-2xl font-black transition-colors">
               ▶
             </button>
             
             <!-- Center Pivot -->
-            <div class="w-5 sm:w-6 h-5 sm:h-6 bg-[#8A6A3B]/40 rounded-full border border-[#E8B84A]/25 pointer-events-none shadow-inner"></div>
+            <div class="w-7 sm:w-8 h-7 sm:h-8 bg-[#8A6A3B]/50 rounded-full border border-[#E8B84A]/35 pointer-events-none shadow-inner"></div>
           </div>
         </div>
 
         <!-- Center Bottom: Floating SELECT & START rubber buttons -->
-        <div class="flex items-center gap-3 sm:gap-5 pb-1">
-          <!-- SELECT (Quest Log) -->
+        <div class="flex items-center gap-3 sm:gap-6 pb-2">
+          <!-- SELECT (Misiones) -->
           <div class="flex flex-col items-center">
-            <button id="btn-touch-select" class="hud-btn w-9 sm:w-12 h-3.5 sm:h-4 bg-[#2A1F2D]/75 backdrop-blur-md rounded-full border border-[#8A6A3B]/40 shadow-lg transform -rotate-[20deg]"></button>
-            <span class="text-[7px] sm:text-[9px] font-mono text-[#A89BB0] font-bold tracking-widest mt-1">SELECT</span>
+            <button id="btn-touch-select" aria-label="Misiones" class="hud-btn w-13 sm:w-15 h-5 sm:h-6 bg-[#2A1F2D]/85 backdrop-blur-md rounded-full border border-[#8A6A3B]/50 shadow-lg transform -rotate-[20deg] active:scale-90"></button>
+            <span class="text-[8px] sm:text-[10px] font-mono text-[#A89BB0] font-bold tracking-wider mt-1.5">MISIONES</span>
           </div>
 
-          <!-- START (Pause Menu) -->
+          <!-- START (Menú) -->
           <div class="flex flex-col items-center">
-            <button id="btn-touch-start" class="hud-btn w-9 sm:w-12 h-3.5 sm:h-4 bg-[#2A1F2D]/75 backdrop-blur-md rounded-full border border-[#8A6A3B]/40 shadow-lg transform -rotate-[20deg]"></button>
-            <span class="text-[7px] sm:text-[9px] font-mono text-[#A89BB0] font-bold tracking-widest mt-1">START</span>
+            <button id="btn-touch-start" aria-label="Menú" class="hud-btn w-13 sm:w-15 h-5 sm:h-6 bg-[#2A1F2D]/85 backdrop-blur-md rounded-full border border-[#8A6A3B]/50 shadow-lg transform -rotate-[20deg] active:scale-90"></button>
+            <span class="text-[8px] sm:text-[10px] font-mono text-[#A89BB0] font-bold tracking-wider mt-1.5">MENÚ</span>
           </div>
         </div>
 
         <!-- Right Corner: Classic Diagonal B & A Action Buttons -->
-        <div class="relative w-28 h-24 sm:w-32 sm:h-28 flex items-center justify-center">
+        <div class="relative w-36 h-32 sm:w-40 sm:h-36 md:w-44 md:h-40 flex items-center justify-center">
+          <span class="animate-fade-out pointer-events-none absolute right-0 top-[-2rem] sm:top-[-2.25rem] px-2.5 py-1 rounded-md bg-[#14101C]/80 border border-[#5FE3D2]/40 backdrop-blur-md text-[11px] sm:text-xs font-mono text-[#5FE3D2] font-bold uppercase tracking-widest shadow-md">INTERACTUAR</span>
           <!-- B Button (Cancel / Back / Crimson) -->
           <div class="absolute left-0 bottom-0 flex flex-col items-center">
-            <button id="btn-touch-b" class="action-b-active w-11 h-11 sm:w-12.5 sm:h-12.5 bg-[#C2234B]/60 backdrop-blur-md hover:bg-[#C2234B]/80 rounded-full border border-[#FF8FB8]/50 text-[#F2E6C9] font-black text-base sm:text-lg flex items-center justify-center shadow-lg">
+            <button id="btn-touch-b" class="action-b-active w-14 h-14 sm:w-16 sm:h-16 bg-[#C2234B]/65 backdrop-blur-md hover:bg-[#C2234B]/80 rounded-full border border-[#FF8FB8]/60 text-[#F2E6C9] font-black text-lg sm:text-xl flex items-center justify-center shadow-lg active:scale-90">
               B
             </button>
-            <span class="text-[7px] sm:text-[9px] font-mono font-bold text-[#A89BB0] mt-1">CANCEL</span>
+            <span class="text-[9px] sm:text-[11px] font-mono font-bold text-[#A89BB0] mt-1.5 tracking-wider">CANCELAR</span>
           </div>
 
           <!-- A Button (Confirm / Interact / Cyan) -->
           <div class="absolute right-0 top-0 flex flex-col items-center">
-            <button id="btn-touch-a" class="action-a-active w-11 h-11 sm:w-12.5 sm:h-12.5 bg-[#5FE3D2]/50 backdrop-blur-md hover:bg-[#5FE3D2]/70 rounded-full border border-white/60 text-[#14101C] font-black text-base sm:text-lg flex items-center justify-center shadow-lg">
+            <button id="btn-touch-a" class="action-a-active w-14 h-14 sm:w-16 sm:h-16 bg-[#5FE3D2]/55 backdrop-blur-md hover:bg-[#5FE3D2]/75 rounded-full border border-white/70 text-[#14101C] font-black text-lg sm:text-xl flex items-center justify-center shadow-lg active:scale-90">
               A
             </button>
-            <span class="text-[7px] sm:text-[9px] font-mono font-bold text-[#A89BB0] mt-1">CONFIRM</span>
+            <span class="text-[9px] sm:text-[11px] font-mono font-bold text-[#A89BB0] mt-1.5 tracking-wider">ACCIÓN</span>
           </div>
         </div>
 

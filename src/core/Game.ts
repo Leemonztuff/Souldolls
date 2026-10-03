@@ -60,7 +60,11 @@ export class Game {
     // 2. Initialize Three.js (Background 3D)
     GlobalThreeRenderer.init(this.threeContainer);
 
-    // 3. Initialize PixiJS v8 (Foreground 2D / UI)
+    // 3. Initialize PixiJS v8 (Foreground 2D / UI) matching exact container dimensions (no CSS upscaling)
+    const initialW = Math.max(320, Math.round(this.gameContainer.clientWidth || window.innerWidth || this.targetWidth));
+    const initialH = Math.max(480, Math.round(this.gameContainer.clientHeight || window.innerHeight || this.targetHeight));
+    this.targetWidth = initialW;
+    this.targetHeight = initialH;
     await GlobalPixiRenderer.init(this.pixiContainer, this.targetWidth, this.targetHeight);
 
     // 4. Generate & Cache all procedural Pixel Art Assets
@@ -87,7 +91,11 @@ export class Game {
 
     // 7. Debug Toggle Shortcut Handler
     GlobalEventBus.on('debug:toggle', () => {
-      const current = GlobalSceneManager.getCurrentScene();
+      const current = GlobalSceneManager.getCurrentScene() as any;
+      if (current && current.name === 'Battle' && typeof current.toggleDebugOverlay === 'function') {
+        current.toggleDebugOverlay();
+        return;
+      }
       if (current && current.name === 'Debug') {
         GlobalSceneManager.popScene();
       } else {
@@ -134,9 +142,13 @@ export class Game {
    * Maintains automatic responsive scaling and updates renderers
    */
   private handleResize(): void {
-    GlobalThreeRenderer.resize(this.targetWidth, this.targetHeight);
-    GlobalPixiRenderer.resize(this.targetWidth, this.targetHeight);
-    GlobalSceneManager.onResize(this.targetWidth, this.targetHeight);
+    const w = Math.max(320, Math.round(this.gameContainer?.clientWidth || window.innerWidth || this.targetWidth));
+    const h = Math.max(480, Math.round(this.gameContainer?.clientHeight || window.innerHeight || this.targetHeight));
+    this.targetWidth = w;
+    this.targetHeight = h;
+    GlobalThreeRenderer.resize(w, h);
+    GlobalPixiRenderer.resize(w, h);
+    GlobalSceneManager.onResize(w, h);
   }
 }
 

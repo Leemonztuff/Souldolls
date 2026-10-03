@@ -3,6 +3,7 @@ import { Texture } from 'pixi.js';
 import { Direction } from '../../types';
 import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { SpriteFactory, CreatureSpriteSet } from './SpriteFactory';
+import { SoulDollSpriteFactory, SpriteView } from './SoulDollSpriteFactory';
 import { CharacterFactory, CHARACTER_PALETTES } from './CharacterFactory';
 import { TileFactory, TileType, ALL_TILE_TYPES } from './TileFactory';
 
@@ -18,6 +19,8 @@ export class AssetRegistry {
   // Cached Pixi Textures
   private pixiCreatureFront: Map<string, Texture> = new Map();
   private pixiCreatureBack: Map<string, Texture> = new Map();
+  private pixiCreatureSideR: Map<string, Texture> = new Map();
+  private pixiCreatureSideL: Map<string, Texture> = new Map();
   private pixiCreatureIcon: Map<string, Texture> = new Map();
   private pixiCharacterFrames: Map<string, Texture> = new Map();
   private pixiTiles: Map<TileType, Texture> = new Map();
@@ -27,6 +30,7 @@ export class AssetRegistry {
   private threeCharacterFrames: Map<string, THREE.CanvasTexture> = new Map();
   private threeTiles: Map<TileType, THREE.CanvasTexture> = new Map();
   private atlasTexture: HTMLImageElement | null = null;
+  private greenKeyedCache: Map<string, HTMLCanvasElement> = new Map();
 
   private constructor() {}
 
@@ -37,6 +41,62 @@ export class AssetRegistry {
     return AssetRegistry.instance;
   }
 
+  /**
+   * Crea una textura Pixi con scaleMode 'nearest' y sin mipmaps para máxima nitidez pixel-art
+   */
+  public createCrispPixiTexture(canvas: HTMLCanvasElement): Texture {
+    const tex = Texture.from({
+      resource: canvas,
+      scaleMode: 'nearest',
+      autoGenerateMipmaps: false,
+    });
+    if (tex.source) {
+      tex.source.scaleMode = 'nearest';
+      tex.source.autoGenerateMipmaps = false;
+    }
+    return tex;
+  }
+
+  /**
+   * Req 2: Procesa el fondo verde de una imagen o canvas una sola vez al cargar y cachea el resultado
+   */
+  public keyOutGreen(
+    key: string,
+    source: HTMLImageElement | HTMLCanvasElement,
+    targetGreen: [number, number, number] = [26, 174, 6],
+    tolerance = 58
+  ): HTMLCanvasElement {
+    if (this.greenKeyedCache.has(key)) {
+      return this.greenKeyedCache.get(key)!;
+    }
+    const keyed = SoulDollSpriteFactory.keyOutGreen(source, targetGreen, tolerance);
+    this.greenKeyedCache.set(key, keyed);
+    return keyed;
+  }
+
+  private buildCreatureTextures(): void {
+    Object.values(CREATURES_DATA).forEach((species) => {
+      const spriteSet = SpriteFactory.generateSpriteSet(species);
+      this.creatureSprites.set(species.id, spriteSet);
+
+      // Pixi Textures (nearest, no mipmaps)
+      this.pixiCreatureFront.set(species.id, this.createCrispPixiTexture(spriteSet.front));
+      this.pixiCreatureBack.set(species.id, this.createCrispPixiTexture(spriteSet.back));
+      this.pixiCreatureSideR.set(species.id, this.createCrispPixiTexture(spriteSet.side_r));
+      this.pixiCreatureSideL.set(species.id, this.createCrispPixiTexture(spriteSet.side_l));
+      this.pixiCreatureIcon.set(species.id, this.createCrispPixiTexture(spriteSet.icon));
+
+      // Three Texture for Billboard Overworld
+      const threeTex = new THREE.CanvasTexture(spriteSet.front);
+      threeTex.magFilter = THREE.NearestFilter;
+      threeTex.minFilter = THREE.NearestFilter;
+      threeTex.generateMipmaps = false;
+      threeTex.colorSpace = THREE.SRGBColorSpace;
+      threeTex.needsUpdate = true;
+      this.threeCreatureFront.set(species.id, threeTex);
+    });
+  }
+
   public init(): void {
     if (this.isInitialized) return;
 
@@ -44,26 +104,15 @@ export class AssetRegistry {
     this.atlasTexture = new Image();
     this.atlasTexture.src = '/Assets/Build1.jpg';
     this.atlasTexture.onload = () => {
-        console.log('[AssetRegistry] Atlas loaded');
+      console.log('[AssetRegistry] Atlas loaded');
     };
 
-    // 1. Generate all 12 Creature Sprites
-    Object.values(CREATURES_DATA).forEach((species) => {
-      const spriteSet = SpriteFactory.generateSpriteSet(species);
-      this.creatureSprites.set(species.id, spriteSet);
+    // 1. Generate all Creature Sprites
+    this.buildCreatureTextures();
 
-      // Pixi Textures
-      this.pixiCreatureFront.set(species.id, Texture.from({ resource: spriteSet.front }));
-      this.pixiCreatureBack.set(species.id, Texture.from({ resource: spriteSet.back }));
-      this.pixiCreatureIcon.set(species.id, Texture.from({ resource: spriteSet.icon }));
-
-      // Three Texture for Billboard Overworld
-      const threeTex = new THREE.CanvasTexture(spriteSet.front);
-      threeTex.magFilter = THREE.NearestFilter;
-      threeTex.minFilter = THREE.NearestFilter;
-      threeTex.colorSpace = THREE.SRGBColorSpace;
-      threeTex.needsUpdate = true;
-      this.threeCreatureFront.set(species.id, threeTex);
+    // Refresh creature textures when async battle spritesheet finishes loading
+    SoulDollSpriteFactory.onSpritesheetReady(() => {
+      this.buildCreatureTextures();
     });
 
     // 2. Generate all Character Sheets
@@ -75,11 +124,12 @@ export class AssetRegistry {
       directions.forEach((dir) => {
         sheet[dir].forEach((canvas, frame) => {
           const key = `${charId}_${dir}_${frame}`;
-          this.pixiCharacterFrames.set(key, Texture.from({ resource: canvas }));
+          this.pixiCharacterFrames.set(key, this.createCrispPixiTexture(canvas));
 
           const threeTex = new THREE.CanvasTexture(canvas);
           threeTex.magFilter = THREE.NearestFilter;
           threeTex.minFilter = THREE.NearestFilter;
+          threeTex.generateMipmaps = false;
           threeTex.colorSpace = THREE.SRGBColorSpace;
           threeTex.needsUpdate = true;
           this.threeCharacterFrames.set(key, threeTex);
@@ -92,11 +142,12 @@ export class AssetRegistry {
       const canvas = TileFactory.generateTile(type);
       this.tileCanvases.set(type, canvas);
 
-      this.pixiTiles.set(type, Texture.from({ resource: canvas }));
+      this.pixiTiles.set(type, this.createCrispPixiTexture(canvas));
 
       const threeTex = new THREE.CanvasTexture(canvas);
       threeTex.magFilter = THREE.NearestFilter;
       threeTex.minFilter = THREE.NearestFilter;
+      threeTex.generateMipmaps = false;
       threeTex.colorSpace = THREE.SRGBColorSpace;
       threeTex.wrapS = THREE.RepeatWrapping;
       threeTex.wrapT = THREE.RepeatWrapping;
@@ -111,10 +162,16 @@ export class AssetRegistry {
   }
 
   // --- Creature Getters ---
-  public getCreatureSpritePixi(speciesId: string, view: 'front' | 'back' | 'icon' = 'front'): Texture {
+  public getCreatureSpritePixi(speciesId: string, view: SpriteView = 'front'): Texture {
     if (view === 'back') return this.getCreatureBackPixi(speciesId);
+    if (view === 'side_r') return this.getCreatureSideRPixi(speciesId);
+    if (view === 'side_l') return this.getCreatureSideLPixi(speciesId);
     if (view === 'icon') return this.getCreatureIconPixi(speciesId);
     return this.getCreatureFrontPixi(speciesId);
+  }
+
+  public hasRealCreatureView(speciesId: string, view: SpriteView): boolean {
+    return SoulDollSpriteFactory.hasRealView(speciesId, view);
   }
 
   public getCreatureSpriteSet(speciesId: string): CreatureSpriteSet | undefined {
@@ -127,6 +184,14 @@ export class AssetRegistry {
 
   public getCreatureBackPixi(speciesId: string): Texture {
     return this.pixiCreatureBack.get(speciesId) || Texture.EMPTY;
+  }
+
+  public getCreatureSideRPixi(speciesId: string): Texture {
+    return this.pixiCreatureSideR.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
+  }
+
+  public getCreatureSideLPixi(speciesId: string): Texture {
+    return this.pixiCreatureSideL.get(speciesId) || this.pixiCreatureSideR.get(speciesId) || Texture.EMPTY;
   }
 
   public getCreatureIconPixi(speciesId: string): Texture {

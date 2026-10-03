@@ -189,59 +189,59 @@ export class TitleScene implements IScene {
    */
   private generateLogoTexture(): Texture {
     const canvas = document.createElement('canvas');
-    canvas.width = 440;
-    canvas.height = 100;
+    canvas.width = 500;
+    canvas.height = 110;
     const ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = false;
 
     // Outer Text Shadow
     ctx.shadowColor = '#000000';
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;
 
     // Draw main logo text with 'O' as a soul flame
-    ctx.font = 'bold 44px "Cinzel Decorative", Cinzel, serif';
+    ctx.font = 'bold 50px "Cinzel Decorative", Cinzel, serif';
     ctx.fillStyle = GlobalTheme.Tokens.colors.base.parchment;
     ctx.letterSpacing = '6px';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     // We split "SOULDOLLS" into "S", "O", "ULDOLLS" to draw the flame
-    ctx.fillText('S', 90, 50);
-    ctx.fillText('ULDOLLS', 290, 50);
+    ctx.fillText('S', 95, 55);
+    ctx.fillText('ULDOLLS', 320, 55);
 
     // Draw stylized O flame in cyan / violet
-    const ox = 125;
-    const oy = 50;
+    const ox = 135;
+    const oy = 55;
     ctx.shadowBlur = 0; // Disable shadow for precise details
 
     // Outer flame loop (Violet)
     ctx.fillStyle = '#9b6bff';
     ctx.beginPath();
-    ctx.moveTo(ox, oy + 18);
-    ctx.quadraticCurveTo(ox - 16, oy, ox - 14, oy - 12);
-    ctx.quadraticCurveTo(ox - 10, oy - 22, ox, oy - 26); // peak
-    ctx.quadraticCurveTo(ox + 10, oy - 22, ox + 14, oy - 12);
-    ctx.quadraticCurveTo(ox + 16, oy, ox, oy + 18);
+    ctx.moveTo(ox, oy + 20);
+    ctx.quadraticCurveTo(ox - 18, oy, ox - 16, oy - 14);
+    ctx.quadraticCurveTo(ox - 11, oy - 26, ox, oy - 30); // peak
+    ctx.quadraticCurveTo(ox + 11, oy - 26, ox + 16, oy - 14);
+    ctx.quadraticCurveTo(ox + 18, oy, ox, oy + 20);
     ctx.closePath();
     ctx.fill();
 
     // Inner flame core (Cyan)
     ctx.fillStyle = '#5fe3d2';
     ctx.beginPath();
-    ctx.moveTo(ox, oy + 12);
-    ctx.quadraticCurveTo(ox - 10, oy, ox - 8, oy - 8);
-    ctx.quadraticCurveTo(ox - 6, oy - 16, ox, oy - 20); // peak
-    ctx.quadraticCurveTo(ox + 6, oy - 16, ox + 8, oy - 8);
-    ctx.quadraticCurveTo(ox + 10, oy, ox, oy + 12);
+    ctx.moveTo(ox, oy + 14);
+    ctx.quadraticCurveTo(ox - 11, oy, ox - 9, oy - 10);
+    ctx.quadraticCurveTo(ox - 7, oy - 18, ox, oy - 22); // peak
+    ctx.quadraticCurveTo(ox + 7, oy - 18, ox + 9, oy - 10);
+    ctx.quadraticCurveTo(ox + 11, oy, ox, oy + 14);
     ctx.closePath();
     ctx.fill();
 
     // Small bright white core
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(ox, oy + 2, 4, 0, Math.PI * 2);
+    ctx.arc(ox, oy + 2, 5, 0, Math.PI * 2);
     ctx.fill();
 
     return Texture.from(canvas);
@@ -255,27 +255,27 @@ export class TitleScene implements IScene {
     const logoTexture = this.generateLogoTexture();
     this.logoSprite = new Sprite(logoTexture);
     this.logoSprite.anchor.set(0.5);
-    this.logoSprite.position.set(width / 2, 85);
+    this.logoSprite.position.set(width / 2, 70);
     this.container.addChild(this.logoSprite);
 
     // Thread Graphics (puppet hilos)
     this.logoThreadGraphics = new Graphics();
     this.container.addChild(this.logoThreadGraphics);
 
-    // Badge Under-text
+    // Badge Under-text (Mobile First: enlarged & prominent)
     const badgeText = new Text({
       text: '✦ RPG DE CAPTURA DE ALMAS Y MARIONETAS ✦',
       style: new TextStyle({
         fontFamily: GlobalTheme.Tokens.typography.hudFont,
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: 'bold',
         fill: GlobalTheme.Tokens.colors.base.gold,
-        letterSpacing: 3,
+        letterSpacing: 2.5,
         stroke: { color: GlobalTheme.Tokens.colors.base.inkCrypt, width: 3 },
       }),
     });
     badgeText.anchor.set(0.5);
-    badgeText.position.set(width / 2, 142);
+    badgeText.position.set(width / 2, 134);
     this.container.addChild(badgeText);
 
     // Suggested Age Warning label (+18 content)
@@ -283,7 +283,7 @@ export class TitleScene implements IScene {
       text: 'AVISO: CONTENIDO SUGERENTE - RECOMENDADO PARA ADULTOS (+18)',
       style: new TextStyle({
         fontFamily: GlobalTheme.Tokens.typography.hudFont,
-        fontSize: 9,
+        fontSize: 11,
         fontWeight: 'bold',
         fill: GlobalTheme.Tokens.colors.ki.rift,
         stroke: { color: GlobalTheme.Tokens.colors.base.inkCrypt, width: 3 },
@@ -291,16 +291,16 @@ export class TitleScene implements IScene {
       }),
     });
     ageWarning.anchor.set(0.5);
-    ageWarning.position.set(width / 2, 162);
+    ageWarning.position.set(width / 2, 158);
     this.container.addChild(ageWarning);
 
-    // Menu Container (Bottom Center)
+    // Menu Container (Elevated to avoid mobile touch HUD overlap at bottom)
     const menuContainer = new Container();
-    menuContainer.position.set(width / 2, height - 280);
+    menuContainer.position.set(width / 2, 215);
     this.container.addChild(menuContainer);
 
     this.menuGraphics = [];
-    const itemHeight = 44;
+    const itemHeight = 58;
 
     this.menuItems.forEach((item, index) => {
       const itemContainer = new Container();
@@ -308,29 +308,52 @@ export class TitleScene implements IScene {
       itemContainer.eventMode = 'static';
       itemContainer.cursor = 'pointer';
 
-      // Button background card (Sleek brass style)
+      // Button background card (Mobile First: 380px wide x 50px tall touch target)
       const bg = new Graphics();
-      bg.roundRect(-150, -18, 300, 36, 6);
+      bg.roundRect(-190, -25, 380, 50, 10);
       bg.fill({ color: index === this.selectedIndex ? GlobalTheme.bronzeNum : GlobalTheme.smokedWoodNum, alpha: 0.95 });
       bg.stroke({ color: index === this.selectedIndex ? 0xffffff : GlobalTheme.bronzeNum, width: 2 });
       itemContainer.addChild(bg);
 
-      // Label text
+      // Label text (Mobile First: bold 18px legible on phones)
       const isEnabled = item.enabled !== false;
       const labelText = new Text({
         text: item.label,
         style: new TextStyle({
           fontFamily: GlobalTheme.Tokens.typography.hudFont,
-          fontSize: 13,
+          fontSize: 18,
           fontWeight: 'bold',
           fill: isEnabled ? (index === this.selectedIndex ? '#ffffff' : GlobalTheme.Tokens.colors.base.smoke) : '#52525b',
-          letterSpacing: 1.5,
+          letterSpacing: 2,
         }),
       });
       labelText.anchor.set(0.5);
       itemContainer.addChild(labelText);
 
-      // Interactivity
+      // Mobile Touch Feedback: tactile press scaling
+      itemContainer.on('pointerdown', () => {
+        itemContainer.scale.set(0.97);
+        if (isEnabled) {
+          this.selectedIndex = index;
+          this.updateMenuHighlight();
+        }
+      });
+
+      const releasePress = () => {
+        itemContainer.scale.set(1.0);
+      };
+      itemContainer.on('pointerup', () => {
+        releasePress();
+        if (isEnabled) {
+          this.selectedIndex = index;
+          item.action();
+        } else {
+          GlobalAudioService.playSfx('cancel');
+        }
+      });
+      itemContainer.on('pointerupoutside', releasePress);
+      itemContainer.on('pointercancel', releasePress);
+
       itemContainer.on('pointerenter', () => {
         if (this.selectedIndex !== index && isEnabled) {
           this.selectedIndex = index;
@@ -339,24 +362,15 @@ export class TitleScene implements IScene {
         }
       });
 
-      itemContainer.on('pointerdown', () => {
-        if (isEnabled) {
-          this.selectedIndex = index;
-          item.action();
-        } else {
-          GlobalAudioService.playSfx('cancel');
-        }
-      });
-
       menuContainer.addChild(itemContainer);
       this.menuGraphics.push(itemContainer);
     });
 
-    // Cursor indicator (tiny glowing thread control)
+    // Cursor indicator (Mobile First: larger 7px glowing marker)
     this.cursorGraphic = new Graphics();
-    this.cursorGraphic.circle(0, 0, 5);
+    this.cursorGraphic.circle(0, 0, 7);
     this.cursorGraphic.fill({ color: GlobalTheme.kiCyanNum });
-    this.cursorGraphic.stroke({ color: 0xffffff, width: 1.5 });
+    this.cursorGraphic.stroke({ color: 0xffffff, width: 2 });
     menuContainer.addChild(this.cursorGraphic);
 
     this.updateMenuHighlight();
@@ -366,11 +380,11 @@ export class TitleScene implements IScene {
       text: 'v1.29.0 - Souldolls Brand Edition',
       style: new TextStyle({
         fontFamily: 'monospace',
-        fontSize: 10,
+        fontSize: 12,
         fill: GlobalTheme.Tokens.colors.base.smoke,
       }),
     });
-    verText.position.set(16, height - 20);
+    verText.position.set(20, height - 26);
     this.container.addChild(verText);
 
     // Footer copyright
@@ -378,17 +392,17 @@ export class TitleScene implements IScene {
       text: '© 2026 GREMIO DE ARTÍFICES • ANIMA ISEKAI',
       style: new TextStyle({
         fontFamily: 'monospace',
-        fontSize: 10,
+        fontSize: 12,
         fill: GlobalTheme.Tokens.colors.base.smoke,
       }),
     });
     copyText.anchor.set(1, 0);
-    copyText.position.set(width - 16, height - 20);
+    copyText.position.set(width - 20, height - 26);
     this.container.addChild(copyText);
   }
 
   private updateMenuHighlight(): void {
-    const itemHeight = 44;
+    const itemHeight = 58;
     this.menuGraphics.forEach((container, idx) => {
       const bg = container.children[0] as Graphics;
       const text = container.children[1] as Text;
@@ -397,7 +411,7 @@ export class TitleScene implements IScene {
       const isEnabled = item.enabled !== false;
 
       bg.clear();
-      bg.roundRect(-150, -18, 300, 36, 6);
+      bg.roundRect(-190, -25, 380, 50, 10);
       bg.fill({ color: isSelected ? GlobalTheme.bronzeNum : GlobalTheme.smokedWoodNum, alpha: 0.95 });
       bg.stroke({
         color: isSelected ? GlobalTheme.goldNum : GlobalTheme.bronzeNum,
@@ -408,7 +422,7 @@ export class TitleScene implements IScene {
     });
 
     if (this.cursorGraphic) {
-      this.cursorGraphic.position.set(-175, this.selectedIndex * itemHeight);
+      this.cursorGraphic.position.set(-215, this.selectedIndex * itemHeight);
     }
   }
 
@@ -433,21 +447,21 @@ export class TitleScene implements IScene {
 
       // Three threads hanging from puppet control down to logo letters
       const width = GlobalPixiRenderer.width;
-      const tX1 = width / 2 - 120;
+      const tX1 = width / 2 - 130;
       const tX2 = width / 2;
-      const tX3 = width / 2 + 120;
+      const tX3 = width / 2 + 130;
 
       // Bobbing amplitude
       const bob = Math.sin(this.timeElapsed * 2) * 5;
 
       this.logoThreadGraphics.moveTo(tX1, -20);
-      this.logoThreadGraphics.lineTo(tX1 + bob, 65);
+      this.logoThreadGraphics.lineTo(tX1 + bob, 55);
 
       this.logoThreadGraphics.moveTo(tX2, -20);
-      this.logoThreadGraphics.lineTo(tX2 - bob * 0.6, 65);
+      this.logoThreadGraphics.lineTo(tX2 - bob * 0.6, 55);
 
       this.logoThreadGraphics.moveTo(tX3, -20);
-      this.logoThreadGraphics.lineTo(tX3 + bob * 0.8, 65);
+      this.logoThreadGraphics.lineTo(tX3 + bob * 0.8, 55);
 
       this.logoThreadGraphics.stroke();
     }
@@ -455,7 +469,7 @@ export class TitleScene implements IScene {
     // 3. Cursor Bobbing
     if (this.cursorGraphic && !this.showSlotModal && !this.showOptionsModal) {
       const bobX = Math.sin(this.timeElapsed * 6) * 4;
-      this.cursorGraphic.position.x = -175 + bobX;
+      this.cursorGraphic.position.x = -215 + bobX;
     }
 
     // 4. Input Handling
@@ -522,13 +536,13 @@ export class TitleScene implements IScene {
     // Background Dim
     const overlay = new Graphics();
     overlay.rect(0, 0, width, height);
-    overlay.fill({ color: 0x000000, alpha: 0.8 });
+    overlay.fill({ color: 0x000000, alpha: 0.82 });
     overlay.eventMode = 'static';
     this.optionsModalContainer.addChild(overlay);
 
-    // Use our customized BrassPanel kit
-    const modalWidth = 400;
-    const modalHeight = 360;
+    // Use our customized BrassPanel kit (Mobile First: 560px wide x 490px tall)
+    const modalWidth = 560;
+    const modalHeight = 490;
     const p = new BrassPanel({
       width: modalWidth,
       height: modalHeight,
@@ -538,39 +552,96 @@ export class TitleScene implements IScene {
     p.position.set((width - modalWidth) / 2, (height - modalHeight) / 2);
     this.optionsModalContainer.addChild(p);
 
-    const startX = (width - modalWidth) / 2 + 30;
-    const startY = (height - modalHeight) / 2 + 50;
+    const startX = (width - modalWidth) / 2 + 35;
+    const startY = (height - modalHeight) / 2 + 55;
 
     // Get current save state settings
     const state = GlobalSaveService.getCurrentState();
 
     // 1. Master Volume
-    this.drawOptionRow('VOLUMEN PRINCIPAL', `${Math.round(state.settings.masterVolume * 100)}%`, startX, startY, 0);
+    this.drawOptionRow(
+      'VOLUMEN PRINCIPAL',
+      `${Math.round(state.settings.masterVolume * 100)}%`,
+      startX,
+      startY,
+      0,
+      () => {
+        this.adjustOptionValue(-1, state);
+        this.renderOptionsModal();
+      },
+      () => {
+        this.adjustOptionValue(1, state);
+        this.renderOptionsModal();
+      }
+    );
 
     // 2. SFX Volume
-    this.drawOptionRow('VOLUMEN EFECTOS (SFX)', `${Math.round(state.settings.sfxVolume * 100)}%`, startX, startY, 1);
+    this.drawOptionRow(
+      'VOLUMEN EFECTOS (SFX)',
+      `${Math.round(state.settings.sfxVolume * 100)}%`,
+      startX,
+      startY,
+      1,
+      () => {
+        this.adjustOptionValue(-1, state);
+        this.renderOptionsModal();
+      },
+      () => {
+        this.adjustOptionValue(1, state);
+        this.renderOptionsModal();
+      }
+    );
 
     // 3. BGM Volume
-    this.drawOptionRow('VOLUMEN MÚSICA (BGM)', `${Math.round(state.settings.bgmVolume * 100)}%`, startX, startY, 2);
+    this.drawOptionRow(
+      'VOLUMEN MÚSICA (BGM)',
+      `${Math.round(state.settings.bgmVolume * 100)}%`,
+      startX,
+      startY,
+      2,
+      () => {
+        this.adjustOptionValue(-1, state);
+        this.renderOptionsModal();
+      },
+      () => {
+        this.adjustOptionValue(1, state);
+        this.renderOptionsModal();
+      }
+    );
 
     // 4. Outfit Style (Clásico / Atrevido)
     const styleLabel = state.settings.outfitStyle === 'atrevido' ? 'ATREVIDO ✦' : 'CLÁSICO';
-    this.drawOptionRow('ESTILO DE ATUENDOS', styleLabel, startX, startY, 3);
+    this.drawOptionRow(
+      'ESTILO DE ATUENDOS',
+      styleLabel,
+      startX,
+      startY,
+      3,
+      () => {
+        this.adjustOptionValue(-1, state);
+        this.renderOptionsModal();
+      },
+      () => {
+        this.adjustOptionValue(1, state);
+        this.renderOptionsModal();
+      }
+    );
 
-    // Description text under options
+    // Description text under options (Mobile First: 13px readable font)
     const descBox = new Text({
-      text: state.settings.outfitStyle === 'atrevido' 
-        ? 'Estilo ATREVIDO: habilita cortes glamorosos y de fantasía mística con auras de ki sugerentes.'
-        : 'Estilo CLÁSICO: trajes tradicionales de clase de batalla respetuosos del lore de Anima.',
+      text:
+        state.settings.outfitStyle === 'atrevido'
+          ? 'Estilo ATREVIDO: habilita cortes glamorosos y de fantasía mística con auras de ki sugerentes.'
+          : 'Estilo CLÁSICO: trajes tradicionales de clase de batalla respetuosos del lore de Anima.',
       style: new TextStyle({
         fontFamily: GlobalTheme.Tokens.typography.bodyFont,
-        fontSize: 10,
+        fontSize: 13,
         fill: GlobalTheme.Tokens.colors.base.smoke,
         wordWrap: true,
-        wordWrapWidth: modalWidth - 60,
+        wordWrapWidth: modalWidth - 70,
       }),
     });
-    descBox.position.set(startX, startY + 180);
+    descBox.position.set(startX, startY + 230);
     this.optionsModalContainer.addChild(descBox);
 
     // Content age disclaimer inside options
@@ -578,37 +649,46 @@ export class TitleScene implements IScene {
       text: '* Esta opción respeta la clasificación sugerida para adultos (+18).',
       style: new TextStyle({
         fontFamily: 'monospace',
-        fontSize: 9,
+        fontSize: 12,
         fill: GlobalTheme.Tokens.colors.ki.rift,
         fontStyle: 'italic',
       }),
     });
-    disclaimer.position.set(startX, startY + 235);
+    disclaimer.position.set(startX, startY + 300);
     this.optionsModalContainer.addChild(disclaimer);
 
-    // Guardar & Cerrar Button
+    // Guardar & Cerrar Button (Mobile First: 180px x 46px touch target)
     const saveBtn = new BrassButton({
-      width: 140,
-      height: 32,
+      width: 180,
+      height: 46,
+      fontSize: 16,
       label: 'ACEPTAR',
       onClick: () => {
         GlobalSaveService.save(); // Save settings to localStorage
         this.closeOptionsModal();
       },
     });
-    saveBtn.position.set(width / 2 - 70, (height - modalHeight) / 2 + modalHeight - 48);
+    saveBtn.position.set(width / 2 - 90, (height - modalHeight) / 2 + modalHeight - 60);
     this.optionsModalContainer.addChild(saveBtn);
   }
 
-  private drawOptionRow(label: string, value: string, x: number, y: number, index: number): void {
+  private drawOptionRow(
+    label: string,
+    value: string,
+    x: number,
+    y: number,
+    index: number,
+    onPrev?: () => void,
+    onNext?: () => void
+  ): void {
     if (!this.optionsModalContainer) return;
 
-    const rowY = y + index * 42;
+    const rowY = y + index * 52;
     const isSelected = index === this.selectedOptionIndex;
 
     const cursorMarker = new Graphics();
     if (isSelected) {
-      cursorMarker.circle(x - 12, rowY + 10, 4);
+      cursorMarker.circle(x - 14, rowY + 14, 5);
       cursorMarker.fill({ color: GlobalTheme.kiCyanNum });
     }
     this.optionsModalContainer.addChild(cursorMarker);
@@ -617,26 +697,93 @@ export class TitleScene implements IScene {
       text: label,
       style: new TextStyle({
         fontFamily: GlobalTheme.Tokens.typography.hudFont,
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 'bold',
         fill: isSelected ? '#ffffff' : GlobalTheme.Tokens.colors.base.smoke,
         letterSpacing: 1,
       }),
     });
-    lbl.position.set(x, rowY);
+    lbl.position.set(x, rowY + 2);
+    lbl.eventMode = 'static';
+    lbl.cursor = 'pointer';
+    lbl.on('pointerdown', () => {
+      this.selectedOptionIndex = index;
+      GlobalAudioService.playSfx('select');
+      this.renderOptionsModal();
+    });
     this.optionsModalContainer.addChild(lbl);
 
+    // Stepper container for mobile touch interactions
+    const stepperContainer = new Container();
+    stepperContainer.position.set(x + 280, rowY - 4);
+
+    // Prev Button [-]
+    const prevBtn = new Graphics();
+    prevBtn.roundRect(0, 0, 36, 34, 6);
+    prevBtn.fill({ color: 0x2a1f2d, alpha: 0.95 });
+    prevBtn.stroke({ color: GlobalTheme.bronzeNum, width: 1.5 });
+    prevBtn.eventMode = 'static';
+    prevBtn.cursor = 'pointer';
+    prevBtn.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this.selectedOptionIndex = index;
+      GlobalAudioService.playSfx('select');
+      onPrev?.();
+    });
+    const prevText = new Text({
+      text: '◀',
+      style: new TextStyle({
+        fontFamily: 'monospace',
+        fontSize: 14,
+        fill: GlobalTheme.Tokens.colors.base.gold,
+      }),
+    });
+    prevText.anchor.set(0.5);
+    prevText.position.set(18, 17);
+    prevBtn.addChild(prevText);
+    stepperContainer.addChild(prevBtn);
+
+    // Value text
     const val = new Text({
       text: value,
       style: new TextStyle({
         fontFamily: GlobalTheme.Tokens.typography.hudFont,
-        fontSize: 12,
+        fontSize: 15,
         fontWeight: '900',
         fill: isSelected ? GlobalTheme.Tokens.colors.base.gold : GlobalTheme.Tokens.colors.base.parchment,
       }),
     });
-    val.position.set(x + 220, rowY - 1);
-    this.optionsModalContainer.addChild(val);
+    val.anchor.set(0.5, 0);
+    val.position.set(92, 7);
+    stepperContainer.addChild(val);
+
+    // Next Button [+]
+    const nextBtn = new Graphics();
+    nextBtn.roundRect(148, 0, 36, 34, 6);
+    nextBtn.fill({ color: 0x2a1f2d, alpha: 0.95 });
+    nextBtn.stroke({ color: GlobalTheme.bronzeNum, width: 1.5 });
+    nextBtn.eventMode = 'static';
+    nextBtn.cursor = 'pointer';
+    nextBtn.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this.selectedOptionIndex = index;
+      GlobalAudioService.playSfx('select');
+      onNext?.();
+    });
+    const nextText = new Text({
+      text: '▶',
+      style: new TextStyle({
+        fontFamily: 'monospace',
+        fontSize: 14,
+        fill: GlobalTheme.Tokens.colors.base.gold,
+      }),
+    });
+    nextText.anchor.set(0.5);
+    nextText.position.set(166, 17);
+    nextBtn.addChild(nextText);
+    stepperContainer.addChild(nextBtn);
+
+    this.optionsModalContainer.addChild(stepperContainer);
   }
 
   private handleOptionsModalInput(): void {
@@ -725,9 +872,9 @@ export class TitleScene implements IScene {
     overlay.eventMode = 'static';
     this.slotModalContainer.addChild(overlay);
 
-    // Modal Window Box (Use custom BrassPanel)
-    const boxWidth = 520;
-    const boxHeight = 440;
+    // Modal Window Box (Mobile First: 580px wide x 510px tall)
+    const boxWidth = 580;
+    const boxHeight = 510;
     const boxX = (width - boxWidth) / 2;
     const boxY = (height - boxHeight) / 2;
 
@@ -740,10 +887,10 @@ export class TitleScene implements IScene {
     p.position.set(boxX, boxY);
     this.slotModalContainer.addChild(p);
 
-    // Render Slots
-    const slotCardHeight = 85;
+    // Render Slots (Mobile First: 98px card height, large legible typography)
+    const slotCardHeight = 98;
     this.slotSummaries.forEach((slot, index) => {
-      const cardY = boxY + 70 + index * (slotCardHeight + 14);
+      const cardY = boxY + 68 + index * (slotCardHeight + 14);
       const card = new Container();
       card.position.set(boxX + 24, cardY);
       card.eventMode = 'static';
@@ -752,10 +899,10 @@ export class TitleScene implements IScene {
       const isSelected = index === this.selectedSlotIndex;
       const cardBg = new Graphics();
       cardBg.roundRect(0, 0, boxWidth - 48, slotCardHeight, 10);
-      cardBg.fill({ color: isSelected ? 0x1e293b : 0x131d33, alpha: 0.9 });
+      cardBg.fill({ color: isSelected ? 0x1e293b : 0x131d33, alpha: 0.95 });
       cardBg.stroke({
         color: isSelected ? GlobalTheme.goldNum : GlobalTheme.bronzeNum,
-        width: isSelected ? 2 : 1,
+        width: isSelected ? 2.5 : 1.5,
       });
       card.addChild(cardBg);
 
@@ -764,12 +911,12 @@ export class TitleScene implements IScene {
         text: `SLOT ${slot.id}`,
         style: new TextStyle({
           fontFamily: GlobalTheme.Tokens.typography.hudFont,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: 'bold',
           fill: isSelected ? GlobalTheme.Tokens.colors.base.gold : GlobalTheme.Tokens.colors.base.smoke,
         }),
       });
-      slotNumText.position.set(16, 14);
+      slotNumText.position.set(18, 14);
       card.addChild(slotNumText);
 
       if (slot.exists) {
@@ -777,35 +924,35 @@ export class TitleScene implements IScene {
           text: `${slot.playerName}`,
           style: new TextStyle({
             fontFamily: GlobalTheme.Tokens.typography.bodyFont,
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: 'bold',
             fill: '#ffffff',
           }),
         });
-        nameText.position.set(16, 40);
+        nameText.position.set(18, 44);
         card.addChild(nameText);
 
         const statsText = new Text({
-          text: `💰 $${slot.money}  •  ⏱ ${slot.playtimeFormatted}  •  🎖 Medallas: ${slot.badgesCount}`,
+          text: `💰 $${slot.money}  •  ⏱ ${slot.playtimeFormatted}  •  🎖 Sellos: ${slot.badgesCount}`,
           style: new TextStyle({
             fontFamily: 'monospace',
-            fontSize: 11,
+            fontSize: 13,
             fill: GlobalTheme.Tokens.colors.base.smoke,
           }),
         });
-        statsText.position.set(160, 44);
+        statsText.position.set(180, 48);
         card.addChild(statsText);
       } else {
         const emptyText = new Text({
-          text: '— Ranura Vacía —',
+          text: '— Ranura Vacía (Toca para crear partida) —',
           style: new TextStyle({
             fontFamily: GlobalTheme.Tokens.typography.bodyFont,
-            fontSize: 14,
+            fontSize: 16,
             fontStyle: 'italic',
-            fill: '#4b5563',
+            fill: '#64748b',
           }),
         });
-        emptyText.position.set(16, 42);
+        emptyText.position.set(18, 46);
         card.addChild(emptyText);
       }
 
@@ -818,16 +965,17 @@ export class TitleScene implements IScene {
       this.slotModalContainer?.addChild(card);
     });
 
-    // Close button (using BrassButton)
+    // Close button (Mobile First: 160px x 46px touch target)
     const closeBtn = new BrassButton({
-      width: 120,
-      height: 32,
+      width: 160,
+      height: 46,
+      fontSize: 15,
       label: 'CERRAR',
       onClick: () => {
         this.closeSlotsModal();
       },
     });
-    closeBtn.position.set(width / 2 - 60, boxY + boxHeight - 48);
+    closeBtn.position.set(width / 2 - 80, boxY + boxHeight - 56);
     this.slotModalContainer.addChild(closeBtn);
   }
 
@@ -897,16 +1045,16 @@ export class TitleScene implements IScene {
     const width = GlobalPixiRenderer.width;
 
     const bg = new Graphics();
-    bg.roundRect(-150, -18, 300, 36, 6);
+    bg.roundRect(-180, -22, 360, 44, 8);
     bg.fill({ color: GlobalTheme.bronzeNum, alpha: 0.95 });
-    bg.stroke({ color: 0xffffff, width: 1.5 });
+    bg.stroke({ color: 0xffffff, width: 2 });
     toast.addChild(bg);
 
     const txt = new Text({
       text: message,
       style: new TextStyle({
         fontFamily: GlobalTheme.Tokens.typography.hudFont,
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: 'bold',
         fill: '#ffffff',
       }),
@@ -914,7 +1062,7 @@ export class TitleScene implements IScene {
     txt.anchor.set(0.5);
     toast.addChild(txt);
 
-    toast.position.set(width / 2, 40);
+    toast.position.set(width / 2, 45);
     this.container.addChild(toast);
 
     setTimeout(() => {

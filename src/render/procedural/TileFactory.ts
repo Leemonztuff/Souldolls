@@ -99,22 +99,24 @@ export class TileFactory {
   }
 
   private static drawGrass(ctx: CanvasRenderingContext2D): void {
-    ctx.fillStyle = '#48bb78';
+    // Bloque 36 Req. 4: Suelo poligonal base color verde #5CBF5A con ruido sutil
+    ctx.fillStyle = '#5CBF5A';
     ctx.fillRect(0, 0, 32, 32);
 
-    // Subtle blades of grass
-    ctx.fillStyle = '#38a169';
-    const blades = [
-      [4, 6], [12, 14], [22, 8], [6, 24], [18, 26], [28, 20], [14, 4]
+    // Subtle organic noise (slightly darker and lighter speckles)
+    ctx.fillStyle = '#53B051';
+    const darkSpecks = [
+      [3, 5], [11, 13], [21, 7], [7, 23], [19, 27], [27, 19], [15, 3], [25, 29]
     ];
-    blades.forEach(([x, y]) => {
-      ctx.fillRect(x, y, 2, 4);
-      ctx.fillRect(x + 1, y - 2, 2, 3);
+    darkSpecks.forEach(([x, y]) => {
+      ctx.fillRect(x, y, 2, 2);
     });
 
-    ctx.fillStyle = '#68d391';
-    const lights = [[6, 18], [24, 12], [16, 20]];
-    lights.forEach(([x, y]) => ctx.fillRect(x, y, 2, 2));
+    ctx.fillStyle = '#66CA64';
+    const lightSpecks = [
+      [6, 17], [24, 12], [16, 20], [9, 8], [28, 6], [4, 28]
+    ];
+    lightSpecks.forEach(([x, y]) => ctx.fillRect(x, y, 2, 2));
   }
 
   private static drawTallGrass(ctx: CanvasRenderingContext2D): void {

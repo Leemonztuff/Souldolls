@@ -124,19 +124,19 @@ export const DIALOGUE_TREES: Record<string, DialogueTree> = {
     },
   },
 
-  // --- ENFERMERA JOY (Centro de Sanación) ---
+  // --- ARTÍFICE DE ALMAS (Taller de Artífices & Tienda / Centro Pokémon) ---
   nurse_joy_dialogue: {
     id: 'nurse_joy_dialogue',
     startNodeId: 'node_joy_start',
     nodes: {
       node_joy_start: {
         id: 'node_joy_start',
-        speakerName: 'Enfermera Joy',
+        speakerName: 'Artífice de Almas',
         speakerPaletteId: 'nurse',
-        text: '¡Hola! Te damos la bienvenida al Centro de Sanación. ¿Deseas restaurar la salud de tus criaturas?',
+        text: '¡Saludos, Soultrainer! Te doy la bienvenida al Taller de Artífices de Villa Brote. Cuidamos el ki y los chasis de tus Souldolls. ¿En qué podemos servirte hoy?',
         options: [
           {
-            label: '💖 Curar a mi equipo',
+            label: '💖 Sanar Souldolls y Purga de ki',
             nextNodeId: 'node_joy_heal',
             effects: [
               { healParty: true },
@@ -144,9 +144,23 @@ export const DIALOGUE_TREES: Record<string, DialogueTree> = {
             ],
           },
           {
-            label: '❓ Consultar sobre misiones',
-            nextNodeId: 'node_joy_quest',
-            effects: [{ startQuest: 'side_nurse_aid' }],
+            label: '🛠 Reparar Chasis / Abrir Taller',
+            nextNodeId: 'node_joy_workshop',
+            effects: [{ openWorkshop: true }],
+          },
+          {
+            label: '🛒 Mercado de Artífices (Comprar / Vender)',
+            nextNodeId: 'node_joy_shop',
+            effects: [{ openShop: true }],
+          },
+          {
+            label: '🤖 Almacén de Cuerpos (Depósito)',
+            nextNodeId: 'node_joy_storage',
+            effects: [{ openStorageBox: true }],
+          },
+          {
+            label: '📖 ¿Cómo funcionan las Souldolls?',
+            nextNodeId: 'node_joy_lore',
           },
           {
             label: '✕ Salir',
@@ -156,46 +170,66 @@ export const DIALOGUE_TREES: Record<string, DialogueTree> = {
       },
       node_joy_heal: {
         id: 'node_joy_heal',
-        speakerName: 'Enfermera Joy',
+        speakerName: 'Artífice de Almas',
         speakerPaletteId: 'nurse',
-        text: '¡Un momento, por favor!... ... ... ¡Listo! Tus criaturas han recuperado todos sus PS y puntos de movimiento. ¡Esperamos verte pronto!',
+        text: 'Sincronizando el flujo de ki con la cámara de resonancia... ¡Listo! Tus Souldolls han restaurado el 100% de sus PS en todas sus partes, su energía y sus movimientos.',
       },
-      node_joy_quest: {
-        id: 'node_joy_quest',
-        speakerName: 'Enfermera Joy',
+      node_joy_workshop: {
+        id: 'node_joy_workshop',
+        speakerName: 'Artífice de Almas',
         speakerPaletteId: 'nurse',
-        text: '¡Gracias por preguntar! Siempre necesitamos entrenadores responsables que mantengan a sus criaturas en perfecto estado de salud.',
+        text: 'Abriendo banco de trabajo... Aquí puedes inspeccionar los chasis por partes (Cabeza, Torso, Brazos, Piernas), reforzarlos con aleaciones o reparar daños con Kits.',
+      },
+      node_joy_shop: {
+        id: 'node_joy_shop',
+        speakerName: 'Artífice de Almas',
+        speakerPaletteId: 'nurse',
+        text: '¡Echa un vistazo a nuestros suministros! Tenemos Soul Bottles para contener almas salvajes, Elixires de ki y componentes de forja.',
+      },
+      node_joy_storage: {
+        id: 'node_joy_storage',
+        speakerName: 'Artífice de Almas',
+        speakerPaletteId: 'nurse',
+        text: 'Conectando con el Almacén de Cuerpos. Aquí puedes resguardar chasis y almas en reserva.',
+      },
+      node_joy_lore: {
+        id: 'node_joy_lore',
+        speakerName: 'Artífice de Almas',
+        speakerPaletteId: 'nurse',
+        text: 'Una Souldoll = Alma + Cuerpo.\n• Cabeza o Torso a 0: ¡KO inmediato!\n• Brazos a 0: −50% ATK físico y no puedes usar armas.\n• Piernas a 0: −50% Velocidad y menor evasión.\n¡Mantenlos siempre reparados aquí!',
       },
       node_joy_leave: {
         id: 'node_joy_leave',
-        speakerName: 'Enfermera Joy',
+        speakerName: 'Artífice de Almas',
         speakerPaletteId: 'nurse',
-        text: '¡Que tengas un viaje seguro y lleno de descubrimientos!',
+        text: '¡Que el ki guíe tus pasos por Anima! Vuelve cuando tus marionetas necesiten mantenimiento.',
       },
     },
   },
 
-  // --- TENDERO (Tienda de Objetos) ---
+  // --- TENDERO / MERCADER (Mercado de Artífices) ---
   shopkeeper_dialogue: {
     id: 'shopkeeper_dialogue',
     startNodeId: 'node_shop_start',
     nodes: {
       node_shop_start: {
         id: 'node_shop_start',
-        speakerName: 'Tendero',
+        speakerName: 'Mercader Artífice',
         speakerPaletteId: 'clerk',
-        text: '¡Buenas tardes! Tenemos los mejores artículos de expedición de la región.',
+        text: '¡Saludos, Soultrainer! Bienvenido al Mercado de Artífices. ¿Qué buscas para tu viaje?',
         options: [
           {
-            label: '🛒 Comprar provisiones ($200 Cápsula / $300 Poción)',
+            label: '🛍 COMPRAR ARTÍCULOS',
             nextNodeId: 'node_shop_buy',
-            effects: [
-              { giveItem: { itemId: 'capsule_basic', count: 2 } },
-              { giveItem: { itemId: 'potion', count: 1 } },
-            ],
+            effects: [{ openShop: true, shopMode: 'buy' }],
           },
           {
-            label: '📜 Hablar de la región',
+            label: '💰 VENDER BOTÍN',
+            nextNodeId: 'node_shop_sell',
+            effects: [{ openShop: true, shopMode: 'sell' }],
+          },
+          {
+            label: '📜 NOVEDADES DEL GREMIO',
             nextNodeId: 'node_shop_talk',
             effects: [{ startQuest: 'side_collector' }],
           },
@@ -203,15 +237,21 @@ export const DIALOGUE_TREES: Record<string, DialogueTree> = {
       },
       node_shop_buy: {
         id: 'node_shop_buy',
-        speakerName: 'Tendero',
+        speakerName: 'Mercader Artífice',
         speakerPaletteId: 'clerk',
-        text: '¡Aquí tienes un paquete de bienvenida! ¡Vuelve cuando necesites más equipo!',
+        text: '¡Explora nuestras vitrinas y expositores! Puedes interactuar directamente con cada estante y maniquí de la tienda.',
+      },
+      node_shop_sell: {
+        id: 'node_shop_sell',
+        speakerName: 'Mercader Artífice',
+        speakerPaletteId: 'clerk',
+        text: 'Compramos reliquias, cristales de maná sobrantes y materiales de forja al mejor precio de Anima.',
       },
       node_shop_talk: {
         id: 'node_shop_talk',
-        speakerName: 'Tendero',
+        speakerName: 'Mercader Artífice',
         speakerPaletteId: 'clerk',
-        text: 'Si logras registrar al menos 6 especies distintas en tu Pokédex, ¡ven a verme y te daré una gran recompensa!',
+        text: 'Si logras registrar al menos 6 almas distintas en tu Códice de Almas, ¡ven a verme y te daré una gran recompensa!',
       },
     },
   },
