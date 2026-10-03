@@ -1,0 +1,88 @@
+import { TypeChart } from '../../types/elements';
+
+/**
+ * 7-Type Elemental Effectiveness Chart for Souldolls
+ * [AttackingType][DefendingType] -> Multiplier (0: Inmune, 0.5: Poco eficaz, 1: Normal, 2: Súper eficaz)
+ */
+export const TYPE_CHART: TypeChart = {
+  Neutro: {
+    Neutro: 1,
+    Fuego: 1,
+    Agua: 1,
+    Planta: 1,
+    Eléctrico: 1,
+    Tierra: 1,
+    Sombra: 0.5,
+    Normal: 1,
+  },
+  Normal: {
+    Neutro: 1,
+    Fuego: 1,
+    Agua: 1,
+    Planta: 1,
+    Eléctrico: 1,
+    Tierra: 1,
+    Sombra: 0.5,
+    Normal: 1,
+  },
+  Fuego: {
+    Neutro: 1,
+    Fuego: 0.5,
+    Agua: 0.5,
+    Planta: 2,
+    Eléctrico: 1,
+    Tierra: 0.5,
+    Sombra: 1,
+    Normal: 1,
+  },
+  Agua: {
+    Neutro: 1,
+    Fuego: 2,
+    Agua: 0.5,
+    Planta: 0.5,
+    Eléctrico: 1,
+    Tierra: 2,
+    Sombra: 1,
+    Normal: 1,
+  },
+  Planta: {
+    Neutro: 1,
+    Fuego: 0.5,
+    Agua: 2,
+    Planta: 0.5,
+    Eléctrico: 1,
+    Tierra: 2,
+    Sombra: 0.5,
+    Normal: 1,
+  },
+  Eléctrico: {
+    Neutro: 1,
+    Fuego: 1,
+    Agua: 2,
+    Planta: 0.5,
+    Eléctrico: 0.5,
+    Tierra: 0,
+    Sombra: 1,
+    Normal: 1,
+  },
+  Tierra: {
+    Neutro: 1,
+    Fuego: 2,
+    Agua: 1,
+    Planta: 0.5,
+    Eléctrico: 2,
+    Tierra: 1,
+    Sombra: 1,
+    Normal: 1,
+  },
+  Sombra: {
+    Neutro: 2,
+    Fuego: 1,
+    Agua: 1,
+    Planta: 1,
+    Eléctrico: 1,
+    Tierra: 1,
+    Sombra: 2,
+    Normal: 2,
+  },
+};

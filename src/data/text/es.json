@@ -1,0 +1,71 @@
+{
+  "app": {
+    "title": "SOULDOLLS",
+    "subtitle": "2.5D RPG DE CAPTURA • MUNDO ANIMA",
+    "press_start": "TOCA O PRESIONA CUALQUIER BOTÓN PARA EMPEZAR",
+    "age_warning": "CONTENIDO SUGERENTE - ADULTOS (+18)",
+    "version": "v1.29.0 - Edición de Marca"
+  },
+  "menu": {
+    "new_game": "NUEVA PARTIDA",
+    "continue": "CONTINUAR",
+    "slots": "RANURAS DE GUARDADO",
+    "settings": "OPCIONES",
+    "empty_slot": "Ranura Vacía",
+    "select_slot": "Selecciona una ranura",
+    "playtime": "Tiempo",
+    "money": "Monedas de Ki",
+    "badges": "Sellos de Gremio",
+    "back": "VOLVER",
+    "outfit_style": "ESTILO DE ATUENDOS",
+    "outfit_classic": "CLÁSICO",
+    "outfit_bold": "ATREVIDO",
+    "outfit_desc": "Cambia el aspecto visual de las prendas a un estilo más glamoroso o tradicional."
+  },
+  "factions": {
+    "gremio": "Gremio de Artífices",
+    "orden": "Orden del Hilo Sagrado",
+    "hueco": "Los Hueco"
+  },
+  "lore": {
+    "style_title": "Códice de Nombres de Almas",
+    "maga": "Archimaga de la Llama Ígnea - Una deidad espectral de virtuoso poder destructivo.",
+    "sacerdotisa": "Hierofante de la Gracia Inmortal - Canaliza el ki puro del Bosque de la Ceniza.",
+    "paladin": "Templario del Bastión Sagrado - Protector inquebrantable de la Senda del Hilo Perdido."
+  },
+  "dialogue": {
+    "welcome": "¡Te damos la bienvenida al mundo de Anima, donde el ki fluye y las marionetas cobran alma!",
+    "choose_starter": "Elige tu primera Soul Bottle para infundir ki eterno en tu chasis contenedor.",
+    "saved": "¡Progreso de vinculación guardado en los anales del Gremio de Artífices!"
+  },
+  "battle": {
+    "wild_appeared": "¡Un alma salvaje de {name} ha despertado!",
+    "fight": "COMBATIR",
+    "bag": "MOCHILA",
+    "creatures": "SOULDOLLS",
+    "run": "RETIRARSE",
+    "head": "Cabeza",
+    "torso": "Torso",
+    "arms": "Brazos",
+    "legs": "Piernas"
+  },
+  "terms": {
+    "pokemon": "Souldoll",
+    "trainer": "Soultrainer",
+    "pokeball": "Soul Bottle",
+    "center": "Taller de Artífices",
+    "shop": "Mercado de Artífices",
+    "professor": "Maestro Artífice",
+    "potion": "Elixir de ki",
+    "revive": "Reencarnación",
+    "antidote": "Purga de ki",
+    "berries": "Cristales de maná",
+    "held_items": "Reliquias y Armas",
+    "evolution_stone": "Núcleo de resonancia",
+    "evolution": "Ascenso",
+    "friendship": "Sincronía",
+    "badges": "Sellos de gremio",
+    "pokedex": "Códice de Almas",
+    "pc": "Almacén de Cuerpos"
+  }
+}

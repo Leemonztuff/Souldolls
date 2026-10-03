@@ -1,0 +1,19 @@
+{
+  "overflowEnabled": true,
+  "overflowPercentToTorso": 0.25,
+  "brokenRedirectTarget": "torso",
+  "brokenRedirectMultiplier": 1.0,
+  "criticalHeadWeightMultiplier": 2.0,
+  "durabilityTracking": {
+    "enabled": true,
+    "lossOnPartBreak": 5
+  },
+  "healPartPriority": ["torso", "head", "legs", "arms"],
+  "reincarnationHpPercent": 0.5,
+  "defaultPartTargeting": {
+    "head": 0.15,
+    "torso": 0.5,
+    "arms": 0.2,
+    "legs": 0.15
+  }
+}

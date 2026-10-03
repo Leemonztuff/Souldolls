@@ -1,0 +1,61 @@
+{
+  "id": "interior_center",
+  "name": "Taller de Artífices",
+  "width": 14,
+  "height": 12,
+  "tileSize": 1,
+  "townVariants": {
+    "villa_brote": {
+      "lanternColor": "#E8B84A",
+      "hairHighlight": "#5FE3D2",
+      "dialogueTone": "cálido"
+    },
+    "pueblo_costero": {
+      "lanternColor": "#3FA9F5",
+      "hairHighlight": "#FF8FB8",
+      "dialogueTone": "salino"
+    },
+    "ciudad_gimnasio": {
+      "lanternColor": "#9B6BFF",
+      "hairHighlight": "#E8B84A",
+      "dialogueTone": "metropolitano"
+    }
+  },
+  "decorations": {
+    "mana_crystals": { "x": 1, "y": 1, "name": "Cristales de Maná" },
+    "soul_vitrine": { "x": 4, "y": 1, "name": "Vitrina de Souls" },
+    "relics_case": { "x": 8, "y": 1, "name": "Armas y Reliquias" },
+    "potions_shelf": { "x": 1, "y": 4, "name": "Estante de Elixires" },
+    "mannequins": { "x": 11, "y": 4, "name": "Maniquíes de Cuerpos" },
+    "counter": { "x": 4, "y": 5, "width": 6, "name": "Mostrador del Mercader" },
+    "safe": { "x": 10, "y": 8, "name": "Caja Fuerte" },
+    "bounty_board": { "x": 10, "y": 9, "name": "Tablón de Encargos" },
+    "exit_door": { "x": 6, "y": 11, "name": "Puerta de Salida" }
+  },
+  "theme": {
+    "shadowOpacity": 0.4,
+    "candleCount": 4
+  },
+  "signs": [
+    { "x": 1, "y": 1, "text": "💎 CRISTALES DE MANÁ\n\"Energía concentrada para alquimia.\"" },
+    { "x": 4, "y": 1, "text": "🔮 VITRINA DE SOULS\n\"Almas vinculadas a chasis superiores.\"" },
+    { "x": 8, "y": 1, "text": "⚔️ ARMAS Y RELIQUIAS\n\"Equipamiento forjado con ki.\"" },
+    { "x": 1, "y": 4, "text": "🧪 ELIXIRES Y POCIONES\n\"Purga y restauración instantánea.\"" },
+    { "x": 11, "y": 4, "text": "🤖 ALMACÉN DE CUERPOS\n\"Depósito de chasis físicos.\"" },
+    { "x": 10, "y": 8, "text": "🔒 CAJA FUERTE\n\"Resguardo de valores del Gremio.\"" },
+    { "x": 10, "y": 9, "text": "📋 TABLÓN DE ENCARGOS\n\"Nuevas solicitudes de Artífices.\"" }
+  ],
+  "dialogues": {
+    "welcome": "¡Saludos, Soultrainer! El ki de tus Souldolls brilla con intensidad. ¿En qué puede servirte hoy esta Artífice?",
+    "first_visit": "Ah, eres el artífice de otro mundo, ¿verdad? Permíteme explicarte: una Souldoll combina una Alma y un Chasis. Si tus brazos o piernas caen a 0, perderás efectividad de ataque y velocidad. ¡Mantenlos reparados aquí con Kits de Reparación o monedas de ki!",
+    "healing_init": "Sincronizando frecuencias de ki con la Máquina de Resonancia... ¡No parpadees!",
+    "healing_complete": "¡Hecho! El ki fluye con pureza, tus PS y PP se han restaurado al 100%.",
+    "no_money": "Vaya... parece que tu flujo de monedas de ki no alcanza para cubrir el coste de la reparación.",
+    "repair_success": "¡Martilleo completado con chispas de ki! Chasis reparado con éxito.",
+    "purge_init": "Limpiando flujo de ki...",
+    "purge_success": "Canalizando purga purificadora... El ki corrupto se disipa en un humo violeta y cian.",
+    "upgrade_init": "Reforzando la estructura del chasis con aleaciones de ki...",
+    "upgrade_success": "¡La durabilidad y potencia del cuerpo han sido mejoradas!",
+    "farewell": "Que el ki guíe tus pasos. ¡Y no olvides visitar la Cueva del Eco con precaución!"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Souldolls",
+  "short_name": "Souldolls",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#14101C",
+  "theme_color": "#14101C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2314101C'/><polygon points='50,12 85,30 85,70 50,88 15,70 15,30' fill='%232A1F2D' stroke='%23E8B84A' stroke-width='4'/><line x1='30' y1='25' x2='70' y2='25' stroke='%238A6A3B' stroke-width='4'/><line x1='35' y1='25' x2='35' y2='50' stroke='%23A89BB0' stroke-dasharray='2,2' stroke-width='1.5'/><line x1='65' y1='25' x2='65' y2='50' stroke='%23A89BB0' stroke-dasharray='2,2' stroke-width='1.5'/><path d='M50,80 Q32,55 35,42 Q40,30 50,22 Q60,30 65,42 Q68,55 50,80 Z' fill='%239B6BFF'/><path d='M50,75 Q38,55 40,46 Q45,35 50,28 Q55,35 60,46 Q62,55 50,75 Z' fill='%235FE3D2'/><circle cx='50' cy='52' r='4' fill='%23FFFFFF'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

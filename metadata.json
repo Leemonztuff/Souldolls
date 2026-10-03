@@ -1,0 +1,6 @@
+{
+  "name": "Pokemon 2.5D RPG",
+  "description": "A 2.5D monster-taming RPG combining Three.js 3D overworld billboard aesthetics and PixiJS UI & battle system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

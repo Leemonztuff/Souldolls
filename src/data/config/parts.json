@@ -1,0 +1,32 @@
+{
+  "parts": {
+    "head": {
+      "id": "head",
+      "name": "Cabeza",
+      "isFatal": true,
+      "description": "Parte vital. Si llega a 0 PS causa K.O. inmediato."
+    },
+    "torso": {
+      "id": "torso",
+      "name": "Torso",
+      "isFatal": true,
+      "description": "Núcleo de ki vital. Si llega a 0 PS causa K.O. inmediato."
+    },
+    "arms": {
+      "id": "arms",
+      "name": "Brazos",
+      "isFatal": false,
+      "physicalAtkMultiplier": 0.5,
+      "blockedMoveTags": ["weapon"],
+      "description": "Extremidades superiores. Al romperse reduce el ATK físico al 50% y bloquea ataques con armas."
+    },
+    "legs": {
+      "id": "legs",
+      "name": "Piernas",
+      "isFatal": false,
+      "speedMultiplier": 0.5,
+      "evasionStageModifier": -1,
+      "description": "Extremidades inferiores. Al romperse reduce la Velocidad al 50% y reduce la evasión en 1 etapa."
+    }
+  }
+}

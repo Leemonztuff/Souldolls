@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es" class="h-full w-full bg-[#14101C]">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Souldolls</title>
+    <meta name="description" content="Souldolls - RPG de captura 2.5D combinando Three.js en overworld y PixiJS en batallas e interfaz." />
+    <meta property="og:title" content="Souldolls" />
+    <meta property="og:description" content="Souldolls - RPG de captura 2.5D combinando Three.js en overworld y PixiJS en batallas e interfaz." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#14101C" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,15 80,32 80,68 50,85 20,68 20,32' fill='%232A1F2D' stroke='%23E8B84A' stroke-width='4'/><path d='M50,75 Q35,52 38,40 Q42,30 50,22 Q58,30 62,40 Q65,52 50,75 Z' fill='%239B6BFF'/><path d='M50,70 Q40,52 42,44 Q46,34 50,28 Q54,34 58,44 Q60,52 50,70 Z' fill='%235FE3D2'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;700;900&family=Nunito:wght@300;400;600;700;800&family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Hover and active animations for glassmorphic on-screen HUD buttons */
+      .hud-btn {
+        transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .hud-btn:active, .hud-btn.active {
+        transform: scale(0.92);
+        background-color: rgba(95, 227, 210, 0.35) !important;
+        border-color: #5FE3D2 !important;
+        box-shadow: 0 0 14px rgba(95, 227, 210, 0.4);
+      }
+      .dpad-arrow:active, .dpad-arrow.active {
+        background-color: rgba(95, 227, 210, 0.4) !important;
+        color: #ffffff !important;
+      }
+      /* Action button specific active feedbacks */
+      .action-b-active:active, .action-b-active.active {
+        transform: scale(0.9) translateY(1px);
+        background-color: rgba(194, 35, 75, 0.6) !important;
+        border-color: #FF8FB8 !important;
+        box-shadow: 0 0 16px rgba(194, 35, 75, 0.6);
+      }
+      .action-a-active:active, .action-a-active.active {
+        transform: scale(0.9) translateY(1px);
+        background-color: rgba(95, 227, 210, 0.7) !important;
+        border-color: #ffffff !important;
+        box-shadow: 0 0 16px rgba(95, 227, 210, 0.6);
+      }
+    </style>
+  </head>
+  <body class="bg-[#14101C] text-[#F2E6C9] overflow-hidden select-none m-0 p-0 w-screen h-full flex items-center justify-center font-sans touch-none">
+    
+    <!-- Full-Screen Viewport Container for the 3D + 2D Game Engine -->
+    <div id="game-container" class="absolute inset-0 w-full h-full overflow-hidden bg-black flex items-center justify-center">
+      <!-- Three.js Canvas container (Background 3D) -->
+      <div id="three-container" class="absolute inset-0 pointer-events-none z-0"></div>
+      
+      <!-- PixiJS Canvas container (Foreground 2D / UI / Battle) -->
+      <div id="pixi-container" class="absolute inset-0 z-10"></div>
+    </div>
+
+    <!-- On-Screen Immersive HUD Overlay: Floats seamlessly over the canvas -->
+    <div id="touch-controls-hud" class="absolute inset-0 w-full h-full z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+      
+      <!-- TOP HUD BAR: Utility and camera adjustments -->
+      <div class="w-full flex items-start justify-between pointer-events-auto">
+        
+        <!-- Left: Cam Rotate controls (Semi-transparent capsules) -->
+        <div class="flex items-center gap-1.5 sm:gap-2.5">
+          <button id="btn-touch-l" class="hud-btn px-2.5 sm:px-4 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-[#F2E6C9] font-mono font-bold text-xs sm:text-sm rounded-lg shadow-lg flex items-center gap-1">
+            <span class="text-[#5FE3D2]">↶ L</span>
+          </button>
+          <button id="btn-touch-r" class="hud-btn px-2.5 sm:px-4 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-[#F2E6C9] font-mono font-bold text-xs sm:text-sm rounded-lg shadow-lg flex items-center gap-1">
+            <span class="text-[#5FE3D2]">R ↷</span>
+          </button>
+        </div>
+
+        <!-- Center Header: Resonancia Indicator -->
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-[#14101C]/75 backdrop-blur-md border border-[#8A6A3B]/30 rounded-full shadow-md text-xs font-mono font-bold">
+          <span class="w-2 h-2 rounded-full bg-[#5FE3D2] shadow-[0_0_8px_rgba(95,227,210,0.9)] animate-pulse"></span>
+          <span class="text-[#F2E6C9] tracking-wider text-[10px]">KI RESONANCIA</span>
+        </div>
+
+        <!-- Right: Utility pills (Run, Art Debug) -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <button id="btn-touch-run" class="hud-btn px-3 sm:px-4 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-xs font-bold text-[#E8B84A] rounded-lg shadow-lg flex items-center gap-1">
+            ⚡ CORRER
+          </button>
+          <button id="btn-touch-debug" class="hud-btn px-2.5 sm:px-3 py-1.5 bg-[#14101C]/60 backdrop-blur-md border border-[#8A6A3B]/40 text-xs font-bold text-[#5FE3D2] rounded-lg shadow-lg">
+            🛠 ARTE
+          </button>
+        </div>
+
+      </div>
+
+      <!-- MIDDLE HUD: Speaker representation / simple styling spacing -->
+      <div class="flex-1"></div>
+
+      <!-- BOTTOM HUD BAR: Floating D-Pad (Left) and Action Buttons (Right) -->
+      <div class="w-full flex items-end justify-between pointer-events-auto">
+        
+        <!-- Left Corner: Floating Translucent Cross D-PAD -->
+        <div class="flex flex-col items-center gap-1">
+          <div id="dpad-container" class="relative w-28 h-28 sm:w-34 sm:h-34 flex items-center justify-center">
+            <!-- Glass outer disc -->
+            <div class="absolute inset-0 bg-[#14101C]/50 backdrop-blur-md rounded-full border border-[#8A6A3B]/30 shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.5)]"></div>
+            
+            <!-- Cross Buttons -->
+            <!-- Up -->
+            <button id="btn-touch-up" class="dpad-arrow absolute top-0.5 w-8 sm:w-10 h-9 sm:h-11 bg-transparent active:bg-[#5FE3D2]/35 rounded-t-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+              ▲
+            </button>
+            <!-- Down -->
+            <button id="btn-touch-down" class="dpad-arrow absolute bottom-0.5 w-8 sm:w-10 h-9 sm:h-11 bg-transparent active:bg-[#5FE3D2]/35 rounded-b-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+              ▼
+            </button>
+            <!-- Left -->
+            <button id="btn-touch-left" class="dpad-arrow absolute left-0.5 w-9 sm:w-11 h-8 sm:h-10 bg-transparent active:bg-[#5FE3D2]/35 rounded-l-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+              ◀
+            </button>
+            <!-- Right -->
+            <button id="btn-touch-right" class="dpad-arrow absolute right-0.5 w-9 sm:w-11 h-8 sm:h-10 bg-transparent active:bg-[#5FE3D2]/35 rounded-r-lg flex items-center justify-center text-[#F2E6C9] text-base sm:text-lg font-black transition-colors">
+              ▶
+            </button>
+            
+            <!-- Center Pivot -->
+            <div class="w-5 sm:w-6 h-5 sm:h-6 bg-[#8A6A3B]/40 rounded-full border border-[#E8B84A]/25 pointer-events-none shadow-inner"></div>
+          </div>
+        </div>
+
+        <!-- Center Bottom: Floating SELECT & START rubber buttons -->
+        <div class="flex items-center gap-3 sm:gap-5 pb-1">
+          <!-- SELECT (Quest Log) -->
+          <div class="flex flex-col items-center">
+            <button id="btn-touch-select" class="hud-btn w-9 sm:w-12 h-3.5 sm:h-4 bg-[#2A1F2D]/75 backdrop-blur-md rounded-full border border-[#8A6A3B]/40 shadow-lg transform -rotate-[20deg]"></button>
+            <span class="text-[7px] sm:text-[9px] font-mono text-[#A89BB0] font-bold tracking-widest mt-1">SELECT</span>
+          </div>
+
+          <!-- START (Pause Menu) -->
+          <div class="flex flex-col items-center">
+            <button id="btn-touch-start" class="hud-btn w-9 sm:w-12 h-3.5 sm:h-4 bg-[#2A1F2D]/75 backdrop-blur-md rounded-full border border-[#8A6A3B]/40 shadow-lg transform -rotate-[20deg]"></button>
+            <span class="text-[7px] sm:text-[9px] font-mono text-[#A89BB0] font-bold tracking-widest mt-1">START</span>
+          </div>
+        </div>
+
+        <!-- Right Corner: Classic Diagonal B & A Action Buttons -->
+        <div class="relative w-28 h-24 sm:w-32 sm:h-28 flex items-center justify-center">
+          <!-- B Button (Cancel / Back / Crimson) -->
+          <div class="absolute left-0 bottom-0 flex flex-col items-center">
+            <button id="btn-touch-b" class="action-b-active w-11 h-11 sm:w-12.5 sm:h-12.5 bg-[#C2234B]/60 backdrop-blur-md hover:bg-[#C2234B]/80 rounded-full border border-[#FF8FB8]/50 text-[#F2E6C9] font-black text-base sm:text-lg flex items-center justify-center shadow-lg">
+              B
+            </button>
+            <span class="text-[7px] sm:text-[9px] font-mono font-bold text-[#A89BB0] mt-1">CANCEL</span>
+          </div>
+
+          <!-- A Button (Confirm / Interact / Cyan) -->
+          <div class="absolute right-0 top-0 flex flex-col items-center">
+            <button id="btn-touch-a" class="action-a-active w-11 h-11 sm:w-12.5 sm:h-12.5 bg-[#5FE3D2]/50 backdrop-blur-md hover:bg-[#5FE3D2]/70 rounded-full border border-white/60 text-[#14101C] font-black text-base sm:text-lg flex items-center justify-center shadow-lg">
+              A
+            </button>
+            <span class="text-[7px] sm:text-[9px] font-mono font-bold text-[#A89BB0] mt-1">CONFIRM</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
