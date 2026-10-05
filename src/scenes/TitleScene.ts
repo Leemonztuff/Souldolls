@@ -841,7 +841,7 @@ export class TitleScene implements IScene {
     if (summary && summary.exists) {
       GlobalSaveService.load(slotId);
     } else {
-      const initial = GlobalSaveService.createInitialState();
+      const initial = GlobalSaveService.createNewGameState('Protagonista');
       GlobalSaveService.save(slotId, initial);
     }
 
@@ -963,7 +963,7 @@ export class TitleScene implements IScene {
     const emptyIndex = this.slotSummaries.findIndex((s) => !s.exists);
     const slotToUse = emptyIndex >= 0 ? emptyIndex + 1 : 1;
 
-    const initialState = GlobalSaveService.createInitialState('Protagonista');
+    const initialState = GlobalSaveService.createNewGameState('Protagonista');
     GlobalSaveService.save(slotToUse, initialState);
 
     GlobalAudioService.playSfx('start');

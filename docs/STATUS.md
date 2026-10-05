@@ -35,7 +35,7 @@ Estado vivo del repositorio conforme a **SOULDOLLS HARNESS v1.0**.
 | B26 | Profundidad de combate | 17 | COMPLETO | 2026-10-04, `BattleEngine.ts` | — |
 | B27 | Mundo vivo y publicación | 22, 23 | COMPLETO | 2026-10-04, `AudioService.ts`, ciclo día/noche | — |
 | B28A | Lógica del gacha (sistema puro) | 16, 20 | COMPLETO | 2026-10-04, `GachaTestRunner.runAllTests()` (8/8 OK) | Determinista, pity, duplicados |
-| B28B | Escáner QR, overlay AR y pantallas | 23, 28A | PENDIENTE | 2026-10-04, `docs/specs/blocks/B28B-escaner-qr-ar-pantallas.md` (Spec v1.0) | Spec completada con `/finish-spec B28B`; listo para `/plan B28B` o `/implement B28B` |
+| B28B | Escáner QR, overlay AR y pantallas | 23, 28A | COMPLETO | 2026-10-04, `Bloque28BQrTestRunner` (5/5 OK), `QrScannerService.ts`, `GachaResonanceScene.ts`, `GachaResonanceVM.ts` | Escáner QR 100% en dispositivo (I-14), fallbacks imagen/sello manual, overlay AR, tasas exactas, pity y progreso x/5 de cuerpos |
 | B29 | Marca y tema visual | 15 | COMPLETO | 2026-10-04, `theme.json`, `styles.ts` | — |
 | B30 | Importación de spritesheets propios | 19, 29 | COMPLETO | 2026-10-04, `SpriteSheetLoader.ts` | — |
 | B31 | Taller de Artífices (datos y escena) | 20 | COMPLETO | 2026-10-04, `WorkshopScene.ts`, `interior_center.ts` | — |
@@ -53,3 +53,4 @@ Estado vivo del repositorio conforme a **SOULDOLLS HARNESS v1.0**.
 | B43 | Limpieza del HUD del overworld y acceso físico | 23, 41 | COMPLETO | 2026-10-04, `Bloque43HudTestRunner` (6/6 OK) | HUD limpio, ciclo pause/resume verificado |
 | B44 | Migración a tilesets PNG (RPG Maker) y WebP | 33, 36 | COMPLETO | 2026-10-04, `Bloque44TilesetTestRunner` (7/7 OK), `validate-tilesets.mjs` | Compuerta de licencia + autotiles + chunks 16x16 |
 | B45 | Diseño y construcción de mapas (level design y estética) | 5, 33, 34, 36, 44 | COMPLETO | 2026-10-04, `Bloque45MapgenTestRunner` (6/6 OK), `tools/mapgen/index.mjs` | 6 mapas horneados con semilla, casas 2.5D, horizonte sin vacío, etapas 1..6 en F2 |
+| B46 | Pantalla de elección del primer Souldoll (rediseño) | 29, 35, 37, 38, 39, 40, 41 | COMPLETO | 2026-10-05, `Bloque46StarterUiTestRunner` (5/5 OK), `StarterSelectVM.ts`, `StarterSelectionModal.ts`, `data/starters.json` | Escenario de 3 columnas con enfocada al centro, vistas por ranura, escala entera + máscara, tarjetas oscuras sin cambio de paleta, detalle con scroll, Regla de Oro, modal Confirm con apodo, test de glifos y Debug F2 |

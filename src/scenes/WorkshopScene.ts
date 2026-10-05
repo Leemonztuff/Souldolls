@@ -482,6 +482,22 @@ export class WorkshopScene implements IScene {
       openBindBtn.position.set(14, 114);
       rightCard.addChild(openBindBtn);
       this.focusManager.register(openBindBtn.toFocusable());
+
+      // Bloque 28B R4.2: Acceso físico a la Cámara de Resonancia QR desde el Taller de Artífices
+      const openQrBtn = new KitButton({
+        width: rightW - 28,
+        height: 44,
+        label: (esText as any).terms.gacha?.title || 'CÁMARA DE RESONANCIA QR',
+        variant: 'secondary',
+        iconId: 'soul_fragment',
+        onClick: () => {
+          GlobalAudioService.playSfx('confirm');
+          GlobalSceneManager.pushScene('GachaResonance', { tab: 'scan' });
+        },
+      });
+      openQrBtn.position.set(14, 170);
+      rightCard.addChild(openQrBtn);
+      this.focusManager.register(openQrBtn.toFocusable());
     } else if (this.currentTab === 'unbind' && activeMember && activeDoll) {
       const unbindBtn = new KitButton({
         width: rightW - 28,

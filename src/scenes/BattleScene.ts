@@ -22,7 +22,9 @@ import { HumanoidPartSilhouette } from '../render/ui/HumanoidPartSilhouette';
 import { BodyPart } from '../types/bodies';
 import { GlobalTheme } from '../data/theme/ThemeManager';
 import { COLOR_NUM, COLOR_HEX, FONTS, COLOR_SEMANTIC } from '../ui/styles';
-import { KitCard, KitButton, UIKitLinter } from '../ui/kit';
+import { KitCard, KitButton, IconRegistry, UIKitLinter } from '../ui/kit';
+import { PokedexSystem } from '../systems/PokedexSystem';
+import { SOUL_SPECIES_DATA } from '../data/souldolls/souls';
 import battleConfigRaw from '../data/config/battle.json';
 
 export type BiomeType = 'pasto' | 'bosque' | 'cueva' | 'interior';
@@ -128,10 +130,13 @@ export class BattleScene implements IScene {
   private narratorText!: Text;
 
   // State
-  private currentMenuState: 'main' | 'fight' | 'bag' | 'party' | 'busy' = 'main';
+  private currentMenuState: 'main' | 'fight' | 'bag' | 'party' | 'busy' | 'summary' = 'main';
   private selectedIndex = 0;
   private menuItemsContainers: Container[] = [];
   private onBattleEndCallback?: (victory: boolean, capturedCreature?: CreatureInstance) => void;
+  private summaryOverlayContainer: Container | null = null;
+  private summaryTooltipContainer: Container | null = null;
+  private summaryDoneResolver?: () => void;
 
   // Debug State (Bloque 37, 38 & 39)
   private debugVisible = false;
@@ -222,6 +227,7 @@ export class BattleScene implements IScene {
     else if (this.currentMenuState === 'fight') this.openFightMenu();
     else if (this.currentMenuState === 'bag') this.openBagMenu();
     else if (this.currentMenuState === 'party') this.openPartyMenu();
+    else if (this.currentMenuState === 'summary') this.renderPostBattleSummaryUI();
   }
 
   /**
@@ -1195,13 +1201,35 @@ export class BattleScene implements IScene {
   private async handleBattleEnd(): Promise<void> {
     if (this.engine.victory) {
       GlobalAudioService.playVictoryTheme();
-      await this.showNarratorMessage('¡Has ganado el combate!');
+      const captured = this.engine.capturedCreature || undefined;
+
+      // Register captured Souldoll immediately so opening its sheet from the summary shows the real roster
+      if (captured) {
+        const saveState = GlobalSaveService.getCurrentState();
+        PokedexSystem.markCaught(captured.speciesId);
+        const alreadyInParty = saveState.party.some((c) => c.uid === captured.uid);
+        const alreadyInStorage = (saveState.storage || []).some((c) => c.uid === captured.uid);
+        if (!alreadyInParty && !alreadyInStorage) {
+          if (saveState.party.length < 6) {
+            saveState.party.push(captured);
+          } else {
+            if (!saveState.storage) saveState.storage = [];
+            saveState.storage.push(captured);
+          }
+        }
+        GlobalSaveService.save();
+      } else {
+        await this.showNarratorMessage('¡Has ganado el combate!');
+      }
+
+      // Show Post-Battle & Capture Summary Modal (Loot + Capture + Sheet Button + Opacity Comparison Tooltip)
+      await this.showPostBattleSummary();
 
       // Hook for Evolution Check (Bloque 10)
       this.checkEvolutionHook();
 
       if (this.onBattleEndCallback) {
-        this.onBattleEndCallback(true);
+        this.onBattleEndCallback(true, captured);
       } else {
         GlobalSceneManager.popScene();
       }
@@ -1228,6 +1256,527 @@ export class BattleScene implements IScene {
         });
       }
     }
+  }
+
+  private isEquipableItem(itemId: string): boolean {
+    const def = ITEMS_DATA[itemId];
+    if (!def) return false;
+    return def.category === 'weapon' || def.category === 'relic' || def.category === 'crystal';
+  }
+
+  private getEquipSlotForItem(itemId: string): 'weapon' | 'relic' | 'accessory' {
+    const def = ITEMS_DATA[itemId];
+    if (def?.category === 'weapon') return 'weapon';
+    if (def?.category === 'relic') return 'relic';
+    return 'accessory';
+  }
+
+  private formatEquipEffectSummary(itemId: string | null | undefined): string {
+    if (!itemId || !ITEMS_DATA[itemId]) return 'Ranura vacía (Sin bonificación)';
+    const item = ITEMS_DATA[itemId];
+    const eff = item.effect;
+    if (eff.type === 'weapon_stat') {
+      const parts: string[] = [];
+      if (eff.atkBonus > 0) parts.push(`+${eff.atkBonus} ATQ`);
+      if (eff.spAtkBonus > 0) parts.push(`+${eff.spAtkBonus} ATQ.E`);
+      return parts.length > 0 ? `${parts.join(' · ')} — ${item.description}` : item.description;
+    }
+    return item.description;
+  }
+
+  private formatWeaponStatDelta(lootedItemId: string, currentItemId: string | null | undefined): string {
+    const lootItem = ITEMS_DATA[lootedItemId];
+    if (!lootItem || lootItem.effect.type !== 'weapon_stat') return '';
+    const curItem = currentItemId ? ITEMS_DATA[currentItemId] : null;
+    const curAtk = curItem && curItem.effect.type === 'weapon_stat' ? curItem.effect.atkBonus : 0;
+    const curSpAtk = curItem && curItem.effect.type === 'weapon_stat' ? curItem.effect.spAtkBonus : 0;
+
+    const dAtk = lootItem.effect.atkBonus - curAtk;
+    const dSpAtk = lootItem.effect.spAtkBonus - curSpAtk;
+    const fmt = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+    return `Comparación directa: ATQ ${fmt(dAtk)}  |  ATQ.ESP ${fmt(dSpAtk)}`;
+  }
+
+  public async showPostBattleSummary(): Promise<void> {
+    this.currentMenuState = 'summary';
+    this.clearSubmenus();
+    this.renderPostBattleSummaryUI();
+
+    return new Promise<void>((resolve) => {
+      this.summaryDoneResolver = () => {
+        if (this.summaryOverlayContainer && !this.summaryOverlayContainer.destroyed) {
+          this.summaryOverlayContainer.destroy({ children: true });
+        }
+        this.summaryOverlayContainer = null;
+        this.summaryTooltipContainer = null;
+        this.summaryDoneResolver = undefined;
+        resolve();
+      };
+    });
+  }
+
+  private renderPostBattleSummaryUI(): void {
+    if (this.summaryOverlayContainer && !this.summaryOverlayContainer.destroyed) {
+      this.summaryOverlayContainer.destroy({ children: true });
+    }
+
+    const { width, height } = this.layout;
+    const textRes = this.getTextRes();
+    const isMobile = width < 640;
+
+    const overlay = new Container();
+    overlay.roundPixels = true;
+    overlay.zIndex = 980;
+    this.container.addChild(overlay);
+    this.summaryOverlayContainer = overlay;
+
+    // 1. Semi-transparent backdrop blocking background taps
+    const dimmer = new Graphics();
+    dimmer.rect(0, 0, width, height);
+    dimmer.fill({ color: COLOR_NUM.black, alpha: 0.72 });
+    dimmer.eventMode = 'static';
+    dimmer.on('pointerdown', () => {
+      if (this.summaryTooltipContainer) {
+        this.summaryTooltipContainer.visible = false;
+      }
+    });
+    overlay.addChild(dimmer);
+
+    const captured = this.engine.capturedCreature;
+    const lootList = this.engine.lootedItems || [];
+    const totalExp = this.engine.totalExpGained || 0;
+    const moneyGained = this.engine.moneyReward || 0;
+    const levelUps = this.engine.levelUpRecords || [];
+
+    const modalW = Math.min(540, width - 20);
+    const hasCapture = Boolean(captured);
+    const baseH = hasCapture ? 410 : 340;
+    const extraLootRows = Math.max(0, lootList.length - 2) * 44;
+    const modalH = Math.min(height - 24, baseH + extraLootRows);
+    const modalX = Math.round((width - modalW) / 2);
+    const modalY = Math.round((height - modalH) / 2);
+
+    const card = new KitCard({
+      width: modalW,
+      height: modalH,
+      variant: 'inkCrypt',
+      title: hasCapture ? 'RESEÑA DE CAPTURA Y BOTÍN' : 'RESEÑA DE VICTORIA Y BOTÍN',
+    });
+    card.position.set(modalX, modalY);
+    card.eventMode = 'static';
+    overlay.addChild(card);
+
+    let cursorY = 38;
+
+    // 2. Experience, Level-Up & Money Summary Banner
+    const expBanner = new Graphics();
+    expBanner.roundRect(14, cursorY, modalW - 28, 36, 6);
+    expBanner.fill({ color: COLOR_NUM.smokedWood, alpha: 0.92 });
+    expBanner.stroke({ color: COLOR_NUM.bronze, width: 1.5 });
+    card.addChild(expBanner);
+
+    const activePlayer = this.engine.getPlayerActive();
+    const activeName = (activePlayer.nickname || activePlayer.speciesId).toUpperCase();
+    const expParts: string[] = [];
+    if (totalExp > 0) expParts.push(`${activeName}: +${totalExp} EXP`);
+    if (levelUps.length > 0) {
+      expParts.push(`¡Subió a Nv.${levelUps[levelUps.length - 1].newLevel}!`);
+    }
+    if (moneyGained > 0) expParts.push(`+$${moneyGained}`);
+    if (expParts.length === 0 && hasCapture) {
+      expParts.push('¡Vínculo de resonancia completado con éxito!');
+    }
+
+    const expTxt = new Text({
+      text: expParts.join('  ·  '),
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: isMobile ? 12 : 14,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.gold,
+      }),
+    });
+    expTxt.roundPixels = true;
+    expTxt.position.set(24, cursorY + 9);
+    card.addChild(expTxt);
+    cursorY += 44;
+
+    // 3. Captured Souldoll Section (with Sprite, Info & Direct Button to Sheet)
+    if (captured) {
+      const capBoxH = 92;
+      const capBox = new Graphics();
+      capBox.roundRect(14, cursorY, modalW - 28, capBoxH, 8);
+      capBox.fill({ color: COLOR_NUM.smokedWood, alpha: 0.96 });
+      capBox.stroke({ color: COLOR_NUM.gold, width: 2 });
+      card.addChild(capBox);
+
+      // Mini sprite preview of captured Souldoll
+      const capTex = GlobalAssetRegistry.getCreatureSpritePixi(captured.speciesId, 'view_front34');
+      const capSpr = new Sprite(capTex);
+      capSpr.anchor.set(0.5, 1.0);
+      const targetSprH = 68;
+      const sprScale = Math.max(0.35, Math.min(1, targetSprH / Math.max(1, capTex.height || 160)));
+      capSpr.scale.set(sprScale);
+      capSpr.position.set(54, cursorY + capBoxH - 8);
+      card.addChild(capSpr);
+
+      const spData = SOUL_SPECIES_DATA[captured.speciesId];
+      const elemStr = spData?.types?.join('/') || 'Neutro';
+      const capTitle = new Text({
+        text: `¡CAPTURADA! ${(captured.nickname || spData?.name || captured.speciesId).toUpperCase()}`,
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.title,
+          fontSize: isMobile ? 13 : 15,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.gold,
+        }),
+      });
+      capTitle.roundPixels = true;
+      capTitle.position.set(96, cursorY + 10);
+      card.addChild(capTitle);
+
+      const capSub = new Text({
+        text: `Nv.${captured.level} · Elemento: ${elemStr} · PS: ${captured.currentHp}/${captured.maxHp}`,
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: isMobile ? 11 : 12,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.parchment,
+        }),
+      });
+      capSub.roundPixels = true;
+      capSub.position.set(96, cursorY + 32);
+      card.addChild(capSub);
+
+      // Direct Button to Captured Souldoll's Sheet ("VER FICHA")
+      const sheetBtnW = isMobile ? 148 : 168;
+      const sheetBtn = new KitButton({
+        width: sheetBtnW,
+        height: 44,
+        label: 'VER FICHA',
+        iconId: 'soul_orb',
+        variant: 'primary',
+        fontSize: 13,
+        onClick: () => {
+          GlobalAudioService.playSfx('confirm');
+          const saveState = GlobalSaveService.getCurrentState();
+          const partyList = saveState.party || [];
+          const inPartyIdx = partyList.findIndex((c) => c.uid === captured.uid);
+          if (inPartyIdx >= 0) {
+            GlobalSceneManager.pushScene('CreatureDetail', {
+              uid: captured.uid,
+              index: inPartyIdx,
+              list: partyList,
+            });
+          } else {
+            GlobalSceneManager.pushScene('CreatureDetail', {
+              uid: captured.uid,
+              index: 0,
+              list: [captured, ...partyList],
+            });
+          }
+        },
+      });
+      sheetBtn.position.set(modalW - 22 - sheetBtnW, cursorY + Math.round((capBoxH - 44) / 2));
+      card.addChild(sheetBtn);
+
+      cursorY += capBoxH + 10;
+    }
+
+    // 4. Looted Items Section
+    const lootHeader = new Text({
+      text: 'BOTÍN OBTENIDO (Pasa el cursor o toca un equipable para comparar):',
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: isMobile ? 11 : 12,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.parchment,
+      }),
+    });
+    lootHeader.roundPixels = true;
+    lootHeader.position.set(16, cursorY);
+    card.addChild(lootHeader);
+    cursorY += 20;
+
+    const rowH = 44;
+    const rowGap = 6;
+    const maxVisibleLoot = Math.min(lootList.length, 4);
+
+    if (lootList.length === 0) {
+      const noLootTxt = new Text({
+        text: 'Sin objetos adicionales en este encuentro.',
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 12,
+          fill: COLOR_HEX.smoke,
+        }),
+      });
+      noLootTxt.roundPixels = true;
+      noLootTxt.position.set(18, cursorY + 8);
+      card.addChild(noLootTxt);
+      cursorY += 36;
+    } else {
+      lootList.slice(0, maxVisibleLoot).forEach((entry, idx) => {
+        const itemDef = ITEMS_DATA[entry.itemId];
+        if (!itemDef) return;
+
+        const ry = cursorY + idx * (rowH + rowGap);
+        const rowW = modalW - 28;
+        const isEquip = this.isEquipableItem(entry.itemId);
+
+        const rowContainer = new Container();
+        rowContainer.roundPixels = true;
+        rowContainer.position.set(14, ry);
+        rowContainer.eventMode = 'static';
+        rowContainer.cursor = isEquip ? 'pointer' : 'default';
+
+        const rBg = new Graphics();
+        rBg.roundRect(0, 0, rowW, rowH, 6);
+        rBg.fill({ color: COLOR_NUM.smokedWood, alpha: 0.95 });
+        rBg.stroke({
+          color: isEquip ? COLOR_NUM.gold : COLOR_NUM.bronze,
+          width: isEquip ? 2 : 1.5,
+        });
+        rowContainer.addChild(rBg);
+
+        const iconId =
+          itemDef.category === 'weapon'
+            ? 'sword'
+            : itemDef.category === 'relic'
+            ? 'relic'
+            : itemDef.category === 'crystal'
+            ? 'crystal'
+            : itemDef.category === 'fragment'
+            ? 'soul_fragment'
+            : 'elixir';
+        const ic = IconRegistry.create(iconId, 20);
+        ic.position.set(10, Math.round((rowH - 20) / 2));
+        rowContainer.addChild(ic);
+
+        const itemTitle = new Text({
+          text: `${itemDef.name.toUpperCase()} x${entry.count}`,
+          resolution: textRes,
+          style: new TextStyle({
+            fontFamily: FONTS.hud,
+            fontSize: isMobile ? 12 : 14,
+            fontWeight: 'bold',
+            fill: isEquip ? COLOR_HEX.gold : COLOR_HEX.parchment,
+          }),
+        });
+        itemTitle.roundPixels = true;
+        itemTitle.position.set(38, 5);
+        rowContainer.addChild(itemTitle);
+
+        const subDesc = new Text({
+          text: isEquip
+            ? `[EQUIPABLE] ${this.formatEquipEffectSummary(entry.itemId).slice(0, isMobile ? 38 : 54)}`
+            : itemDef.description.slice(0, isMobile ? 44 : 62),
+          resolution: textRes,
+          style: new TextStyle({
+            fontFamily: FONTS.body,
+            fontSize: 11,
+            fill: isEquip ? COLOR_HEX.cyan : COLOR_HEX.smoke,
+          }),
+        });
+        subDesc.roundPixels = true;
+        subDesc.position.set(38, 24);
+        rowContainer.addChild(subDesc);
+
+        if (isEquip) {
+          // Compare badge on right side of equipable loot row
+          const cmpBadgeW = isMobile ? 84 : 102;
+          const cmpBadge = new Graphics();
+          cmpBadge.roundRect(rowW - cmpBadgeW - 8, 8, cmpBadgeW, rowH - 16, 4);
+          cmpBadge.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.9 });
+          cmpBadge.stroke({ color: COLOR_NUM.cyan, width: 1.5 });
+          rowContainer.addChild(cmpBadge);
+
+          const cmpTxt = new Text({
+            text: 'COMPARAR',
+            resolution: textRes,
+            style: new TextStyle({
+              fontFamily: FONTS.hud,
+              fontSize: 10,
+              fontWeight: 'bold',
+              fill: COLOR_HEX.cyan,
+            }),
+          });
+          cmpTxt.roundPixels = true;
+          cmpTxt.anchor.set(0.5);
+          cmpTxt.position.set(rowW - cmpBadgeW / 2 - 8, Math.round(rowH / 2));
+          rowContainer.addChild(cmpTxt);
+
+          const showComparison = () => {
+            this.showEquipComparisonTooltip(
+              entry.itemId,
+              modalX + 18,
+              Math.max(12, modalY + ry - 134)
+            );
+          };
+
+          rowContainer.on('pointerover', showComparison);
+          rowContainer.on('pointerdown', (e) => {
+            e.stopPropagation();
+            GlobalAudioService.playSfx('select');
+            showComparison();
+          });
+        }
+
+        card.addChild(rowContainer);
+      });
+    }
+
+    // 5. Bottom Action Button ("CONTINUAR")
+    const continueBtnW = Math.min(240, modalW - 32);
+    const continueBtn = new KitButton({
+      width: continueBtnW,
+      height: 44,
+      label: 'CONTINUAR',
+      iconId: 'check',
+      variant: 'primary',
+      fontSize: 15,
+      onClick: () => {
+        GlobalAudioService.playSfx('confirm');
+        this.summaryDoneResolver?.();
+      },
+    });
+    continueBtn.position.set(Math.round((modalW - continueBtnW) / 2), modalH - 54);
+    card.addChild(continueBtn);
+
+    // 6. Floating Translucent Comparison Tooltip Container (alpha 0.90)
+    this.summaryTooltipContainer = new Container();
+    this.summaryTooltipContainer.roundPixels = true;
+    this.summaryTooltipContainer.visible = false;
+    this.summaryTooltipContainer.zIndex = 995;
+    overlay.addChild(this.summaryTooltipContainer);
+
+    // Auto-show comparison tooltip if there is at least one equipable item looted so the player sees it immediately
+    const firstEquip = lootList.find((l) => this.isEquipableItem(l.itemId));
+    if (firstEquip) {
+      this.showEquipComparisonTooltip(
+        firstEquip.itemId,
+        modalX + Math.round((modalW - Math.min(440, modalW - 16)) / 2),
+        Math.max(8, modalY - 126)
+      );
+    }
+  }
+
+  /**
+   * Renders a translucent (opacity/alpha 0.90) comparison tooltip comparing the looted equipable item
+   * against the currently equipped item in the corresponding slot on the player's active Souldoll.
+   */
+  private showEquipComparisonTooltip(lootedItemId: string, x: number, y: number): void {
+    if (!this.summaryTooltipContainer) return;
+    this.summaryTooltipContainer.removeChildren();
+
+    const itemDef = ITEMS_DATA[lootedItemId];
+    if (!itemDef) return;
+
+    const textRes = this.getTextRes();
+    const { width, height } = this.layout;
+    const activeDoll = this.engine.getPlayerActive();
+    const slotKey = this.getEquipSlotForItem(lootedItemId);
+    const slotLabelMap: Record<'weapon' | 'relic' | 'accessory', string> = {
+      weapon: 'ARMA',
+      relic: 'RELIQUIA',
+      accessory: 'ACCESORIO / CRISTAL',
+    };
+
+    const currentEquippedId =
+      slotKey === 'weapon'
+        ? activeDoll.equipped?.weapon || SOUL_SPECIES_DATA[activeDoll.speciesId]?.weaponId || null
+        : slotKey === 'relic'
+        ? activeDoll.equipped?.relic || activeDoll.heldItemId || null
+        : activeDoll.equipped?.accessory || null;
+
+    const curItemDef = currentEquippedId ? ITEMS_DATA[currentEquippedId] : null;
+    const tipW = Math.min(440, width - 16);
+    const tipH = 122;
+
+    const clampedX = Math.max(8, Math.min(width - tipW - 8, Math.round(x)));
+    const clampedY = Math.max(8, Math.min(height - tipH - 8, Math.round(y)));
+    this.summaryTooltipContainer.position.set(clampedX, clampedY);
+    this.summaryTooltipContainer.visible = true;
+
+    // Translucent Background Panel with explicit opacity (alpha 0.88)
+    const bg = new Graphics();
+    bg.roundRect(0, 0, tipW, tipH, 8);
+    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.88 });
+    bg.stroke({ color: COLOR_NUM.gold, width: 2, alpha: 0.95 });
+    this.summaryTooltipContainer.addChild(bg);
+
+    const headerTxt = new Text({
+      text: `COMPARACIÓN DE ${slotLabelMap[slotKey]} (${(activeDoll.nickname || activeDoll.speciesId).toUpperCase()})`,
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: 11,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.gold,
+      }),
+    });
+    headerTxt.roundPixels = true;
+    headerTxt.position.set(12, 8);
+    this.summaryTooltipContainer.addChild(headerTxt);
+
+    // New Looted Item Block
+    const newTitle = new Text({
+      text: `NUEVO: ${itemDef.name} — ${this.formatEquipEffectSummary(lootedItemId)}`,
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.body,
+        fontSize: 11,
+        fontWeight: 'bold',
+        fill: '#4ade80',
+        wordWrap: true,
+        wordWrapWidth: tipW - 24,
+      }),
+    });
+    newTitle.roundPixels = true;
+    newTitle.position.set(12, 28);
+    this.summaryTooltipContainer.addChild(newTitle);
+
+    // Currently Equipped Item Block
+    const curTitle = new Text({
+      text: `ACTUAL: ${curItemDef ? curItemDef.name : 'Ninguno'} — ${this.formatEquipEffectSummary(currentEquippedId)}`,
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.body,
+        fontSize: 11,
+        fill: COLOR_HEX.parchment,
+        wordWrap: true,
+        wordWrapWidth: tipW - 24,
+      }),
+    });
+    curTitle.roundPixels = true;
+    curTitle.position.set(12, 62);
+    this.summaryTooltipContainer.addChild(curTitle);
+
+    // Stat Delta Line (if Weapon) or Slot Note
+    const deltaStr =
+      this.formatWeaponStatDelta(lootedItemId, currentEquippedId) ||
+      (curItemDef?.id === lootedItemId
+        ? 'Ya tienes equipado este mismo objeto en la ranura.'
+        : 'Puedes equiparlo desde la Ficha de tu Souldoll.');
+
+    const deltaTxt = new Text({
+      text: deltaStr,
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: 11,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.cyan,
+      }),
+    });
+    deltaTxt.roundPixels = true;
+    deltaTxt.position.set(12, tipH - 22);
+    this.summaryTooltipContainer.addChild(deltaTxt);
   }
 
   public checkEvolutionHook(): void {
@@ -1471,13 +2020,33 @@ export class BattleScene implements IScene {
     await GlobalVFXSystem.screenFlash(0xffffff, 120);
 
     for (let s = 1; s <= shakes; s++) {
-      await this.sleep(350);
+      await this.sleep(400);
+      
+      // Hop and rotate to the right
       bottle.rotation = 0.35;
-      GlobalAudioService.playSfx('confirm');
+      bottle.position.y -= 12;
+      GlobalAudioService.playSfx('confirm', 1.0 + s * 0.1); // Rising pitch audio!
       await this.sleep(100);
+      
+      // Hop down and rotate to the left
       bottle.rotation = -0.35;
+      bottle.position.y += 12;
       await this.sleep(100);
+      
+      // Land back in place
       bottle.rotation = 0;
+      GlobalAudioService.playSfx('wood', 1.1); // Organic landing clack!
+      
+      // Spawn tiny yellow/cyan sparkles at bottle location on each shake!
+      await GlobalVFXSystem.playPresetVfx(
+        'aura',
+        targetX,
+        targetY - 12,
+        targetX,
+        targetY - 12,
+        '#38bdf8',
+        '#facc15'
+      );
     }
 
     if (success) {
@@ -2320,6 +2889,11 @@ export class BattleScene implements IScene {
       if (GlobalInput.justPressed('CONFIRM')) {
         GlobalAudioService.playSfx('confirm');
         this.openFightMenu();
+      }
+    } else if (this.currentMenuState === 'summary' && GlobalSceneManager.getCurrentScene()?.name === this.name) {
+      if (GlobalInput.justPressed('CONFIRM') || GlobalInput.justPressed('CANCEL')) {
+        GlobalAudioService.playSfx('confirm');
+        this.summaryDoneResolver?.();
       }
     }
   }

@@ -67,6 +67,11 @@ export class OverworldScene implements IScene {
   private selectedMenuIndex = 0;
   private starterModal: StarterSelectionModal | null = null;
 
+  // Live New-Player Escort Tutorial state (Guía Leo accompanying player to Lab)
+  private guideEscortStage: 'none' | 'approaching' | 'talking_welcome' | 'escorting' | 'talking_lab' = 'none';
+  private guideWaypoints: Array<{ x: number; y: number; dir: Direction }> = [];
+  private guideAnimTimer = 0;
+
   public getPauseMenuItems() {
     const t = (esText as any).terms.group_a.pause;
     return [
@@ -210,10 +215,19 @@ export class OverworldScene implements IScene {
         battleType: 'wild',
         playerParty: saveState.party,
         opponentParty: [wildCreature],
-        onBattleEnd: (victory: boolean, capturedCreature?: CreatureInstance) => {
+        onBattleEnd: (_victory: boolean, capturedCreature?: CreatureInstance) => {
           if (capturedCreature) {
             PokedexSystem.markCaught(capturedCreature.speciesId);
-            saveState.party.push(capturedCreature);
+            const alreadyInParty = saveState.party.some((c) => c.uid === capturedCreature.uid);
+            const alreadyInStorage = (saveState.storage || []).some((c) => c.uid === capturedCreature.uid);
+            if (!alreadyInParty && !alreadyInStorage) {
+              if (saveState.party.length < 6) {
+                saveState.party.push(capturedCreature);
+              } else {
+                if (!saveState.storage) saveState.storage = [];
+                saveState.storage.push(capturedCreature);
+              }
+            }
             GlobalSaveService.save();
           }
           GlobalSceneManager.popScene();
@@ -445,6 +459,129 @@ export class OverworldScene implements IScene {
         this.showToast('Consejo: El Taller de Artífices restaura gratis a todo tu equipo.', 4000);
       }
     }
+
+    // 9. Tutorial Inicial en Vivo (Solo para jugadores nuevos en Aldea Marioneta)
+    this.checkStartNewPlayerEscortTutorial();
+  }
+
+  private checkStartNewPlayerEscortTutorial(): void {
+    const state = GlobalSaveService.getCurrentState();
+    if (
+      this.currentMap?.id === 'villa_brote' &&
+      state.flags?.is_new_player &&
+      !state.flags?.guide_escort_done &&
+      !state.flags?.body_linked
+    ) {
+      const leoEntry = this.npcs.get('npc_guide_leo');
+      if (leoEntry) {
+        // Colocar a Guía Leo a unos pasos del jugador (10, 8) para que se acerque en vivo
+        leoEntry.data.x = 10;
+        leoEntry.data.y = 8;
+        leoEntry.character.setGridPosition(10, 8);
+        leoEntry.character.setDirection('left');
+        leoEntry.character.setQuestMarker('!');
+        this.guideEscortStage = 'approaching';
+        this.guideWaypoints = [
+          { x: 9, y: 8, dir: 'left' },
+          { x: 8, y: 8, dir: 'left' },
+          { x: 7, y: 8, dir: 'left' },
+        ];
+      }
+    } else {
+      this.guideEscortStage = 'none';
+      this.guideWaypoints = [];
+    }
+  }
+
+  private updateNewPlayerEscortTutorial(dt: number): void {
+    if (this.guideEscortStage === 'none') return;
+    const leoEntry = this.npcs.get('npc_guide_leo');
+    if (!leoEntry) {
+      this.guideEscortStage = 'none';
+      return;
+    }
+
+    const tLab = (esText as any).terms.lab;
+    const char = leoEntry.character;
+
+    if (this.guideEscortStage === 'approaching' || this.guideEscortStage === 'escorting') {
+      if (this.guideWaypoints.length > 0) {
+        const target = this.guideWaypoints[0];
+        const speed = 3.6; // tiles per second
+        const dx = target.x - char.worldX;
+        const dz = target.y - char.worldZ;
+        const dist = Math.hypot(dx, dz);
+
+        char.setDirection(target.dir);
+        this.guideAnimTimer += dt * 7;
+        char.setAnimFrame(Math.floor(this.guideAnimTimer) % 4);
+
+        // Si está escoltando al jugador al Laboratorio, el jugador camina en vivo detrás del Guía Leo
+        if (this.guideEscortStage === 'escorting') {
+          const pTargetX = Math.max(6, char.worldX - 1.1);
+          const pTargetZ = char.worldZ;
+          this.player.character.setDirection(target.dir);
+          this.player.character.setWorldPosition(pTargetX, pTargetZ);
+          this.player.gridX = Math.round(pTargetX);
+          this.player.gridY = Math.round(pTargetZ);
+          this.player.character.setAnimFrame(Math.floor(this.guideAnimTimer + 1) % 4);
+        }
+
+        if (dist <= speed * dt) {
+          char.setGridPosition(target.x, target.y);
+          leoEntry.data.x = target.x;
+          leoEntry.data.y = target.y;
+          this.guideWaypoints.shift();
+        } else {
+          char.setWorldPosition(
+            char.worldX + (dx / dist) * speed * dt,
+            char.worldZ + (dz / dist) * speed * dt
+          );
+        }
+      } else {
+        char.setAnimFrame(0);
+        if (this.guideEscortStage === 'approaching') {
+          this.guideEscortStage = 'talking_welcome';
+          this.player.character.setDirection('right');
+          this.openSimpleDialogue('Guía Leo', [
+            tLab.guide_welcome_1,
+            tLab.guide_welcome_2,
+            tLab.guide_welcome_3,
+          ]);
+        } else if (this.guideEscortStage === 'escorting') {
+          this.guideEscortStage = 'talking_lab';
+          char.setDirection('left');
+          // Dejar al jugador justo frente a la puerta del Laboratorio (22, 8) mirando al norte
+          this.player.setPosition(22, 8, 'up');
+          const state = GlobalSaveService.getCurrentState();
+          state.player.position.x = 22;
+          state.player.position.z = 8;
+          state.player.direction = 'up';
+          state.flags.guide_escort_done = true;
+          GlobalSaveService.save();
+
+          this.openSimpleDialogue('Guía Leo', [tLab.guide_at_lab]);
+        }
+      }
+      return;
+    }
+
+    if (this.guideEscortStage === 'talking_welcome' && !this.isDialogueOpen) {
+      // Iniciar caminata en vivo por la calle central hasta el Laboratorio (21, 8)
+      this.guideEscortStage = 'escorting';
+      this.guideWaypoints = [
+        { x: 10, y: 8, dir: 'right' },
+        { x: 14, y: 8, dir: 'right' },
+        { x: 18, y: 8, dir: 'right' },
+        { x: 21, y: 8, dir: 'right' },
+      ];
+      return;
+    }
+
+    if (this.guideEscortStage === 'talking_lab' && !this.isDialogueOpen) {
+      this.guideEscortStage = 'none';
+      this.showToast('Pulsa [A] frente a la puerta para entrar al Laboratorio.', 4000);
+    }
   }
 
   private async executeWarp(params: {
@@ -454,6 +591,17 @@ export class OverworldScene implements IScene {
     targetDirection: Direction;
   }): Promise<void> {
     if (this.isWarping) return;
+
+    // Guardia de salida hacia Ruta Claro si el jugador nuevo aún no tiene su primera Souldoll
+    if (this.currentMap?.id === 'villa_brote' && params.targetMapId === 'ruta_claro') {
+      const state = GlobalSaveService.getCurrentState();
+      if (!state.flags?.body_linked && (state.party?.length || 0) === 0) {
+        GlobalAudioService.playSfx('cancel');
+        const tLab = (esText as any).terms.lab;
+        this.openSimpleDialogue('Guía Leo', [tLab.route_blocked_no_starter]);
+        return;
+      }
+    }
 
     // Bloque 35 Caso límite 1 y R4.5: Bloqueo al salir del Laboratorio sin Souldoll o reto del rival
     if (this.currentMap?.id === 'interior_lab' && params.targetMapId === 'villa_brote') {
@@ -554,6 +702,9 @@ export class OverworldScene implements IScene {
     }
     if (this.isMenuOpen) {
       this.renderMenuUI();
+    }
+    if (this.starterModal) {
+      this.starterModal.resize(GlobalPixiRenderer.width, GlobalPixiRenderer.height);
     }
     if (this.isDialogueOpen && this.currentNode) {
       this.renderNodeUI(this.currentNode);
@@ -820,10 +971,15 @@ export class OverworldScene implements IScene {
   public update(dt: number): void {
     if (this.isWarping) return;
 
+    const isEscortingMovement =
+      this.guideEscortStage === 'approaching' || this.guideEscortStage === 'escorting';
+
     // 1. Update Player Movement & Camera unconditionally to ensure player is never lost
-    if (!this.isDialogueOpen && !this.isMenuOpen) {
+    if (!this.isDialogueOpen && !this.isMenuOpen && !isEscortingMovement) {
       this.player.update(dt, this.cameraController.currentYaw);
     }
+
+    this.updateNewPlayerEscortTutorial(dt);
 
     const px = this.player.character.worldX;
     const pz = this.player.character.worldZ;
@@ -866,6 +1022,7 @@ export class OverworldScene implements IScene {
 
     // 3. In-Game Pause Menu or Starter Selection Modal Handling
     if (this.starterModal) {
+      this.starterModal.update(dt);
       if (GlobalInput.justPressed('LEFT') || GlobalInput.justPressed('UP')) {
         this.starterModal.selectNext(-1);
       } else if (GlobalInput.justPressed('RIGHT') || GlobalInput.justPressed('DOWN')) {

@@ -20,13 +20,16 @@ import { PartyScene } from '../scenes/PartyScene';
 import { BagScene } from '../scenes/BagScene';
 import { WorkshopScene } from '../scenes/WorkshopScene';
 import { SoulBindingScene } from '../scenes/SoulBindingScene';
+import { GachaResonanceScene } from '../scenes/GachaResonanceScene';
 import { OptionsScene } from '../ui/hud/OptionsScene';
 import { DataValidator } from '../data/validation/DataValidator';
 import { SoulCodexSystem } from '../systems/SoulCodexSystem';
-import { GachaService, GachaTestRunner } from '../systems/gacha';
+import { GachaService, GachaTestRunner, Bloque28BQrTestRunner } from '../systems/gacha';
 import { Bloque43HudTestRunner } from '../ui/hud/Bloque43HudTestRunner';
 import { Bloque44TilesetTestRunner } from '../render/overworld/Bloque44TilesetTestRunner';
 import { Bloque45MapgenTestRunner } from '../render/overworld/Bloque45MapgenTestRunner';
+import { Bloque35LabTestRunner } from '../systems/lab/Bloque35LabTestRunner';
+import { Bloque46StarterUiTestRunner } from '../systems/lab/Bloque46StarterUiTestRunner';
 import { isDebugEnabled } from './DebugGate';
 
 export class Game {
@@ -88,6 +91,9 @@ export class Game {
     setTimeout(() => {
       try {
         GachaTestRunner.runAllTests();
+        Bloque28BQrTestRunner.runAllTests();
+        Bloque35LabTestRunner.runAllTests();
+        Bloque46StarterUiTestRunner.runAllTests();
         Bloque43HudTestRunner.runAllTests();
         Bloque44TilesetTestRunner.runAllTests();
         Bloque45MapgenTestRunner.runAllTests();
@@ -114,6 +120,7 @@ export class Game {
     GlobalSceneManager.registerScene('CreatureDetail', () => new CreatureDetailScene());
     GlobalSceneManager.registerScene('Workshop', () => new WorkshopScene());
     GlobalSceneManager.registerScene('SoulBinding', () => new SoulBindingScene());
+    GlobalSceneManager.registerScene('GachaResonance', () => new GachaResonanceScene());
     GlobalSceneManager.registerScene('Options', () => new OptionsScene());
     GlobalSceneManager.registerScene('Credits', () => new CreditsScene());
 

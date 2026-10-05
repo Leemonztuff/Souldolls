@@ -1,5 +1,5 @@
 {
-  "image": "/Assets/maga_battle_sheet.png",
+  "image": "/assets/souldolls/maga_battle_sheet.png",
   "size": [
     268,
     162
@@ -29,7 +29,7 @@
       "native": false,
       "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
       "idle": {
-        "neck": 0.30,
+        "neck": 0.3,
         "waist": 0.48,
         "bust": {
           "y0": 0.33,
@@ -63,8 +63,8 @@
         "bust": {
           "y0": 0.34,
           "y1": 0.46,
-          "x0": 0.30,
-          "x1": 0.70
+          "x0": 0.3,
+          "x1": 0.7
         }
       }
     },
@@ -87,7 +87,7 @@
       "native": false,
       "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
       "idle": {
-        "neck": 0.30,
+        "neck": 0.3,
         "waist": 0.48
       }
     },
@@ -110,7 +110,7 @@
       "native": false,
       "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
       "idle": {
-        "neck": 0.30,
+        "neck": 0.3,
         "waist": 0.48
       }
     }

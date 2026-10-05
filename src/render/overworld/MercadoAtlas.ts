@@ -126,7 +126,7 @@ export class MercadoAtlasManager {
     if (rawImg.startsWith('/') || rawImg.startsWith('http')) {
       return rawImg;
     }
-    return `/Assets/${rawImg}`;
+    return `/assets/atlases/${rawImg}`;
   }
 
   private initTexture(): void {

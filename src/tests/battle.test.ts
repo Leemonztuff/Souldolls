@@ -7,6 +7,7 @@ import { SOUL_SPECIES_DATA } from '../data/souldolls/souls';
 import { MOVES_DATA } from '../data/moves/moves';
 import { Souldoll } from '../types/souldolls';
 import { Rng } from '../core/Rng';
+import { GlobalSaveService } from '../services/SaveService';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -399,6 +400,127 @@ export function runAllBattleTests() {
     assert(fatalTorsoHit.faintReason === 'torso_broken', `K.O. por Torso verificado`);
     assert(target.currentHp === 0, `HP en 0 confirmado`);
     console.log('  ────────────────────────────────────────────────────────────────────────');
+  }
+
+  // TEST 12: Level Up Stat Increase and Parts HP Recalculation (No manual mock values)
+  console.log('\n🔹 TEST 12: Incremento de Estadísticas Básicas y Recálculo de Partes al Subir de Nivel');
+  {
+    const playerSouldoll = createTestSouldoll('maga', 5);
+    StatCalculator.ensurePartHp(playerSouldoll);
+
+    const initialLevel = playerSouldoll.level;
+    const initialMaxHp = playerSouldoll.maxHp;
+    const initialAtk = playerSouldoll.stats.atk;
+    const initialSpeed = playerSouldoll.stats.speed;
+    const initialPartHP = { ...playerSouldoll.maxPartHP };
+
+    // Simulate winning battles, gaining EXP and leveling up
+    playerSouldoll.level = 15;
+    StatCalculator.recalculateStatsAndParts(playerSouldoll);
+
+    assert(playerSouldoll.level === 15, `Nivel aumentado a 15`);
+    assert(playerSouldoll.maxHp > initialMaxHp, `Estadística HP aumentó con el nivel (de ${initialMaxHp} a ${playerSouldoll.maxHp} PS)`);
+    assert(playerSouldoll.stats.speed > initialSpeed, `Estadística VEL aumentó con el nivel (de ${initialSpeed} a ${playerSouldoll.stats.speed})`);
+    assert(playerSouldoll.stats.atk > initialAtk, `Estadística ATK aumentó con el nivel (de ${initialAtk} a ${playerSouldoll.stats.atk})`);
+
+    // Verify part max HPs were recalculated and increased
+    assert(playerSouldoll.maxPartHP.torso > initialPartHP.torso, `PS Máximos del Torso aumentaron con el nivel (de ${initialPartHP.torso} a ${playerSouldoll.maxPartHP.torso} PS)`);
+    assert(playerSouldoll.maxPartHP.head > initialPartHP.head, `PS Máximos de la Cabeza aumentaron con el nivel (de ${initialPartHP.head} a ${playerSouldoll.maxPartHP.head} PS)`);
+
+    // Verify current part HPs were increased appropriately to reflect the gained stats
+    assert(playerSouldoll.partHP.torso > initialPartHP.torso, `PS Actuales del Torso aumentaron al nivel de su nuevo máximo`);
+  }
+
+  // TEST 13: First Wild Capture Experience Anti-Frustration Boost
+  console.log('\n🔹 TEST 13: Probabilidad de Captura Mejorada para el Primer Souldoll Salvaje');
+  {
+    (GlobalSaveService as any).currentState = null;
+    const targetWildSouldoll = createTestSouldoll('asesina', 8);
+    const rng = new Rng(100);
+
+    // 1. Without active state / with caught entries (baseline rate)
+    let normalCatches = 0;
+    const trials = 500;
+    for (let i = 0; i < trials; i++) {
+      if (CaptureCalculator.calculateCapture(targetWildSouldoll, SOUL_SPECIES_DATA['asesina'], 'soul_bottle_comun', rng).success) {
+        normalCatches++;
+      }
+    }
+
+    // 2. Initialize save state for a new player (only 1 caught starter)
+    const state = GlobalSaveService.createInitialState();
+    // Use it as the current active state
+    (GlobalSaveService as any).currentState = state;
+
+    const rng2 = new Rng(100);
+    let firstTryCatches = 0;
+    for (let i = 0; i < trials; i++) {
+      if (CaptureCalculator.calculateCapture(targetWildSouldoll, SOUL_SPECIES_DATA['asesina'], 'soul_bottle_comun', rng2).success) {
+        firstTryCatches++;
+      }
+    }
+
+    // Reset current active state after test
+    (GlobalSaveService as any).currentState = null;
+
+    assert(
+      firstTryCatches > normalCatches,
+      `Tasa de captura normal (${normalCatches}/${trials}) vs con bonus de primer Souldoll (${firstTryCatches}/${trials})`
+    );
+    assert(
+      firstTryCatches >= Math.floor(trials * 0.70),
+      `El bonus del primer Souldoll asegura al menos el 70% de éxito (${firstTryCatches}/${trials}) sin debilitar`
+    );
+  }
+
+  // TEST 14: Post-Battle Loot Drops & Capture Summary Data
+  console.log('\n🔹 TEST 14: Botín de Batalla (Loot Equipable y Fragmentos) y Registro de Captura');
+  {
+    const state = GlobalSaveService.createInitialState();
+    (GlobalSaveService as any).currentState = state;
+
+    const p1 = createTestSouldoll('maga', 12);
+    const wild1 = createTestSouldoll('sacerdotisa', 4);
+    wild1.currentHp = 1;
+    wild1.partHP.torso = 1;
+
+    const engineWin = new BattleEngine({
+      playerParty: [p1],
+      opponentParty: [wild1],
+      battleType: 'wild',
+      seed: 42,
+    });
+    engineWin.startBattle();
+    const winEvents = engineWin.executeTurn({ type: 'move', moveIndex: 0 });
+
+    assert(engineWin.victory === true, 'Victoria registrada al derrotar al rival');
+    assert(engineWin.lootedItems.length >= 2, `Se generaron objetos de botín tras el combate (${engineWin.lootedItems.length} tipos de ítems)`);
+    assert(
+      winEvents.some((e) => e.type === 'LOOT_GAINED' && (e.lootItems?.length || 0) > 0),
+      'Evento LOOT_GAINED emitido con la lista de objetos obtenidos'
+    );
+
+    const wildToCatch = createTestSouldoll('hechicera', 5);
+    wildToCatch.currentHp = 1;
+    const engineCatch = new BattleEngine({
+      playerParty: [p1],
+      opponentParty: [wildToCatch],
+      battleType: 'wild',
+      seed: 7,
+    });
+    engineCatch.startBattle();
+    engineCatch.executeTurn({ type: 'capture', capsuleItemId: 'soul_bottle_cristal' });
+
+    assert(
+      engineCatch.capturedCreature?.uid === wildToCatch.uid,
+      'La Souldoll capturada queda registrada en engine.capturedCreature para el botón "VER FICHA" de la reseña'
+    );
+    assert(
+      engineCatch.lootedItems.length >= 2,
+      `La captura también otorga botín en la reseña final (${engineCatch.lootedItems.length} tipos de ítems)`
+    );
+
+    (GlobalSaveService as any).currentState = null;
   }
 
   console.log('\n========================================');

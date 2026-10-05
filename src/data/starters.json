@@ -1,0 +1,52 @@
+{
+  "version": "1.0.0",
+  "level": 5,
+  "chassisId": "chassis_madera_t1",
+  "bodyIvs": {
+    "head": 15,
+    "torso": 15,
+    "arms": 15,
+    "legs": 15
+  },
+  "rewards": {
+    "bottlesItemId": "soul_bottle_comun",
+    "bottlesCount": 5,
+    "elixirItemId": "elixir_ki",
+    "elixirCount": 1
+  },
+  "starters": [
+    {
+      "soulSpeciesId": "maga",
+      "roleKey": "role_maga",
+      "bottleFrame": "starter_bottle_ember",
+      "previewMoves": [
+        "chispa_ignea",
+        "foco_mental",
+        "ascuas",
+        "orbe_flamigero"
+      ]
+    },
+    {
+      "soulSpeciesId": "sacerdotisa",
+      "roleKey": "role_sacerdotisa",
+      "bottleFrame": "starter_bottle_leaf",
+      "previewMoves": [
+        "latigazo_ki",
+        "plegaria_sanadora",
+        "hoja_afilada",
+        "drenaje_vital"
+      ]
+    },
+    {
+      "soulSpeciesId": "hidromante",
+      "roleKey": "role_hidromante",
+      "bottleFrame": "starter_bottle_water",
+      "previewMoves": [
+        "burbuja_ki",
+        "velo_acuatico",
+        "pistola_agua",
+        "chorro_presion"
+      ]
+    }
+  ]
+}

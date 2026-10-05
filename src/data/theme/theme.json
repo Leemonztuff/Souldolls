@@ -59,6 +59,7 @@
     "hudFont": "'Pixelify Sans', sans-serif",
     "damageFont": "'Cinzel', serif",
     "pixelBasePx": 8,
+    "minTitlePx": 15,
     "minBodyPx": 14,
     "minNumberPx": 16,
     "sizes": {

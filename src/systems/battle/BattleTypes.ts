@@ -62,8 +62,14 @@ export type BattleEventType =
   | 'FLEE'
   | 'FLEE_SUCCESS'
   | 'FLEE_FAIL'
+  | 'LOOT_GAINED'
   | 'BATTLE_VICTORY'
   | 'BATTLE_DEFEAT';
+
+export interface BattleLootEntry {
+  itemId: string;
+  count: number;
+}
 
 export interface BattleEvent {
   type: BattleEventType;
@@ -96,6 +102,7 @@ export interface BattleEvent {
   shakes?: number; // 0, 1, 2, 3
   success?: boolean;
   itemId?: string;
+  lootItems?: BattleLootEntry[];
   message?: string;
   moneyGained?: number;
 }

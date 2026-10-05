@@ -1,6 +1,7 @@
 import { PartBlock } from '../../types/bodies';
 import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { GlobalSaveService } from '../../services/SaveService';
+import { SOULDOLLS_SPRITES_MANIFEST } from '../../data/assetsManifest';
 
 export type ChassisMaterial = 'wood' | 'iron' | 'crystal' | 'stone' | 'clay' | 'bone';
 export type SpriteView =
@@ -67,13 +68,16 @@ export class SoulDollSpriteFactory {
   private static customSpritesheetLoaded = false;
   private static keyedViewsCache: Map<string, HTMLCanvasElement> = new Map();
   private static frameMetaCache: Map<string, BattleFrameAtlasMeta> = new Map();
+  private static speciesViewsCache: Map<string, Map<string, HTMLCanvasElement>> = new Map();
+  private static speciesMetaCache: Map<string, Map<string, BattleFrameAtlasMeta>> = new Map();
+  private static loadedSpeciesSheets: Set<string> = new Set();
   private static onSheetReadyCallbacks: Array<() => void> = [];
 
   static {
-    // Preload processed battle spritesheet (or fallback raw JPG with runtime keyOutGreen)
     if (typeof window !== 'undefined') {
+      // 1. Preload default base sheet (maga_battle_sheet.png)
       const pngImg = new Image();
-      pngImg.src = '/Assets/maga_battle_sheet.png';
+      pngImg.src = '/assets/souldolls/maga_battle_sheet.png';
       pngImg.onload = () => {
         this.customSpritesheet = pngImg;
         this.customSpritesheetLoaded = true;
@@ -81,18 +85,75 @@ export class SoulDollSpriteFactory {
         this.cache.clear();
         this.onSheetReadyCallbacks.forEach((cb) => cb());
       };
-      pngImg.onerror = () => {
-        const jpgImg = new Image();
-        jpgImg.src = '/Assets/524060170_1790895365875586.jpg';
-        jpgImg.onload = () => {
-          this.customSpritesheet = jpgImg;
-          this.customSpritesheetLoaded = true;
-          this.processLoadedSpritesheet(jpgImg, false);
+
+      // 2. Preload dedicated battle sheets & atlases for all 14 Souldolls
+      Object.values(SOULDOLLS_SPRITES_MANIFEST).forEach((entry) => {
+        this.preloadSpeciesSheetAndAtlas(entry.speciesId, entry.sheetPath, entry.atlasPath);
+      });
+    }
+  }
+
+  private static preloadSpeciesSheetAndAtlas(
+    speciesId: string,
+    sheetPath: string,
+    atlasPath: string
+  ): void {
+    const img = new Image();
+    img.src = sheetPath;
+    img.onload = () => {
+      fetch(atlasPath)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+        .then((atlasJson) => {
+          this.processSpeciesSpritesheet(speciesId, img, atlasJson);
+          this.loadedSpeciesSheets.add(speciesId);
           this.cache.clear();
           this.onSheetReadyCallbacks.forEach((cb) => cb());
-        };
-      };
+        });
+    };
+  }
+
+  private static processSpeciesSpritesheet(
+    speciesId: string,
+    img: HTMLImageElement,
+    atlasJson?: any
+  ): void {
+    const vMap = new Map<string, HTMLCanvasElement>();
+    const mMap = new Map<string, BattleFrameAtlasMeta>();
+
+    if (atlasJson && atlasJson.frames) {
+      for (const [vName, frame] of Object.entries<any>(atlasJson.frames)) {
+        const fx = frame.x ?? 0;
+        const fy = frame.y ?? 0;
+        const fw = frame.w ?? img.width;
+        const fh = frame.h ?? img.height;
+        const { canvas, ctx } = this.createCanvas(fw, fh);
+        ctx.drawImage(img, fx, fy, fw, fh, 0, 0, fw, fh);
+        const trimmed = this.trimToOpaqueBoundingBox(canvas, 1);
+        vMap.set(vName, trimmed);
+        mMap.set(vName, {
+          anchor: frame.anchor || [0.5, 1.0],
+          mirrorSafe: Boolean(frame.mirrorSafe),
+          native: Boolean(frame.native),
+          note: frame.note || '',
+          idle: frame.idle,
+        });
+      }
     }
+
+    if (vMap.has('view_front34')) vMap.set('side_r', vMap.get('view_front34')!);
+    if (vMap.has('view_front')) vMap.set('front', vMap.get('view_front')!);
+    if (vMap.has('view_back')) vMap.set('back', vMap.get('view_back')!);
+    if (vMap.has('view_back34')) vMap.set('side_l', vMap.get('view_back34')!);
+
+    if (vMap.size > 0) {
+      this.speciesViewsCache.set(speciesId, vMap);
+      this.speciesMetaCache.set(speciesId, mMap);
+    }
+  }
+
+  public static hasDedicatedSpeciesSheet(speciesId: string): boolean {
+    return Boolean(SOULDOLLS_SPRITES_MANIFEST[speciesId]);
   }
 
   public static onSpritesheetReady(cb: () => void): void {
@@ -298,7 +359,11 @@ export class SoulDollSpriteFactory {
     }
   }
 
-  public static hasRealView(_speciesId: string, view: SpriteView): boolean {
+  public static hasRealView(speciesId: string, view: SpriteView): boolean {
+    const spMap = this.speciesViewsCache.get(speciesId);
+    if (spMap && spMap.has(view)) {
+      return true;
+    }
     if (this.keyedViewsCache.has(view)) {
       return true;
     }
@@ -309,7 +374,7 @@ export class SoulDollSpriteFactory {
     return this.getFrameMeta(speciesId, view);
   }
 
-  public static getFrameMeta(_speciesId: string, view: SpriteView): BattleFrameAtlasMeta {
+  public static getFrameMeta(speciesId: string, view: SpriteView): BattleFrameAtlasMeta {
     const resolvedView: SpriteView =
       view === 'side_r'
         ? 'view_front34'
@@ -320,6 +385,11 @@ export class SoulDollSpriteFactory {
         : view === 'side_l'
         ? 'view_back34'
         : view;
+
+    const spMetaMap = this.speciesMetaCache.get(speciesId);
+    if (spMetaMap && spMetaMap.has(resolvedView)) {
+      return spMetaMap.get(resolvedView)!;
+    }
 
     const cached = this.frameMetaCache.get(resolvedView);
     if (cached) return cached;
@@ -400,6 +470,126 @@ export class SoulDollSpriteFactory {
   }
 
   /**
+   * BLOQUE 46 (Req. 6): Arte provisional diferenciado sobre la hoja base.
+   * Dibuja sobre la mano el arma propia de cada inicial (báculo de brasa / Bastón Ignis,
+   * báculo-raíz / Vara de Sauce, Tridente de Coral), su emblema de tocado y sutil aura elemental,
+   * garantizando que las 3 opciones se distingan a simple vista sin depender solo del tinte.
+   */
+  private static drawSpeciesHeldWeaponOverlay(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    speciesId: string,
+    view: SpriteView
+  ): void {
+    const isBack = view === 'view_back' || view === 'view_back34' || view === 'back' || view === 'side_l';
+    const handX = view === 'view_front34' || view === 'side_r' ? Math.round(w * 0.78) : Math.round(w * 0.82);
+    const handY = Math.round(h * 0.56);
+    const headX = Math.round(w * 0.5);
+    const headY = Math.round(h * 0.14);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+
+    if (speciesId === 'maga' || speciesId === 'archimaga') {
+      // Bastón Ignis: báculo de fresno oscuro coronado por rubí ígneo y chispas de brasa
+      ctx.fillStyle = '#422513';
+      ctx.fillRect(handX - 2, handY - 34, 4, 58);
+      ctx.fillStyle = '#8A6A3B';
+      ctx.fillRect(handX - 4, handY - 36, 8, 4);
+      ctx.fillStyle = '#FF6B35';
+      ctx.fillRect(handX - 5, handY - 45, 10, 9);
+      ctx.fillStyle = '#FFC15E';
+      ctx.fillRect(handX - 2, handY - 43, 4, 5);
+      // Ascuas flotantes
+      ctx.fillStyle = '#FF6B35';
+      ctx.fillRect(handX - 9, handY - 50, 2, 2);
+      ctx.fillRect(handX + 7, handY - 48, 2, 2);
+    } else if (speciesId === 'sacerdotisa' || speciesId === 'hierofante') {
+      // Vara de Sauce (báculo-raíz): cayado curvo de madera viva con hojas esmeralda y flor sanadora
+      ctx.fillStyle = '#5c3a21';
+      ctx.fillRect(handX - 2, handY - 32, 4, 56);
+      ctx.fillRect(handX - 7, handY - 38, 10, 4);
+      ctx.fillRect(handX - 9, handY - 35, 3, 6);
+      // Hojas de sauce y flor blanca/esmeralda
+      ctx.fillStyle = '#5CBF5A';
+      ctx.fillRect(handX - 11, handY - 41, 6, 4);
+      ctx.fillRect(handX + 2, handY - 42, 6, 4);
+      ctx.fillStyle = '#C8F28A';
+      ctx.fillRect(handX - 4, handY - 44, 6, 6);
+      // Guirnalda botánica sobre el tocado
+      if (!isBack) {
+        ctx.fillStyle = '#5CBF5A';
+        ctx.fillRect(headX - 12, headY, 24, 3);
+        ctx.fillStyle = '#C8F28A';
+        ctx.fillRect(headX - 8, headY - 1, 4, 3);
+        ctx.fillRect(headX + 4, headY - 1, 4, 3);
+      }
+    } else if (speciesId === 'hidromante' || speciesId === 'cantora_marea') {
+      // Tridente de Coral: asta marina y tres puntas de coral celeste
+      ctx.fillStyle = '#1e3a5f';
+      ctx.fillRect(handX - 2, handY - 30, 4, 54);
+      ctx.fillStyle = '#3FA9F5';
+      ctx.fillRect(handX - 8, handY - 34, 16, 3);
+      // 3 puntas del tridente
+      ctx.fillRect(handX - 8, handY - 45, 3, 12);
+      ctx.fillRect(handX - 1, handY - 49, 3, 16);
+      ctx.fillRect(handX + 5, handY - 45, 3, 12);
+      ctx.fillStyle = '#A8E6FF';
+      ctx.fillRect(handX - 1, handY - 48, 2, 6);
+      // Diadema de coral / perla marina en la frente
+      if (!isBack) {
+        ctx.fillStyle = '#3FA9F5';
+        ctx.fillRect(headX - 10, headY + 1, 20, 3);
+        ctx.fillStyle = '#A8E6FF';
+        ctx.fillRect(headX - 2, headY - 2, 4, 5);
+      }
+    } else if (speciesId === 'bruja' || speciesId === 'hechicera') {
+      // Grimorio Polvo / Tomo Arcano: códice flotante con páginas iluminadas y sello de ki
+      ctx.fillStyle = '#241434';
+      ctx.fillRect(handX - 9, handY - 22, 16, 20);
+      ctx.fillStyle = speciesId === 'hechicera' ? '#7a30d0' : '#944ce0';
+      ctx.fillRect(handX - 8, handY - 21, 14, 18);
+      ctx.fillStyle = '#F2E6C9';
+      ctx.fillRect(handX - 6, handY - 19, 10, 14);
+      ctx.fillStyle = '#5FE3D2';
+      ctx.fillRect(handX - 3, handY - 15, 4, 6);
+      if (!isBack && speciesId === 'hechicera') {
+        ctx.fillStyle = '#E8B84A';
+        ctx.fillRect(headX - 10, headY - 2, 20, 3);
+        ctx.fillStyle = '#E9D5FF';
+        ctx.fillRect(headX - 1, headY - 6, 3, 5);
+      }
+    } else if (speciesId === 'gladiadora' || speciesId === 'titanide') {
+      // Guantelete de Piedra / Titán: cestus pesado de bronce y granito
+      ctx.fillStyle = '#201810';
+      ctx.fillRect(handX - 7, handY - 10, 13, 16);
+      ctx.fillStyle = speciesId === 'titanide' ? '#925826' : '#b07a45';
+      ctx.fillRect(handX - 6, handY - 9, 11, 14);
+      ctx.fillStyle = '#E8B84A';
+      ctx.fillRect(handX - 4, handY - 7, 7, 5);
+    } else if (speciesId === 'monje' || speciesId === 'maestro_trueno') {
+      // Guantes Chispa / Nunchaku Rayo: vendas doradas con chispas eléctricas
+      ctx.fillStyle = '#EEBE2C';
+      ctx.fillRect(handX - 5, handY - 14, 9, 12);
+      ctx.fillStyle = '#FFF6B0';
+      ctx.fillRect(handX - 3, handY - 22, 4, 8);
+      ctx.fillStyle = '#5FE3D2';
+      ctx.fillRect(handX + 2, handY - 26, 3, 6);
+    } else if (speciesId === 'asesina' || speciesId === 'espectro') {
+      // Daga Penumbra / Guadaña del Vacío: hoja umbría con filo carmesí/vacío
+      ctx.fillStyle = '#1c162c';
+      ctx.fillRect(handX - 2, handY - 34, 3, 52);
+      ctx.fillStyle = '#B894F6';
+      ctx.fillRect(handX - 1, handY - 38, 12, 5);
+      ctx.fillStyle = speciesId === 'espectro' ? '#5FE3D2' : '#C2234B';
+      ctx.fillRect(handX + 6, handY - 35, 4, 10);
+    }
+
+    ctx.restore();
+  }
+
+  /**
    * Helper to darken / lighten hex colors
    */
   public static adjustColor(hex: string, percent: number): string {
@@ -459,10 +649,12 @@ export class SoulDollSpriteFactory {
       return this.cache.get(cacheKey)!;
     }
 
-    // CHECK IF CUSTOM REAL SPRITESHEET IS PRESENT AND PREFERRED
+    // CHECK IF DEDICATED PER-SPECIES SHEET OR CUSTOM BASE SPRITESHEET IS LOADED
+    const spViewsMap = this.speciesViewsCache.get(speciesId);
+    const hasDedicatedSheet = Boolean(spViewsMap && spViewsMap.size > 0);
     const useRealSpritesheet =
-      this.customSpritesheetLoaded &&
-      this.keyedViewsCache.size > 0;
+      hasDedicatedSheet ||
+      (this.customSpritesheetLoaded && this.keyedViewsCache.size > 0);
 
     if (useRealSpritesheet && view !== 'icon') {
       let targetView: SpriteView = view;
@@ -471,24 +663,29 @@ export class SoulDollSpriteFactory {
       else if (view === 'back') targetView = 'view_back';
       else if (view === 'side_l') targetView = 'view_back34';
 
+      const sourceMap = hasDedicatedSheet ? spViewsMap! : this.keyedViewsCache;
+
       // Req 2: Fallback si falta view_back34 -> view_back; si falta view_front34 -> view_front
-      let baseViewCanvas = this.keyedViewsCache.get(targetView);
+      let baseViewCanvas = sourceMap.get(targetView);
       if (!baseViewCanvas && targetView === 'view_back34') {
-        baseViewCanvas = this.keyedViewsCache.get('view_back');
+        baseViewCanvas = sourceMap.get('view_back');
       } else if (!baseViewCanvas && targetView === 'view_front34') {
-        baseViewCanvas = this.keyedViewsCache.get('view_front');
+        baseViewCanvas = sourceMap.get('view_front');
       }
       if (!baseViewCanvas) {
         baseViewCanvas =
-          this.keyedViewsCache.get('view_front34') ||
-          this.keyedViewsCache.get('view_front');
+          sourceMap.get('view_front34') ||
+          sourceMap.get('view_front');
       }
 
       if (baseViewCanvas) {
         const { canvas: nativeCanvas, ctx: nCtx } = this.createCanvas(baseViewCanvas.width, baseViewCanvas.height);
         nCtx.drawImage(baseViewCanvas, 0, 0);
 
-        this.applySpeciesPaletteShift(nativeCanvas, speciesId);
+        if (!hasDedicatedSheet) {
+          this.applySpeciesPaletteShift(nativeCanvas, speciesId);
+          this.drawSpeciesHeldWeaponOverlay(nCtx, nativeCanvas.width, nativeCanvas.height, speciesId, targetView);
+        }
 
         if (outfitStyle === 'atrevido') {
           nCtx.fillStyle = '#ff8fbb';

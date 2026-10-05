@@ -343,6 +343,27 @@ export class AudioService {
         break;
       }
 
+      case 'catch': {
+        // Retro chiptune triumphant ascending capture sweep
+        const notes = [523, 659, 783, 1046, 1318, 1567, 2093]; // C5 to C7 arpeggio
+        notes.forEach((freq, idx) => {
+          if (!this.ctx || !this.sfxGain) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq * pitchMultiplier, t + idx * 0.04);
+
+          gain.gain.setValueAtTime(0.18, t + idx * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.04 + 0.22);
+
+          osc.connect(gain);
+          gain.connect(this.sfxGain);
+          osc.start(t + idx * 0.04);
+          osc.stop(t + idx * 0.04 + 0.24);
+        });
+        break;
+      }
+
       default:
         break;
     }

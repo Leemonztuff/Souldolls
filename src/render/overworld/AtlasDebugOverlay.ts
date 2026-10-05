@@ -535,7 +535,9 @@ export class AtlasDebugOverlay {
 
   private loadAtlasImage(): void {
     const activeData = this.getActiveAtlasData();
-    const imgPath = activeData.image?.startsWith('/') ? activeData.image : `/Assets/${activeData.image}`;
+    const imgPath = activeData.image?.startsWith('/')
+      ? activeData.image
+      : `/assets/atlases/${activeData.image}`;
 
     if (!this.atlasImg) {
       this.atlasImg = new Image();

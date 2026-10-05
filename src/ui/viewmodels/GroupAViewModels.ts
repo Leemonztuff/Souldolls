@@ -352,7 +352,8 @@ export function buildBagVM(state: GameState, activeTab: BagTabId): BagScreenVM {
       cat === 'repair_kit' ||
       cat === 'weapon' ||
       cat === 'relic' ||
-      cat === 'scroll';
+      cat === 'scroll' ||
+      cat === 'fragment';
 
     items.push({
       id: def.id,

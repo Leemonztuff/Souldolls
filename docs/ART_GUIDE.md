@@ -1,48 +1,50 @@
-# Guía de Estilo de Arte — Pokémon 2.5D HD-2D RPG
+# Guía de Organización de Assets y Datos (`SOULDOLLS — Ánima & Cuerpo`)
 
-Esta guía establece las especificaciones técnicas y artísticas para reemplazar o ampliar los sprites procedurales del juego con arte real (PNG + JSON Atlas) manteniendo coherencia visual HD-2D.
+## 1. Estructura Canónica de Directorios
 
----
+El proyecto sigue una convención estricta en **minúsculas (`lowercase`)** sin carpetas duplicadas:
 
-## 🎨 1. Paletas de Color por Tipo Elemental
-Cada criatura debe mantener una paleta coherente según su elemento principal:
-- **Fuego**: Tonos rojos y anaranjados vibrantes (`#ef4444`, `#f97316`, `#b91c1c`).
-- **Agua**: Tonos azules oceánicos y cian (`#3b82f6`, `#0ea5e9`, `#1d4ed8`).
-- **Planta**: Verdes naturales y esmeralda (`#22c55e`, `#15803d`, `#86efac`).
-- **Eléctrico**: Amarillos eléctricos y dorados (`#eab308`, `#facc15`, `#a16207`).
-- **Tierra / Roca**: Marrones terrosos y grises piedra (`#78350f`, `#b45309`, `#64748b`).
-- **Sombra / Psíquico**: Morados místicos y oscuros (`#7c3aed`, `#581c87`, `#c084fc`).
+```text
+├── assets/                          # Recursos fuente (Raw / Offline Authoring)
+│   ├── raw/                         # Imágenes fuente originales sin procesar (JPG)
+│   │   ├── maga_battle_raw.jpg
+│   │   ├── mercado_raw.jpg
+│   │   ├── overworld_decor_raw.jpg
+│   │   └── taller_raw.jpg
+│   └── tilesets/                    # Packs de tilesets fuente con metadatos de licencia
+│       └── anima_core/              # Hojas RPG Maker (A1..A5, B), pack.json y LICENSE.txt
+│
+├── public/                          # Recursos estáticos servidos en producción por Vite
+│   ├── assets/
+│   │   ├── atlases/                 # Atlas 3D del Overworld con canal alfa limpio
+│   │   │   ├── mercado_atlas.png
+│   │   │   ├── overworld_decor_atlas.png
+│   │   │   └── taller_atlas.png
+│   │   ├── souldolls/               # Hojas de combate de 4 vistas para las 14 Souldolls
+│   │   │   └── <speciesId>_battle_sheet.png
+│   │   └── tilesets/                # Tilesets horneados (PNG + WebP lossless)
+│   │       └── anima_core/
+│   └── data/                        # Metadatos JSON consumidos por fetch() en el cliente
+│       ├── art/
+│       │   ├── souldolls/           # Atlas JSON de cada especie (<speciesId>_battle_atlas.json)
+│       │   ├── souldolls_sprites_manifest.json
+│       │   ├── mercado_atlas.json
+│       │   ├── overworld_decor_atlas.json
+│       │   └── taller_atlas.json
+│       └── decor/
+│           └── biomes.json
+│
+└── src/data/                        # Datos tipados e importados por TypeScript en compilación
+    ├── art/                         # Manifiesto de sprites y atlas importados en bundle
+    ├── config/                      # Configuraciones globales (art.json, battle.json, scale.json)
+    ├── maps/                        # Definiciones de mapas (src/, baked/ y módulos TS)
+    ├── souldolls/                   # Catálogo de las 14 Souldolls (souls.ts)
+    └── tilesets/                    # Índices horneados (anima_core_baked.json, assets_manifest.json)
+```
 
----
+## 2. Scripts de Pipeline de Arte
 
-## 📐 2. Dimensiones y Requisitos Técnicos de Sprites
-
-### A. Criaturas (Front / Back / Icon)
-- **Tamaño estándar**: 128x128 píxeles por frame (o 64x64 escalado sin pérdida).
-- **Formato**: PNG con transparencia alfa de 32 bits.
-- **Outline**: Borde exterior sólido de 1 píxel en tono oscuro (`#0f172a` o negro con 80% opacidad) para contraste HD-2D sobre terreno 3D.
-- **Estructura Atlas JSON**:
-  ```json
-  {
-    "frames": {
-      "flamin_front": { "x": 0, "y": 0, "w": 128, "h": 128 },
-      "flamin_back": { "x": 128, "y": 0, "w": 128, "h": 128 },
-      "flamin_icon": { "x": 256, "y": 0, "w": 32, "h": 32 }
-    },
-    "meta": { "scale": "1" }
-  }
-  ```
-
-### B. Personajes de Overworld (Player / NPCs)
-- **Grilla**: 4 direcciones (`down`, `up`, `left`, `right`) × 3 frames de animación (pie izquierdo, reposo, pie derecho).
-- **Tamaño de celda**: 32x32 o 48x48 píxeles por frame.
-- **Padding**: Mínimo 2 píxeles de separación entre celdas para evitar sangrado de textura en WebGL.
-
-### C. Tiles del Mundo (Suelos y Decoración)
-- **Tamaño**: 64x64 píxeles (texturas tileables sin costuras).
-- **Filtro**: `NearestFilter` para conservar estética pixel art nítida.
-
----
-
-## 🔍 3. Validador y Empaquetado
-Todo sprite externo se verifica mediante `scripts/pack-atlas.ts` antes de ser incorporado al `AssetLoader` para garantizar que cumple con las dimensiones y el padding estipulado.
+- `npm run prepare:atlas`: Procesa los JPG crudos de `assets/raw/` eliminando fondos (chroma-key y despill) y genera los atlas PNG en `public/assets/atlases/`.
+- `npm run prepare:sprites`: Genera las 14 hojas de batalla (`public/assets/souldolls/<id>_battle_sheet.png`), sus atlas JSON y actualiza `souldolls_sprites_manifest.json`.
+- `npm run bake:tilesets` / `npm run validate:tilesets`: Hornea los autotiles de `assets/tilesets/anima_core` hacia `public/assets/tilesets/anima_core` y valida licencias y dimensiones.
+- `npm run mapgen`: Hornea los mapas deterministas desde `src/data/maps/src/*.map.json` hacia `src/data/maps/baked/` y módulos TypeScript.

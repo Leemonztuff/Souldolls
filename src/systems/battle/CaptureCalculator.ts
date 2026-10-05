@@ -1,6 +1,7 @@
 import { Souldoll, SoulSpecies } from '../../types/souldolls';
 import { Rng } from '../../core/Rng';
 import { ITEMS_DATA } from '../../data/items/items';
+import { GlobalSaveService } from '../../services/SaveService';
 
 export interface CaptureResult {
   success: boolean;
@@ -51,7 +52,37 @@ export class CaptureCalculator {
     const catchRate = targetSpecies.catchRate || 100;
 
     const hpFactor = (3 * maxHp - 2 * curHp) / (3 * maxHp);
-    const a = Math.min(255, Math.floor(hpFactor * catchRate * bottleBonus * statusBonus));
+    let a = Math.min(255, Math.floor(hpFactor * catchRate * bottleBonus * statusBonus));
+
+    // Check if this is the player's first wild capture to prevent early-game frustration
+    let isFirstCapture = false;
+    try {
+      if (GlobalSaveService.hasActiveState()) {
+        const state = GlobalSaveService.getCurrentState();
+        if (state) {
+          const caughtCount = Object.values(state.soulCodex || {}).filter(
+            (entry: any) => entry.caught
+          ).length;
+          const caughtCountLegacy = Object.values(state.pokedex || {}).filter(
+            (entry: any) => entry.caught
+          ).length;
+          const maxCaught = Math.max(caughtCount, caughtCountLegacy);
+          
+          const partyAndStorageCount = (state.party || []).length + (state.storage || []).length;
+          
+          if (maxCaught <= 1 || partyAndStorageCount <= 1) {
+            isFirstCapture = true;
+          }
+        }
+      }
+    } catch (_) {
+      // Safe fallback
+    }
+
+    if (isFirstCapture) {
+      // Apply a massive 3.5x multiplier and guarantee a very generous minimum catch value (at least 180 / 255)
+      a = Math.min(255, Math.max(180, Math.floor(a * 3.5)));
+    }
 
     if (a >= 255) {
       return { success: true, shakes: 3 };

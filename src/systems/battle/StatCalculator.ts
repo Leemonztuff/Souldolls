@@ -161,13 +161,78 @@ export class StatCalculator {
   }
 
   /**
+   * Helper to resolve the correct chassis ID from a Souldoll's bodyInstanceId
+   */
+  public static getChassisId(souldoll: Souldoll): string {
+    if (souldoll.bodyInstanceId && souldoll.bodyInstanceId.startsWith('body_')) {
+      const parts = souldoll.bodyInstanceId.split('_');
+      if (parts.length >= 4) {
+        const potentialChassisId = parts.slice(1, 4).join('_');
+        if (BODY_CHASSIS_DATA[potentialChassisId]) {
+          return potentialChassisId;
+        }
+      }
+    }
+    return 'chassis_madera_t1';
+  }
+
+  /**
+   * Recalculates stats and part max/current HPs on level up or stats modification,
+   * applying proper IVs, EVs, nature and equipment.
+   */
+  public static recalculateStatsAndParts(souldoll: Souldoll): void {
+    const species = SOUL_SPECIES_DATA[souldoll.speciesId || souldoll.soulSpeciesId] || SOUL_SPECIES_DATA['maga'];
+    
+    // 1. Recalculate base combat stats
+    const newStats = this.calculateAllStats(
+      species,
+      souldoll.level || 1,
+      souldoll.ivs,
+      souldoll.evs,
+      souldoll.nature,
+      souldoll.equipped
+    );
+    souldoll.stats = newStats;
+
+    // 2. Resolve chassis ID and recalculate part max HPs
+    const chassisId = this.getChassisId(souldoll);
+    const partIVs = souldoll.ivs ? { head: souldoll.ivs.hp, torso: souldoll.ivs.def, arms: souldoll.ivs.atk, legs: souldoll.ivs.speed } : undefined;
+    const partEVs = souldoll.evs ? { head: souldoll.evs.hp, torso: souldoll.evs.def, arms: souldoll.evs.atk, legs: souldoll.evs.speed } : undefined;
+    const newMaxPartHP = this.calculatePartMaxHp(newStats.hp, chassisId, partIVs, partEVs);
+
+    if (!souldoll.maxPartHP) {
+      souldoll.maxPartHP = { ...newMaxPartHP };
+    }
+    if (!souldoll.partHP) {
+      souldoll.partHP = { ...newMaxPartHP };
+    }
+
+    // 3. Adjust current part HP by the difference in max part HP
+    const parts: Array<'head' | 'torso' | 'arms' | 'legs'> = ['head', 'torso', 'arms', 'legs'];
+    parts.forEach((p) => {
+      const diff = newMaxPartHP[p] - souldoll.maxPartHP[p];
+      if (diff > 0) {
+        souldoll.partHP[p] += diff;
+      }
+      souldoll.partHP[p] = Math.min(newMaxPartHP[p], Math.max(0, souldoll.partHP[p]));
+    });
+
+    souldoll.maxPartHP = newMaxPartHP;
+
+    // 4. Update overall maxHp and currentHp
+    souldoll.maxHp = souldoll.maxPartHP.head + souldoll.maxPartHP.torso + souldoll.maxPartHP.arms + souldoll.maxPartHP.legs;
+    souldoll.currentHp = Math.max(0, souldoll.partHP.head + souldoll.partHP.torso + souldoll.partHP.arms + souldoll.partHP.legs);
+  }
+
+  /**
    * Ensures that a Souldoll has valid partHP and maxPartHP objects
    */
   public static ensurePartHp(souldoll: Souldoll): void {
     if (!souldoll.maxPartHP) {
-      const chassisId = souldoll.bodyInstanceId ? 'chassis_madera_t1' : 'chassis_madera_t1';
+      const chassisId = this.getChassisId(souldoll);
       const partIVs = souldoll.ivs ? { head: souldoll.ivs.hp, torso: souldoll.ivs.def, arms: souldoll.ivs.atk, legs: souldoll.ivs.speed } : undefined;
-      souldoll.maxPartHP = this.calculatePartMaxHp(souldoll.stats.hp, chassisId, partIVs);
+      const partEVs = souldoll.evs ? { head: souldoll.evs.hp, torso: souldoll.evs.def, arms: souldoll.evs.atk, legs: souldoll.evs.speed } : undefined;
+      souldoll.maxPartHP = this.calculatePartMaxHp(souldoll.stats.hp, chassisId, partIVs, partEVs);
     }
 
     if (!souldoll.partHP) {

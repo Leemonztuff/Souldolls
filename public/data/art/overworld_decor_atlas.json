@@ -1,5 +1,5 @@
 {
-  "image": "overworld_decor_atlas.png",
+  "image": "/assets/atlases/overworld_decor_atlas.png",
   "size": [1024, 1024],
   "ppu": 150,
   "frames": {

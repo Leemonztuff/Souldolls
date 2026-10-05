@@ -71,6 +71,14 @@ export interface BodyRequirement {
   minTier: number; // 1 to 5
 }
 
+export interface SoulSpriteConfig {
+  sheetPath: string;
+  atlasPath: string;
+  size: [number, number];
+  views: Array<'view_front34' | 'view_front' | 'view_back' | 'view_back34'>;
+  idleSupported: boolean;
+}
+
 export interface SoulSpecies {
   id: string;
   name: string;
@@ -92,6 +100,7 @@ export interface SoulSpecies {
   possibleAbilities?: string[];
   layers?: SpriteLayers;
   spriteRecipe?: SpriteRecipe;
+  spriteConfig?: SoulSpriteConfig;
 }
 
 // Aliases for compatibility

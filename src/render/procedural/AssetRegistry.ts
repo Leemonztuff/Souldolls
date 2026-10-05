@@ -112,7 +112,7 @@ export class AssetRegistry {
 
     // Load Atlas
     this.atlasTexture = new Image();
-    this.atlasTexture.src = '/Assets/Build1.jpg';
+    this.atlasTexture.src = '/assets/atlases/taller_atlas.png';
     this.atlasTexture.onload = () => {
       console.log('[AssetRegistry] Atlas loaded');
     };

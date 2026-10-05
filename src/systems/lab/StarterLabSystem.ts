@@ -268,6 +268,7 @@ export class StarterLabSystem {
     }
 
     state.flags[starterLabConfig.flags.rivalDefeated] = true;
+    state.flags.intro_completed = true;
 
     // Completar "El ki sin color" (main_1_starter) y activar "Camino a Ruta Claro" (main_2_package)
     state.quests.main_1_starter = {

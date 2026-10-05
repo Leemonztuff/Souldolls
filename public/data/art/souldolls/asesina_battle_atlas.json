@@ -1,0 +1,119 @@
+{
+  "speciesId": "asesina",
+  "name": "Asesina",
+  "element": "Sombra",
+  "image": "/assets/souldolls/asesina_battle_sheet.png",
+  "size": [
+    268,
+    162
+  ],
+  "nativeTargetHeightPx": 160,
+  "mirrorSafe": false,
+  "asymmetryNote": "El brazo del guantelete cambia de lado al espejar horizontalmente (flipX: true).",
+  "frames": {
+    "view_front34": {
+      "x": 0,
+      "y": 0,
+      "w": 68,
+      "h": 162,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        87,
+        74,
+        583,
+        1411
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.3,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.33,
+          "y1": 0.46,
+          "x0": 0.28,
+          "x1": 0.72
+        }
+      }
+    },
+    "view_front": {
+      "x": 70,
+      "y": 0,
+      "w": 59,
+      "h": 162,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        768,
+        74,
+        505,
+        1412
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      }
+    },
+    "view_back": {
+      "x": 131,
+      "y": 0,
+      "w": 71,
+      "h": 162,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        1434,
+        74,
+        607,
+        1406
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.3,
+        "waist": 0.48
+      }
+    },
+    "view_back34": {
+      "x": 204,
+      "y": 0,
+      "w": 64,
+      "h": 162,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        2151,
+        74,
+        544,
+        1411
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.3,
+        "waist": 0.48
+      }
+    }
+  }
+}

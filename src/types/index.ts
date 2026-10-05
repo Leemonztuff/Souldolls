@@ -149,4 +149,11 @@ export interface EventMap {
   BodyAssembled: { chassisId: string; bodyInstanceId: string };
   ScrollGained: { scrollId: string; moveId: string; convertedToKiDust?: number };
   TechniqueLearned: { souldollUid: string; speciesId: string; moveId: string; replacedMoveId?: string };
+  // Bloque 46 Req. 3: Evento emitido al elegir y vincular la primera Souldoll
+  'starter:chosen': {
+    soulSpeciesId: string;
+    souldollUid: string;
+    nickname: string;
+    rivalSpeciesId: string;
+  };
 }

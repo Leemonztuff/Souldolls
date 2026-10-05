@@ -1,5 +1,5 @@
 {
-  "image": "taller_atlas.png",
+  "image": "/assets/atlases/taller_atlas.png",
   "size": [1200, 896],
   "frames": {
     "house_exterior":   { "x": 20,   "y": 0,   "w": 535, "h": 435, "pivot": [0.5, 1.0] },

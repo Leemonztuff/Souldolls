@@ -21,7 +21,8 @@
     "test:e2e": "playwright test",
     "pack:atlas": "tsx scripts/pack-atlas.ts",
     "test:balance": "tsx scripts/simulate-battles.ts",
-    "prepare:atlas": "tsx tools/prepare_atlas.ts"
+    "prepare:atlas": "tsx tools/prepare_atlas.ts",
+    "prepare:sprites": "tsx tools/generate_souldoll_sheets.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

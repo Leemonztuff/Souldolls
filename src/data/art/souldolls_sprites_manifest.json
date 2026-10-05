@@ -1,0 +1,264 @@
+{
+  "version": "1.0.0",
+  "totalSpecies": 14,
+  "defaultViews": [
+    "view_front34",
+    "view_front",
+    "view_back",
+    "view_back34"
+  ],
+  "species": {
+    "maga": {
+      "speciesId": "maga",
+      "name": "Maga",
+      "element": "Fuego",
+      "sheetPath": "/assets/souldolls/maga_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/maga_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "archimaga": {
+      "speciesId": "archimaga",
+      "name": "Archimaga",
+      "element": "Fuego",
+      "sheetPath": "/assets/souldolls/archimaga_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/archimaga_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "sacerdotisa": {
+      "speciesId": "sacerdotisa",
+      "name": "Sacerdotisa",
+      "element": "Planta",
+      "sheetPath": "/assets/souldolls/sacerdotisa_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/sacerdotisa_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "hierofante": {
+      "speciesId": "hierofante",
+      "name": "Hierofante",
+      "element": "Planta",
+      "sheetPath": "/assets/souldolls/hierofante_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/hierofante_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "gladiadora": {
+      "speciesId": "gladiadora",
+      "name": "Gladiadora",
+      "element": "Tierra",
+      "sheetPath": "/assets/souldolls/gladiadora_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/gladiadora_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "titanide": {
+      "speciesId": "titanide",
+      "name": "Titánide",
+      "element": "Tierra",
+      "sheetPath": "/assets/souldolls/titanide_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/titanide_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "bruja": {
+      "speciesId": "bruja",
+      "name": "Bruja",
+      "element": "Neutro",
+      "sheetPath": "/assets/souldolls/bruja_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/bruja_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "hechicera": {
+      "speciesId": "hechicera",
+      "name": "Hechicera",
+      "element": "Neutro",
+      "sheetPath": "/assets/souldolls/hechicera_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/hechicera_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "hidromante": {
+      "speciesId": "hidromante",
+      "name": "Hidromante",
+      "element": "Agua",
+      "sheetPath": "/assets/souldolls/hidromante_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/hidromante_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "cantora_marea": {
+      "speciesId": "cantora_marea",
+      "name": "Cantora de Marea",
+      "element": "Agua",
+      "sheetPath": "/assets/souldolls/cantora_marea_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/cantora_marea_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "monje": {
+      "speciesId": "monje",
+      "name": "Monje",
+      "element": "Eléctrico",
+      "sheetPath": "/assets/souldolls/monje_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/monje_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "maestro_trueno": {
+      "speciesId": "maestro_trueno",
+      "name": "Maestro del Trueno",
+      "element": "Eléctrico",
+      "sheetPath": "/assets/souldolls/maestro_trueno_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/maestro_trueno_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "asesina": {
+      "speciesId": "asesina",
+      "name": "Asesina",
+      "element": "Sombra",
+      "sheetPath": "/assets/souldolls/asesina_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/asesina_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    },
+    "espectro": {
+      "speciesId": "espectro",
+      "name": "Espectro",
+      "element": "Sombra",
+      "sheetPath": "/assets/souldolls/espectro_battle_sheet.png",
+      "atlasPath": "/data/art/souldolls/espectro_battle_atlas.json",
+      "size": [
+        268,
+        162
+      ],
+      "views": [
+        "view_front34",
+        "view_front",
+        "view_back",
+        "view_back34"
+      ],
+      "idleSupported": true
+    }
+  }
+}

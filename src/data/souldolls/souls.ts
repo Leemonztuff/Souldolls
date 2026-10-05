@@ -1,4 +1,5 @@
 import { SoulSpecies } from '../../types/souldolls';
+import { SOULDOLLS_SPRITES_MANIFEST } from '../assetsManifest';
 
 export const SOUL_SPECIES_DATA: Record<string, SoulSpecies> = {
   // -------------------------------------------------------------
@@ -638,3 +639,18 @@ export const SOUL_SPECIES_DATA: Record<string, SoulSpecies> = {
     },
   },
 };
+
+// Configuración automática de hojas de batalla y atlas propios por especie (14/14 Souldolls)
+for (const species of Object.values(SOUL_SPECIES_DATA)) {
+  const manifestEntry = SOULDOLLS_SPRITES_MANIFEST[species.id];
+  if (manifestEntry) {
+    species.spriteConfig = {
+      sheetPath: manifestEntry.sheetPath,
+      atlasPath: manifestEntry.atlasPath,
+      size: manifestEntry.size,
+      views: ['view_front34', 'view_front', 'view_back', 'view_back34'],
+      idleSupported: manifestEntry.idleSupported,
+    };
+  }
+}
+

@@ -32,13 +32,9 @@ interface AtlasJson {
 
 export function prepareTallerAtlas(): boolean {
   const rootDir = process.cwd();
-  const inputJpg = path.resolve(rootDir, 'Assets/Build1.jpg');
-  const outputPngPublic = path.resolve(rootDir, 'public/Assets/Build1.png');
-  const outputPngAssets = path.resolve(rootDir, 'Assets/Build1.png');
-  const outputAtlasPublic = path.resolve(rootDir, 'public/Assets/taller_atlas.png');
-  const outputAtlasAssets = path.resolve(rootDir, 'Assets/taller_atlas.png');
-  const outputAtlasRootPublic = path.resolve(rootDir, 'public/taller_atlas.png');
-  const atlasJsonPath = path.resolve(rootDir, 'data/art/taller_atlas.json');
+  const inputJpg = path.resolve(rootDir, 'assets/raw/taller_raw.jpg');
+  const outputAtlasPublic = path.resolve(rootDir, 'public/assets/atlases/taller_atlas.png');
+  const atlasJsonPath = path.resolve(rootDir, 'public/data/art/taller_atlas.json');
 
   if (!fs.existsSync(inputJpg)) {
     console.error(`❌ [prepareTallerAtlas] No se encontró el archivo de entrada: ${inputJpg}`);
@@ -86,22 +82,18 @@ export function prepareTallerAtlas(): boolean {
   console.log(`🎨 [prepareTallerAtlas] Píxeles eliminados: ${transparentCount}/${totalPixels} (${transparentPct}%)`);
 
   const pngBuffer = PNG.sync.write(png);
-  [outputPngPublic, outputPngAssets, outputAtlasPublic, outputAtlasAssets, outputAtlasRootPublic].forEach((file) => {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, pngBuffer);
-  });
-  console.log(`💾 [prepareTallerAtlas] Guardado en taller_atlas.png y Build1.png`);
+  fs.mkdirSync(path.dirname(outputAtlasPublic), { recursive: true });
+  fs.writeFileSync(outputAtlasPublic, pngBuffer);
+  console.log(`💾 [prepareTallerAtlas] Guardado en /public/assets/atlases/taller_atlas.png`);
 
   return validateAtlasFrames('Taller', atlasJsonPath, png);
 }
 
 export function prepareMercadoAtlas(): boolean {
   const rootDir = process.cwd();
-  const inputJpg = path.resolve(rootDir, 'Assets/Shop.jpg');
-  const outputAtlasPublic = path.resolve(rootDir, 'public/Assets/mercado_atlas.png');
-  const outputAtlasAssets = path.resolve(rootDir, 'Assets/mercado_atlas.png');
-  const outputAtlasRootPublic = path.resolve(rootDir, 'public/mercado_atlas.png');
-  const atlasJsonPath = path.resolve(rootDir, 'data/art/mercado_atlas.json');
+  const inputJpg = path.resolve(rootDir, 'assets/raw/mercado_raw.jpg');
+  const outputAtlasPublic = path.resolve(rootDir, 'public/assets/atlases/mercado_atlas.png');
+  const atlasJsonPath = path.resolve(rootDir, 'public/data/art/mercado_atlas.json');
 
   if (!fs.existsSync(inputJpg)) {
     console.error(`❌ [prepareMercadoAtlas] No se encontró el archivo de entrada: ${inputJpg}`);
@@ -161,11 +153,9 @@ export function prepareMercadoAtlas(): boolean {
   console.log(`🎨 [prepareMercadoAtlas] Píxeles de fondo gris eliminados: ${transparentCount}/${totalPixels} (${transparentPct}%)`);
 
   const pngBuffer = PNG.sync.write(png);
-  [outputAtlasPublic, outputAtlasAssets, outputAtlasRootPublic].forEach((file) => {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, pngBuffer);
-  });
-  console.log(`💾 [prepareMercadoAtlas] Guardado en mercado_atlas.png`);
+  fs.mkdirSync(path.dirname(outputAtlasPublic), { recursive: true });
+  fs.writeFileSync(outputAtlasPublic, pngBuffer);
+  console.log(`💾 [prepareMercadoAtlas] Guardado en /public/assets/atlases/mercado_atlas.png`);
 
   return validateAtlasFrames('Mercado', atlasJsonPath, png);
 }
@@ -223,11 +213,9 @@ export function prepareOverworldDecorAtlas(
   haloRange = 46
 ): boolean {
   const rootDir = process.cwd();
-  const inputJpg = path.resolve(rootDir, 'Assets/Floresypasto.jpg');
-  const outputAtlasPublic = path.resolve(rootDir, 'public/Assets/overworld_decor_atlas.png');
-  const outputAtlasAssets = path.resolve(rootDir, 'Assets/overworld_decor_atlas.png');
-  const outputAtlasRootPublic = path.resolve(rootDir, 'public/overworld_decor_atlas.png');
-  const atlasJsonPath = path.resolve(rootDir, 'data/art/overworld_decor_atlas.json');
+  const inputJpg = path.resolve(rootDir, 'assets/raw/overworld_decor_raw.jpg');
+  const outputAtlasPublic = path.resolve(rootDir, 'public/assets/atlases/overworld_decor_atlas.png');
+  const atlasJsonPath = path.resolve(rootDir, 'public/data/art/overworld_decor_atlas.json');
 
   if (!fs.existsSync(inputJpg)) {
     console.error(`❌ [prepareOverworldDecorAtlas] No se encontró el archivo de entrada: ${inputJpg}`);
@@ -304,11 +292,9 @@ export function prepareOverworldDecorAtlas(
   );
 
   const pngBuffer = PNG.sync.write(png);
-  [outputAtlasPublic, outputAtlasAssets, outputAtlasRootPublic].forEach((file) => {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, pngBuffer);
-  });
-  console.log(`💾 [prepareOverworldDecorAtlas] Guardado en overworld_decor_atlas.png`);
+  fs.mkdirSync(path.dirname(outputAtlasPublic), { recursive: true });
+  fs.writeFileSync(outputAtlasPublic, pngBuffer);
+  console.log(`💾 [prepareOverworldDecorAtlas] Guardado en /public/assets/atlases/overworld_decor_atlas.png`);
 
   return validateAtlasFrames('OverworldDecor', atlasJsonPath, png);
 }
@@ -319,12 +305,11 @@ export function prepareBattleSpritesheet(
   targetNativeHeight = 160
 ): boolean {
   const rootDir = process.cwd();
-  const inputJpg = path.resolve(rootDir, 'Assets/524060170_1790895365875586.jpg');
-  const outputAtlasPublic = path.resolve(rootDir, 'public/Assets/maga_battle_sheet.png');
-  const outputAtlasAssets = path.resolve(rootDir, 'Assets/maga_battle_sheet.png');
-  const outputAtlasRootPublic = path.resolve(rootDir, 'public/maga_battle_sheet.png');
-  const outputJsonPath = path.resolve(rootDir, 'data/art/maga_battle_atlas.json');
-  const outputPublicJsonPath = path.resolve(rootDir, 'public/data/art/maga_battle_atlas.json');
+  const inputJpg = path.resolve(rootDir, 'assets/raw/maga_battle_raw.jpg');
+  const outputAtlasPublic = path.resolve(rootDir, 'public/assets/souldolls/maga_battle_sheet.png');
+  const outputJsonPath = path.resolve(rootDir, 'src/data/art/souldolls/maga_battle_atlas.json');
+  const outputPublicJsonPath = path.resolve(rootDir, 'public/data/art/souldolls/maga_battle_atlas.json');
+  const legacyPublicJsonPath = path.resolve(rootDir, 'public/data/art/maga_battle_atlas.json');
 
   if (!fs.existsSync(inputJpg)) {
     console.error(`❌ [prepareBattleSpritesheet] No se encontró el archivo de entrada: ${inputJpg}`);
@@ -694,13 +679,11 @@ export function prepareBattleSpritesheet(
   }
 
   const pngBuffer = PNG.sync.write(outPng);
-  [outputAtlasPublic, outputAtlasAssets, outputAtlasRootPublic].forEach((file) => {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, pngBuffer);
-  });
+  fs.mkdirSync(path.dirname(outputAtlasPublic), { recursive: true });
+  fs.writeFileSync(outputAtlasPublic, pngBuffer);
 
   const atlasJson = {
-    image: '/Assets/maga_battle_sheet.png',
+    image: '/assets/souldolls/maga_battle_sheet.png',
     size: [totalOutWidth, totalOutHeight],
     nativeTargetHeightPx: targetNativeHeight,
     hasMixelsInSource: hasMixels,
@@ -710,7 +693,7 @@ export function prepareBattleSpritesheet(
     frames: framesMeta,
   };
 
-  [outputJsonPath, outputPublicJsonPath].forEach((jsonFile) => {
+  [outputJsonPath, outputPublicJsonPath, legacyPublicJsonPath].forEach((jsonFile) => {
     fs.mkdirSync(path.dirname(jsonFile), { recursive: true });
     fs.writeFileSync(jsonFile, JSON.stringify(atlasJson, null, 2));
   });

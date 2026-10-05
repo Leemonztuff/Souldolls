@@ -7,6 +7,7 @@ import { ITEMS_DATA } from '../../data/items/items';
 import {
   BattleAction,
   BattleEvent,
+  BattleLootEntry,
   BattleSide,
   BattleStatStages,
   BattleType,
@@ -21,6 +22,7 @@ import { Rng } from '../../core/Rng';
 import { GlobalSaveService } from '../../services/SaveService';
 import { getAbility } from '../../data/abilities/abilities';
 import { WeatherState } from '../../types/weather';
+import { SOUL_SPECIES_DATA } from '../../data/souldolls/souls';
 
 export interface BattleEngineConfig {
   playerParty: CreatureInstance[];
@@ -55,6 +57,10 @@ export class BattleEngine {
   public fleeAttempts = 0;
   public isBattleOver = false;
   public victory = false;
+  public capturedCreature: CreatureInstance | null = null;
+  public lootedItems: BattleLootEntry[] = [];
+  public totalExpGained = 0;
+  public levelUpRecords: Array<{ name: string; newLevel: number }> = [];
 
   public rng: Rng;
 
@@ -624,6 +630,71 @@ export class BattleEngine {
     return { targetFlinched: anyFlinched };
   }
 
+  private addLootItem(itemId: string, count = 1): void {
+    if (!ITEMS_DATA[itemId] || count <= 0) return;
+    const existing = this.lootedItems.find((e) => e.itemId === itemId);
+    if (existing) {
+      existing.count += count;
+    } else {
+      this.lootedItems.push({ itemId, count });
+    }
+    const saveState = GlobalSaveService.getCurrentState();
+    if (saveState) {
+      if (!saveState.inventory) saveState.inventory = {};
+      saveState.inventory[itemId] = (saveState.inventory[itemId] || 0) + count;
+    }
+  }
+
+  private rollLootForOpponent(opponent: CreatureInstance, isCapture: boolean): BattleLootEntry[] {
+    const beforeSnapshot = this.lootedItems.map((l) => ({ ...l }));
+
+    // 1. Guaranteed Soul Fragment or Ki Dust
+    const fragId = this.battleType === 'boss' || opponent.level >= 15 ? 'soul_fragment_brilliant' : 'soul_fragment';
+    this.addLootItem(fragId, 1);
+
+    // 2. Equipable Loot (Weapon of the opponent's species or a Relic / Mana Crystal)
+    const soulSpec = SOUL_SPECIES_DATA[opponent.speciesId];
+    const equipPool: string[] = [
+      'reliquia_vigor',
+      'reliquia_foco',
+      'reliquia_escudo',
+      'reliquia_celeridad',
+      'reliquia_regeneracion',
+      'reliquia_furia',
+      'cristal_mana_fuego',
+      'cristal_mana_agua',
+      'cristal_mana_planta',
+      'cristal_mana_trueno',
+      'cristal_mana_tierra',
+      'cristal_mana_sombra',
+    ];
+    if (soulSpec?.weaponId && ITEMS_DATA[soulSpec.weaponId]) {
+      // High weight for the defeated/captured Souldoll's signature weapon or compatible relic
+      equipPool.unshift(soulSpec.weaponId, soulSpec.weaponId);
+    }
+
+    const pickedEquip = equipPool[this.rng.rangeInt(0, equipPool.length - 1)];
+    if (pickedEquip) {
+      this.addLootItem(pickedEquip, 1);
+    }
+
+    // 3. Optional extra consumable on capture or trainer victory
+    if (isCapture || this.battleType !== 'wild') {
+      this.addLootItem('elixir_ki', 1);
+    }
+
+    const saveState = GlobalSaveService.getCurrentState();
+    if (saveState) {
+      GlobalSaveService.save();
+    }
+
+    // Compute delta for event
+    return this.lootedItems.map((cur) => {
+      const prev = beforeSnapshot.find((p) => p.itemId === cur.itemId);
+      return { itemId: cur.itemId, count: cur.count - (prev ? prev.count : 0) };
+    }).filter((d) => d.count > 0);
+  }
+
   private handleOpponentFainted(events: BattleEvent[]): void {
     const defeated = this.getOpponentActive();
     const defeatedSpecies = this.getOpponentSpecies();
@@ -636,6 +707,7 @@ export class BattleEngine {
       this.battleType !== 'wild'
     );
     player.currentExp += exp;
+    this.totalExpGained += exp;
 
     events.push({
       type: 'EXP_GAINED',
@@ -653,11 +725,11 @@ export class BattleEngine {
 
     if (evalResult.didLevelUp) {
       player.level = evalResult.newLevel;
-      const newStats = StatCalculator.calculateAllStats(playerSpecies, player.level);
-      const hpDiff = newStats.hp - player.maxHp;
-      player.maxHp = newStats.hp;
-      player.currentHp += Math.max(0, hpDiff);
-      player.stats = newStats;
+      StatCalculator.recalculateStatsAndParts(player);
+      this.levelUpRecords.push({
+        name: player.nickname || player.speciesId,
+        newLevel: player.level,
+      });
 
       events.push({
         type: 'LEVEL_UP',
@@ -684,6 +756,15 @@ export class BattleEngine {
             });
           }
         }
+      });
+    }
+
+    const dropped = this.rollLootForOpponent(defeated, false);
+    if (dropped.length > 0) {
+      events.push({
+        type: 'LOOT_GAINED',
+        side: 'player',
+        lootItems: dropped,
       });
     }
 
@@ -716,6 +797,7 @@ export class BattleEngine {
       events.push({
         type: 'BATTLE_VICTORY',
         moneyGained: this.moneyReward,
+        lootItems: this.lootedItems,
         message: `¡Has ganado el combate! ${this.moneyReward > 0 ? `Ganaste $${this.moneyReward}.` : ''}`,
       });
     }
@@ -924,14 +1006,18 @@ export class BattleEngine {
     events.push({
       type: 'CAPTURE_SHAKES',
       shakes: result.shakes,
+      success: result.success,
     });
 
     if (result.success) {
       this.isBattleOver = true;
       this.victory = true;
+      this.capturedCreature = opponent;
+      const dropped = this.rollLootForOpponent(opponent, true);
       events.push({
         type: 'CAPTURE_SUCCESS',
         targetName: opponent.nickname || opponent.speciesId,
+        lootItems: dropped,
         message: `¡Ya está! ¡${opponent.nickname || opponent.speciesId} fue capturado!`,
       });
     } else {

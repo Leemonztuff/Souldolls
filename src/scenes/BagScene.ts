@@ -288,6 +288,19 @@ export class BagScene implements IScene {
     const state = GlobalSaveService.getCurrentState();
     const party = state.party || [];
 
+    // Bloque 28B R4.1: Usar Fragmentos de Alma abre la Cámara de Resonancia QR
+    if (
+      item.category === 'fragment' ||
+      item.id === 'soul_fragment' ||
+      item.id === 'soul_fragment_brilliant'
+    ) {
+      GlobalAudioService.playSfx('confirm');
+      const tableId =
+        item.id === 'soul_fragment_brilliant' ? 'brilliant_resonance' : 'standard_resonance';
+      GlobalSceneManager.pushScene('GachaResonance', { tableId, tab: 'scan' });
+      return;
+    }
+
     if (!item.canUseInField || party.length === 0) {
       this.openModal({
         type: 'Alert',

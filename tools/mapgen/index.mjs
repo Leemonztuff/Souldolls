@@ -20,8 +20,7 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const SRC_MAPS_DIR = path.join(ROOT, 'src/data/maps/src');
-const DATA_MAPS_SRC_DIR = path.join(ROOT, 'data/maps/src');
-const BAKED_JSON_DIR = path.join(ROOT, 'data/maps/baked');
+const BAKED_JSON_DIR = path.join(ROOT, 'src/data/maps/baked');
 const OUT_TS_MAPS_DIR = path.join(ROOT, 'src/data/maps');
 const SCALE_CONFIG_PATH = path.join(ROOT, 'src/data/config/scale.json');
 
@@ -824,9 +823,6 @@ export const ${exportConstName}: MapData = ${JSON.stringify(runtimeMapData, null
 export function runMapgenPipeline(options = { writeFiles: true }) {
   const scaleConfig = JSON.parse(fs.readFileSync(SCALE_CONFIG_PATH, 'utf8'));
 
-  if (!fs.existsSync(DATA_MAPS_SRC_DIR)) {
-    fs.mkdirSync(DATA_MAPS_SRC_DIR, { recursive: true });
-  }
   if (!fs.existsSync(BAKED_JSON_DIR)) {
     fs.mkdirSync(BAKED_JSON_DIR, { recursive: true });
   }
@@ -847,11 +843,6 @@ export function runMapgenPipeline(options = { writeFiles: true }) {
   for (const file of files) {
     const srcPath = path.join(SRC_MAPS_DIR, file);
     const spec = JSON.parse(fs.readFileSync(srcPath, 'utf8'));
-
-    // Mirror authoring source into /data/maps/src/*.map.json as requested in prompt
-    if (options.writeFiles) {
-      fs.writeFileSync(path.join(DATA_MAPS_SRC_DIR, file), JSON.stringify(spec, null, 2) + '\n', 'utf8');
-    }
 
     const baked = bakeMapFromSpec(spec);
     const validation = validateMapDesignAndAesthetics(spec, baked, scaleConfig);

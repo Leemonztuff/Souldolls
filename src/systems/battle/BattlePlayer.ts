@@ -236,6 +236,26 @@ export class BattlePlayer {
         break;
       }
 
+      case 'CAPTURE_SUCCESS': {
+        GlobalAudioService.playSfx('catch');
+        await GlobalVFXSystem.screenFlash(0xfacc15, 300);
+        const defenderPos = this.scene.getSpritePosition('opponent');
+        await GlobalVFXSystem.playPresetVfx(
+          'ki_burst',
+          defenderPos.x,
+          defenderPos.y,
+          defenderPos.x,
+          defenderPos.y
+        );
+        break;
+      }
+
+      case 'CAPTURE_FAIL': {
+        GlobalAudioService.playSfx('cancel');
+        await GlobalVFXSystem.screenFlash(0xf43f5e, 150);
+        break;
+      }
+
       case 'FLEE':
       case 'FLEE_SUCCESS': {
         GlobalAudioService.playSfx('select');

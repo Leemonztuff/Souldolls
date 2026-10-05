@@ -645,7 +645,7 @@ export class OverworldDecorManager {
 
   private initTexture(): void {
     const rawImg = this.atlasData.image || 'overworld_decor_atlas.png';
-    const imagePath = rawImg.startsWith('/') ? rawImg : `/Assets/${rawImg}`;
+    const imagePath = rawImg.startsWith('/') ? rawImg : `/assets/atlases/${rawImg}`;
     if (typeof document !== 'undefined') {
       const loader = new THREE.TextureLoader();
 

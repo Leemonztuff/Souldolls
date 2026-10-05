@@ -134,6 +134,30 @@ export class SaveService {
     };
   }
 
+  /**
+   * Crea un estado limpio para jugadores nuevos ("Nueva Partida"),
+   * activando el tutorial en vivo con el NPC acompañante hasta el Laboratorio.
+   */
+  public createNewGameState(playerName = 'Protagonista'): GameState {
+    const state = this.createInitialState(playerName);
+    state.party = [];
+    state.bodies = {};
+    state.soulCodex = {};
+    state.pokedex = {};
+    state.flags = {
+      is_new_player: true,
+      intro_completed: false,
+      guide_escort_done: false,
+      lab_intro_seen: false,
+      starter_chosen: false,
+      body_linked: false,
+      received_starter: false,
+      has_starter: false,
+      rival_tutorial_done: false,
+    };
+    return state;
+  }
+
   public getCurrentState(): GameState {
     if (!this.currentState) {
       const loaded = this.load(this.activeSlot);
