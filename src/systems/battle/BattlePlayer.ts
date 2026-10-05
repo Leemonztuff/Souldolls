@@ -43,9 +43,9 @@ export class BattlePlayer {
         // Lunge animation
         await this.scene.animateAttackerLunge(side);
 
-        // Play move VFX
-        const attackerPos = this.scene.getSpritePosition(side);
-        const defenderPos = this.scene.getSpritePosition(side === 'player' ? 'opponent' : 'player');
+        // Play move VFX from weapon hotspot to defender torso hotspot (both reflected with flipX)
+        const attackerPos = this.scene.getPartHotspotWorldPos(side, 'weapon');
+        const defenderPos = this.scene.getPartHotspotWorldPos(side === 'player' ? 'opponent' : 'player', 'torso');
 
         const preset = move?.vfx?.preset || 'burst';
         const colA = move?.vfx?.colorA || '#38bdf8';
@@ -65,17 +65,17 @@ export class BattlePlayer {
       }
 
       case 'DAMAGE_DEALT': {
-        const defenderPos = this.scene.getSpritePosition(side);
+        const defenderPos = this.scene.getPartHotspotWorldPos(side, 'torso');
 
         GlobalAudioService.playSfx('hit_normal');
         GlobalVFXSystem.spawnDamageText(
           defenderPos.x,
-          defenderPos.y - 30,
+          defenderPos.y - 20,
           event.damage || 0,
           !!event.isCritical
         );
 
-        // Defender blinks
+        // Defender blinks and retreats 1-2px away from attacker
         await this.scene.animateDefenderHitBlink(side);
 
         // Update animated HP bar & silhouettes
@@ -85,21 +85,16 @@ export class BattlePlayer {
       }
 
       case 'PART_DAMAGED': {
-        const pos = this.scene.getSpritePosition(side);
-        let offsetY = -30;
-        let offsetX = 0;
-        if (event.part === 'head') offsetY = -100;
-        else if (event.part === 'torso') offsetY = -60;
-        else if (event.part === 'arms') { offsetY = -60; offsetX = side === 'player' ? 30 : -30; }
-        else if (event.part === 'legs') offsetY = -20;
+        const targetPart = (event.part as 'head' | 'torso' | 'arms' | 'legs') || 'torso';
+        const partPos = this.scene.getPartHotspotWorldPos(side, targetPart);
 
         if (event.part) {
           this.scene.flashPartZone(side, event.part);
         }
 
         GlobalVFXSystem.spawnDamageText(
-          pos.x + offsetX,
-          pos.y + offsetY,
+          partPos.x,
+          partPos.y,
           event.damage || 0,
           false
         );
@@ -109,12 +104,13 @@ export class BattlePlayer {
       }
 
       case 'PART_BROKEN': {
-        const pos = this.scene.getSpritePosition(side);
+        const targetPart = (event.part as 'head' | 'torso' | 'arms' | 'legs') || 'torso';
+        const partPos = this.scene.getPartHotspotWorldPos(side, targetPart);
         GlobalAudioService.playSfx('hit_super');
         if (event.part) {
           this.scene.flashPartZone(side, event.part, 0xef4444);
         }
-        await GlobalVFXSystem.playPresetVfx('ki_burst', pos.x, pos.y - 40, pos.x, pos.y - 40);
+        await GlobalVFXSystem.playPresetVfx('ki_burst', partPos.x, partPos.y, partPos.x, partPos.y);
         this.scene.updateSilhouettes();
         await this.sleep(300);
         break;

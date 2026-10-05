@@ -1,0 +1,464 @@
+{
+  "id": "ruta_claro",
+  "name": "Ruta Claro",
+  "category": "route",
+  "seed": 45022,
+  "width": 40,
+  "height": 30,
+  "baseGround": "grass",
+  "skyColor": 6333946,
+  "sunlightColor": 16773322,
+  "ambientMusic": "route",
+  "borders": {
+    "style": "forest_belt",
+    "depth": 2,
+    "primaryDecor": "tree",
+    "gaps": [
+      {
+        "side": "north",
+        "start": 19,
+        "end": 22
+      },
+      {
+        "side": "south",
+        "start": 19,
+        "end": 22
+      },
+      {
+        "side": "east",
+        "start": 13,
+        "end": 16
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "lake_sereno_shore",
+      "biome": "beach",
+      "shape": "circle",
+      "center": [
+        9,
+        13
+      ],
+      "radius": [
+        6.2,
+        6.5
+      ],
+      "groundTile": "sand",
+      "noiseAmplitude": 0.28,
+      "noiseFrequency": 0.35
+    }
+  ],
+  "paths": [
+    {
+      "id": "main_south_to_north_highway",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          20,
+          29
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          19,
+          14
+        ],
+        [
+          20,
+          7
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "wobble": 0.35
+    },
+    {
+      "id": "east_forest_branch",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          20,
+          14
+        ],
+        [
+          30,
+          14
+        ],
+        [
+          39,
+          14
+        ]
+      ],
+      "wobble": 0.25
+    },
+    {
+      "id": "west_lake_rest_loop",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          20,
+          21
+        ],
+        [
+          15,
+          21
+        ],
+        [
+          15,
+          6
+        ],
+        [
+          20,
+          6
+        ]
+      ],
+      "wobble": 0.2
+    }
+  ],
+  "patches": [
+    {
+      "id": "lake_sereno_water",
+      "kind": "lake",
+      "center": [
+        9,
+        13
+      ],
+      "radiusX": 4.5,
+      "radiusY": 5.2,
+      "noise": 0.26,
+      "minTiles": 24,
+      "groundTile": "water",
+      "isWater": true
+    },
+    {
+      "id": "tall_grass_south_west_glade",
+      "kind": "tall_grass",
+      "center": [
+        10,
+        24
+      ],
+      "radiusX": 4.2,
+      "radiusY": 2.6,
+      "noise": 0.32,
+      "minTiles": 18,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "tall_grass_east_meadow",
+      "kind": "tall_grass",
+      "center": [
+        30,
+        21
+      ],
+      "radiusX": 4.6,
+      "radiusY": 3,
+      "noise": 0.34,
+      "minTiles": 22,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "tall_grass_north_ridge",
+      "kind": "tall_grass",
+      "center": [
+        29,
+        8
+      ],
+      "radiusX": 4.4,
+      "radiusY": 2.8,
+      "noise": 0.32,
+      "minTiles": 20,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "clearing_wildflowers_bridge",
+      "kind": "flowers",
+      "center": [
+        17,
+        18
+      ],
+      "radiusX": 2.2,
+      "radiusY": 1.8,
+      "noise": 0.28,
+      "minTiles": 6,
+      "groundTile": "flowers"
+    }
+  ],
+  "stamps": [
+    {
+      "id": "stamp_lake_wooden_pier",
+      "prefab": "wooden_bridge",
+      "x": 12,
+      "y": 13,
+      "width": 4,
+      "height": 2,
+      "label": "Muelle del Lago Sereno"
+    }
+  ],
+  "scatter": [
+    {
+      "id": "route_tree_clusters",
+      "decorType": "tree",
+      "clusterSizes": [
+        3,
+        5,
+        7
+      ],
+      "density": 0.42,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 6,
+      "preferNearBorders": true,
+      "allowedGround": [
+        "grass"
+      ]
+    },
+    {
+      "id": "route_boulder_gates",
+      "decorType": "rock",
+      "clusterSizes": [
+        3,
+        5
+      ],
+      "density": 0.24,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 7,
+      "preferNearBorders": false,
+      "allowedGround": [
+        "grass",
+        "sand"
+      ]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_south_capture_gate",
+      "name": "Umbral de Aprendizaje de Captura",
+      "role": "focus",
+      "x": 20,
+      "y": 26,
+      "radius": 3
+    },
+    {
+      "id": "lm_lake_sereno_pier",
+      "name": "Mirador del Lago Sereno",
+      "role": "rest",
+      "x": 14,
+      "y": 13,
+      "radius": 4,
+      "loreProp": {
+        "type": "mana_berry_plant",
+        "offsetX": 1,
+        "offsetY": -2,
+        "reward": "cristal_agua"
+      }
+    },
+    {
+      "id": "lm_ancient_marionette_relic",
+      "name": "Piedra del Artífice Caído",
+      "role": "secret",
+      "x": 34,
+      "y": 24,
+      "radius": 3,
+      "loreProp": {
+        "type": "doll_arm_buried",
+        "offsetX": -1,
+        "offsetY": 0
+      }
+    },
+    {
+      "id": "lm_east_forest_arch",
+      "name": "Sendero hacia Bosque Eco",
+      "role": "danger",
+      "x": 36,
+      "y": 14,
+      "radius": 3,
+      "loreProp": {
+        "type": "sparkle_hidden",
+        "offsetX": -2,
+        "offsetY": -2,
+        "reward": "soul_bottle_plata"
+      }
+    }
+  ],
+  "signs": [
+    {
+      "x": 22,
+      "y": 27,
+      "text": "RUTA CLARO\nSur: Aldea Marioneta.\nEste: Bosque Eco."
+    },
+    {
+      "x": 37,
+      "y": 13,
+      "text": "ENTRADA A BOSQUE ECO\n\"Cuidado con las almas sombrías que acechan entre la maleza densa.\""
+    },
+    {
+      "x": 15,
+      "y": 19,
+      "text": "LAGO SERENO\n\"Zona de descanso y resonancia de almas de Marea.\""
+    }
+  ],
+  "warps": [
+    {
+      "x": 20,
+      "y": 0,
+      "targetMapId": "ciudad_gimnasio",
+      "targetX": 17,
+      "targetY": 26,
+      "targetDirection": "up"
+    },
+    {
+      "x": 21,
+      "y": 0,
+      "targetMapId": "ciudad_gimnasio",
+      "targetX": 18,
+      "targetY": 26,
+      "targetDirection": "up"
+    },
+    {
+      "x": 20,
+      "y": 29,
+      "targetMapId": "villa_brote",
+      "targetX": 14,
+      "targetY": 1,
+      "targetDirection": "down"
+    },
+    {
+      "x": 21,
+      "y": 29,
+      "targetMapId": "villa_brote",
+      "targetX": 15,
+      "targetY": 1,
+      "targetDirection": "down"
+    },
+    {
+      "x": 39,
+      "y": 14,
+      "targetMapId": "bosque_eco",
+      "targetX": 1,
+      "targetY": 18,
+      "targetDirection": "right"
+    },
+    {
+      "x": 39,
+      "y": 15,
+      "targetMapId": "bosque_eco",
+      "targetX": 1,
+      "targetY": 19,
+      "targetDirection": "right"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_capture_mentor_elena",
+      "name": "Artífice Elena",
+      "paletteId": "lass",
+      "x": 19,
+      "y": 26,
+      "direction": "right",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "¡Alto ahí, joven Soultrainer! Justo delante comienza la primera mancha de hierba alta.",
+        "Cuando un alma salvaje aparezca, debilita su ki y lanza una Soul Bottle desde tu Mochila para sellarla.",
+        "Si tus Souldolls sufren daños en sus partes, regresa por el sendero directo al Taller de Artífices."
+      ]
+    },
+    {
+      "id": "npc_trainer_clara",
+      "name": "Soultrainer Clara",
+      "paletteId": "lass",
+      "x": 23,
+      "y": 18,
+      "direction": "left",
+      "dialogueLines": [
+        "¡Mis Souldolls y yo hemos estado entrenando en los claros de esta ruta!",
+        "Las Sacerdotisas de afinidad Planta canalizan el ki natural con gran precisión."
+      ],
+      "isTrainer": true,
+      "trainerData": {
+        "trainerClass": "Soultrainer",
+        "creatureSpeciesId": "sacerdotisa",
+        "creatureLevel": 6
+      }
+    },
+    {
+      "id": "npc_fisherman_sergio",
+      "name": "Vigilante Sergio",
+      "paletteId": "hiker",
+      "x": 15,
+      "y": 13,
+      "direction": "left",
+      "dialogueLines": [
+        "Las aguas del Lago Sereno reflejan la pureza del ki de Anima.",
+        "En las orillas crecen Cristales de Maná junto al muelle; recógelos si necesitas restaurar tu equipo."
+      ]
+    }
+  ],
+  "spawnPoints": {
+    "default": {
+      "x": 20,
+      "y": 28,
+      "direction": "up"
+    },
+    "from_south": {
+      "x": 20,
+      "y": 28,
+      "direction": "up"
+    },
+    "from_north": {
+      "x": 20,
+      "y": 2,
+      "direction": "down"
+    },
+    "from_east": {
+      "x": 37,
+      "y": 14,
+      "direction": "left"
+    }
+  },
+  "encounterRate": 0.14,
+  "encounterTable": [
+    {
+      "speciesId": "maga",
+      "minLevel": 3,
+      "maxLevel": 6,
+      "weight": 25
+    },
+    {
+      "speciesId": "sacerdotisa",
+      "minLevel": 3,
+      "maxLevel": 6,
+      "weight": 25
+    },
+    {
+      "speciesId": "hidromante",
+      "minLevel": 3,
+      "maxLevel": 6,
+      "weight": 20
+    },
+    {
+      "speciesId": "bruja",
+      "minLevel": 4,
+      "maxLevel": 7,
+      "weight": 15
+    },
+    {
+      "speciesId": "monje",
+      "minLevel": 4,
+      "maxLevel": 7,
+      "weight": 15
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { Direction, Vector2D } from './index';
-import { TileType } from '../render/procedural/TileFactory';
+import { TileType } from './tilesets';
 
 export interface MapWarp {
   x: number;
@@ -8,6 +8,7 @@ export interface MapWarp {
   targetX: number;
   targetY: number;
   targetDirection: Direction;
+  interactLabel?: string;
 }
 
 export interface MapTrigger {
@@ -25,6 +26,7 @@ export interface MapNPC {
   y: number;
   direction: Direction;
   dialogueLines: string[];
+  interactLabel?: string;
   isTrainer?: boolean;
   trainerData?: {
     trainerClass: string;
@@ -38,8 +40,17 @@ export interface MapSign {
   x: number;
   y: number;
   text: string;
+  interactLabel?: string;
   shopCategory?: string;
   shopMode?: 'buy' | 'sell';
+  labInteractable?:
+    | 'master_desk'
+    | 'starter_pedestal'
+    | 'body_tube'
+    | 'codex_pedestal'
+    | 'anima_world_map'
+    | 'rift_diagram'
+    | 'soul_purifier';
 }
 
 export interface EncounterEntry {

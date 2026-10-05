@@ -1,382 +1,314 @@
-import { Container, Graphics, Sprite, Text, TextStyle } from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
-import { GlobalAudioService } from '../services/AudioService';
 import { GlobalSaveService } from '../services/SaveService';
+import { GlobalAudioService } from '../services/AudioService';
+import { GlobalInput } from '../core/Input';
 import { StatCalculator } from '../systems/battle/StatCalculator';
 import { CREATURES_DATA } from '../data/creatures/creatures';
 import { BODY_CHASSIS_DATA } from '../data/bodies/chassis';
-import { GlobalAssetRegistry } from '../render/procedural/AssetRegistry';
 import { HumanoidPartSilhouette } from '../render/ui/HumanoidPartSilhouette';
-import { Souldoll } from '../types/souldolls';
-import { BodyInstance } from '../types/bodies';
+import {
+  ScreenFrame,
+  KitCard,
+  KitListRow,
+  KitStatBox,
+  KitBadge,
+  FocusManager,
+  UIKitLinter,
+} from '../ui/kit';
+import { COLOR_HEX, FONTS } from '../ui/styles';
+import {
+  buildBindingPreviewVM,
+  getFreeBodiesList,
+  getSealedSoulsList,
+} from '../ui/viewmodels/GroupBViewModels';
+import esText from '../data/text/es.json';
 
 export class SoulBindingScene implements IScene {
   public name = 'SoulBinding';
   private container: Container = new Container();
-  private leftListContainer: Container = new Container();
-  private rightListContainer: Container = new Container();
-  private previewContainer: Container = new Container();
+  private screenFrame!: ScreenFrame;
+  private focusManager: FocusManager = new FocusManager();
+  private selectedSoulIdx = 0;
+  private selectedBodyIdx = 0;
 
-  private selectedSoulIndex = 0;
-  private selectedBodyId: string | null = null;
-  private mode: 'bind' | 'unbind' = 'bind';
+  public async enter(): Promise<void> {
+    this.container = new Container();
+    this.container.roundPixels = true;
+    this.container.zIndex = 1050;
+    GlobalPixiRenderer.menuLayer.addChild(this.container);
+    this.renderBinding();
+  }
 
-  public async enter(params?: any): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
+  public pause(): void {
+    if (this.container && !this.container.destroyed) {
+      this.container.visible = false;
+    }
+  }
+
+  public async resume(): Promise<void> {
+    if (!this.container || this.container.destroyed) {
+      this.container = new Container();
+      this.container.roundPixels = true;
+      this.container.zIndex = 1050;
+    }
+    this.container.visible = true;
+    if (this.container.parent !== GlobalPixiRenderer.menuLayer) {
+      GlobalPixiRenderer.menuLayer.addChild(this.container);
+    }
+    this.renderBinding();
+  }
+
+  public onResize(_width: number, _height: number): void {
+    this.renderBinding();
+  }
+
+  private renderBinding(): void {
+    this.container.removeChildren();
+    this.focusManager.clear();
+
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
-
-    this.container = new Container();
-    this.container.position.set(0, 0);
-
-    // Dark Background
-    const bg = new Graphics();
-    bg.rect(0, 0, width, height);
-    bg.fill({ color: 0x070d18, alpha: 0.98 });
-    this.container.addChild(bg);
-
-    // Header Bar
-    const headerBg = new Graphics();
-    headerBg.rect(0, 0, width, 70);
-    headerBg.fill({ color: 0x0f172a });
-    headerBg.stroke({ color: 0x38bdf8, width: 2 });
-    this.container.addChild(headerBg);
-
-    const titleText = new Text({
-      text: '🔗 VINCULAR ALMA Y CUERPO (TALLER DE ARTÍFICES)',
-      style: new TextStyle({
-        fontFamily: 'monospace, system-ui',
-        fontSize: 20,
-        fontWeight: '900',
-        fill: '#38bdf8',
-      }),
-    });
-    titleText.position.set(24, 22);
-    this.container.addChild(titleText);
-
-    // Close Button
-    const closeBtn = this.createButton('✕ SALIR', width - 130, 16, 110, 38, 0xef4444, () => {
-      GlobalAudioService.playSfx('select');
-      GlobalSceneManager.popScene();
-    });
-    this.container.addChild(closeBtn);
-
-    // Tabs: Bind vs Unbind
-    const bindTabBtn = this.createButton('🔗 VINCULAR ALMA', 24, 80, 180, 36, this.mode === 'bind' ? 0x38bdf8 : 0x334155, () => {
-      this.mode = 'bind';
-      GlobalAudioService.playSfx('select');
-      this.renderUI();
-    });
-    this.container.addChild(bindTabBtn);
-
-    const unbindTabBtn = this.createButton('✂️ DESVINCULAR ALMA', 214, 80, 180, 36, this.mode === 'unbind' ? 0xef4444 : 0x334155, () => {
-      this.mode = 'unbind';
-      GlobalAudioService.playSfx('select');
-      this.renderUI();
-    });
-    this.container.addChild(unbindTabBtn);
-
-    this.container.addChild(this.leftListContainer);
-    this.container.addChild(this.rightListContainer);
-    this.container.addChild(this.previewContainer);
-
-    this.renderUI();
-    GlobalPixiRenderer.hudLayer.addChild(this.container);
-  }
-
-  private renderUI(): void {
-    this.leftListContainer.removeChildren();
-    this.rightListContainer.removeChildren();
-    this.previewContainer.removeChildren();
-
+    const isDesktop = width >= 840;
     const state = GlobalSaveService.getCurrentState();
-    if (!state.bodies) state.bodies = {};
+    const t = (esText as any).terms.group_b.binding;
 
-    if (this.mode === 'bind') {
-      this.renderBindMode(state);
-    } else {
-      this.renderUnbindMode(state);
-    }
-  }
+    const souls = getSealedSoulsList(state);
+    const bodies = getFreeBodiesList(state);
+    if (this.selectedSoulIdx >= souls.length) this.selectedSoulIdx = Math.max(0, souls.length - 1);
+    if (this.selectedBodyIdx >= bodies.length) this.selectedBodyIdx = Math.max(0, bodies.length - 1);
 
-  private renderBindMode(state: any): void {
-    // Sealed souls (bodyInstanceId === null) in storage or party
-    const sealedSouls: Souldoll[] = [
-      ...state.party.filter((s: Souldoll) => s.bodyInstanceId === null),
-      ...(state.storage || []).filter((s: Souldoll) => s.bodyInstanceId === null),
-    ];
+    const preview = buildBindingPreviewVM(state, this.selectedSoulIdx, this.selectedBodyIdx);
 
-    // Unassigned bodies in state.bodies
-    const assignedBodyIds = new Set(
-      [...state.party, ...(state.storage || [])]
-        .map((s: Souldoll) => s.bodyInstanceId)
-        .filter(Boolean)
-    );
-
-    const availableBodies: BodyInstance[] = Object.values(state.bodies || {}).filter(
-      (b: any) => !assignedBodyIds.has(b.instanceId)
-    ) as BodyInstance[];
-
-    // 1. Left: Sealed Souls List
-    const soulHeader = new Text({
-      text: `1. SELECCIONAR ALMA SELLADA (${sealedSouls.length}):`,
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', fill: '#38bdf8' }),
-    });
-    soulHeader.position.set(24, 130);
-    this.leftListContainer.addChild(soulHeader);
-
-    if (sealedSouls.length === 0) {
-      const emptyTxt = new Text({
-        text: 'No tienes Almas selladas sin cuerpo. Captura almas con Soul Bottles.',
-        style: new TextStyle({ fontFamily: 'monospace', fontSize: 11, fill: '#94a3b8', wordWrap: true, wordWrapWidth: 280 }),
-      });
-      emptyTxt.position.set(24, 160);
-      this.leftListContainer.addChild(emptyTxt);
-    } else {
-      sealedSouls.forEach((soul, idx) => {
-        const isSel = idx === this.selectedSoulIndex;
-        const species = CREATURES_DATA[soul.speciesId];
-
-        const btn = new Container();
-        btn.position.set(24, 160 + idx * 56);
-        btn.eventMode = 'static';
-        btn.cursor = 'pointer';
-
-        const bg = new Graphics();
-        bg.roundRect(0, 0, 280, 48, 8);
-        bg.fill({ color: isSel ? 0x0284c7 : 0x0f172a });
-        bg.stroke({ color: isSel ? 0xffffff : 0x38bdf8, width: 2 });
-        btn.addChild(bg);
-
-        const txt = new Text({
-          text: `🔮 ${species?.name || soul.speciesId} (Nv.${soul.level})`,
-          style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', fill: '#ffffff' }),
-        });
-        txt.position.set(12, 14);
-        btn.addChild(txt);
-
-        btn.on('pointerdown', () => {
-          this.selectedSoulIndex = idx;
-          GlobalAudioService.playSfx('select');
-          this.renderUI();
-        });
-
-        this.leftListContainer.addChild(btn);
-      });
-    }
-
-    // 2. Middle: Available Bodies List
-    const bodyHeader = new Text({
-      text: `2. SELECCIONAR CUERPO LIBRE (${availableBodies.length}):`,
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', fill: '#38bdf8' }),
-    });
-    bodyHeader.position.set(330, 130);
-    this.rightListContainer.addChild(bodyHeader);
-
-    if (availableBodies.length === 0) {
-      const emptyTxt = new Text({
-        text: 'No tienes Cuerpos libres en el inventario. Consigue botín o compra en el Mercado.',
-        style: new TextStyle({ fontFamily: 'monospace', fontSize: 11, fill: '#94a3b8', wordWrap: true, wordWrapWidth: 280 }),
-      });
-      emptyTxt.position.set(330, 160);
-      this.rightListContainer.addChild(emptyTxt);
-    } else {
-      availableBodies.forEach((body, idx) => {
-        const isSel = body.instanceId === this.selectedBodyId;
-        const chassis = BODY_CHASSIS_DATA[body.chassisId];
-
-        const btn = new Container();
-        btn.position.set(330, 160 + idx * 56);
-        btn.eventMode = 'static';
-        btn.cursor = 'pointer';
-
-        const bg = new Graphics();
-        bg.roundRect(0, 0, 280, 48, 8);
-        bg.fill({ color: isSel ? 0x16a34a : 0x0f172a });
-        bg.stroke({ color: isSel ? 0xffffff : 0x10b981, width: 2 });
-        btn.addChild(bg);
-
-        const txt = new Text({
-          text: `🤖 ${chassis?.name || body.chassisId} (T${chassis?.tier || 1})`,
-          style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', fill: '#ffffff' }),
-        });
-        txt.position.set(12, 14);
-        btn.addChild(txt);
-
-        btn.on('pointerdown', () => {
-          this.selectedBodyId = body.instanceId;
-          GlobalAudioService.playSfx('select');
-          this.renderUI();
-        });
-
-        this.rightListContainer.addChild(btn);
-      });
-    }
-
-    // 3. Right: Preview & Action
-    const selectedSoul = sealedSouls[this.selectedSoulIndex];
-    const selectedBody = availableBodies.find((b) => b.instanceId === this.selectedBodyId);
-
-    if (selectedSoul && selectedBody) {
-      this.renderBindPreview(selectedSoul, selectedBody);
-    }
-  }
-
-  private renderBindPreview(soul: Souldoll, body: BodyInstance): void {
-    const species = CREATURES_DATA[soul.speciesId];
-    const chassis = BODY_CHASSIS_DATA[body.chassisId];
-    if (!species || !chassis) return;
-
-    const previewX = 640;
-    const previewY = 130;
-
-    const bg = new Graphics();
-    bg.roundRect(previewX, previewY, 290, 520, 10);
-    bg.fill({ color: 0x0f172a, alpha: 0.95 });
-    bg.stroke({ color: 0x38bdf8, width: 2 });
-    this.previewContainer.addChild(bg);
-
-    const title = new Text({
-      text: '📋 VISTA PREVIA DE VINCULACIÓN',
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: '900', fill: '#38bdf8' }),
-    });
-    title.position.set(previewX + 16, previewY + 16);
-    this.previewContainer.addChild(title);
-
-    // Compatibility check
-    const isCompatible = (species.bodyRequirement?.minTier || 1) <= chassis.tier;
-    const compatText = new Text({
-      text: isCompatible ? '✅ COMPATIBLE' : '❌ TIER INSUFICIENTE',
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 12, fontWeight: 'bold', fill: isCompatible ? '#4ade80' : '#ef4444' }),
-    });
-    compatText.position.set(previewX + 16, previewY + 44);
-    this.previewContainer.addChild(compatText);
-
-    // Mini Silhouette Preview
-    const tempDoll = StatCalculator.createSouldoll(soul.speciesId, soul.level, body.chassisId, soul.nickname);
-    const sil = new HumanoidPartSilhouette();
-    sil.position.set(previewX + 20, previewY + 75);
-    sil.scale.set(0.9);
-    sil.updateParts(tempDoll.partHP, tempDoll.maxPartHP);
-    this.previewContainer.addChild(sil);
-
-    const partsInfo = new Text({
-      text: `Reparto de Vida (T${chassis.tier}):\n• Cabeza: ${tempDoll.maxPartHP.head} PS\n• Torso: ${tempDoll.maxPartHP.torso} PS\n• Brazos: ${tempDoll.maxPartHP.arms} PS\n• Piernas: ${tempDoll.maxPartHP.legs} PS\nTotal Max HP: ${tempDoll.maxHp} PS`,
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 11, fill: '#cbd5e1', lineHeight: 16 }),
-    });
-    partsInfo.position.set(previewX + 80, previewY + 75);
-    this.previewContainer.addChild(partsInfo);
-
-    // Confirm Bind Button
-    const bindBtn = this.createButton('🔗 VINCULAR AHORA', previewX + 16, previewY + 450, 258, 44, isCompatible ? 0x16a34a : 0x475569, () => {
-      if (!isCompatible) {
+    this.screenFrame = new ScreenFrame({
+      width,
+      height,
+      title: t.title,
+      currencies: [
+        { iconId: 'soul_bottle', value: souls.length },
+        { iconId: 'body_chassis', value: bodies.length },
+      ],
+      onClose: () => {
         GlobalAudioService.playSfx('cancel');
-        return;
-      }
-      this.executeBind(soul, body);
+        GlobalSceneManager.popScene();
+      },
+      secondaryAction: {
+        label: t.btn_back,
+        iconId: 'back',
+        onClick: () => {
+          GlobalAudioService.playSfx('cancel');
+          GlobalSceneManager.popScene();
+        },
+      },
+      primaryAction: {
+        label: t.btn_bind,
+        iconId: 'soul_bottle',
+        disabled: !preview.hasSelection,
+        onClick: () => this.executeBind(),
+      },
     });
-    this.previewContainer.addChild(bindBtn);
+    this.container.addChild(this.screenFrame);
+
+    const cw = this.screenFrame.contentWidth;
+    const colW = isDesktop ? Math.floor((cw - 12) / 2) : cw;
+
+    const soulRowH = 48;
+    const soulsCardH = Math.max(150, souls.length * (soulRowH + 6) + 52);
+    const soulsCard = new KitCard({
+      width: colW,
+      height: soulsCardH,
+      variant: 'smokedWood',
+      title: t.sec_souls,
+    });
+    soulsCard.position.set(0, 0);
+    this.screenFrame.contentRoot.addChild(soulsCard);
+
+    if (souls.length === 0) {
+      const emptyTxt = new Text({
+        text: t.empty_souls,
+        style: new TextStyle({ fontFamily: FONTS.body, fontSize: 13, fill: COLOR_HEX.smoke }),
+      });
+      emptyTxt.position.set(14, 48);
+      soulsCard.addChild(emptyTxt);
+    } else {
+      souls.forEach((soul, idx) => {
+        const sp = CREATURES_DATA[soul.speciesId];
+        const row = new KitListRow({
+          width: colW - 20,
+          height: soulRowH,
+          iconId: 'soul_bottle',
+          title: soul.nickname || sp?.name || soul.speciesId,
+          subtitle: `${sp?.classId?.toUpperCase() || ''} · ${(sp?.types || []).join('/')}`,
+          valueText: `Nv.${soul.level}`,
+          selected: idx === this.selectedSoulIdx,
+          onClick: () => {
+            this.selectedSoulIdx = idx;
+            this.renderBinding();
+          },
+        });
+        row.position.set(10, 38 + idx * (soulRowH + 6));
+        soulsCard.addChild(row);
+        this.focusManager.register({
+          container: row,
+          width: colW - 20,
+          height: soulRowH,
+          onActivate: () => {
+            this.selectedSoulIdx = idx;
+            this.renderBinding();
+          },
+        });
+      });
+    }
+
+    const bodyRowH = 48;
+    const bodiesCardH = Math.max(150, bodies.length * (bodyRowH + 6) + 52);
+    const bodiesCard = new KitCard({
+      width: colW,
+      height: bodiesCardH,
+      variant: 'smokedWood',
+      title: t.sec_bodies,
+    });
+    bodiesCard.position.set(isDesktop ? colW + 12 : 0, isDesktop ? 0 : soulsCardH + 12);
+    this.screenFrame.contentRoot.addChild(bodiesCard);
+
+    if (bodies.length === 0) {
+      const emptyTxt = new Text({
+        text: t.empty_bodies,
+        style: new TextStyle({ fontFamily: FONTS.body, fontSize: 13, fill: COLOR_HEX.smoke }),
+      });
+      emptyTxt.position.set(14, 48);
+      bodiesCard.addChild(emptyTxt);
+    } else {
+      bodies.forEach((body, idx) => {
+        const ch = BODY_CHASSIS_DATA[body.chassisId] || BODY_CHASSIS_DATA['chassis_madera_t1'];
+        const avgDur = Math.round(
+          (body.partDurability.head + body.partDurability.torso + body.partDurability.arms + body.partDurability.legs) / 4
+        );
+        const row = new KitListRow({
+          width: colW - 20,
+          height: bodyRowH,
+          iconId: 'body_chassis',
+          title: body.nickname || ch.name,
+          subtitle: `${ch.material.toUpperCase()} · Tier ${ch.tier}`,
+          valueText: `Dur ${avgDur}%`,
+          selected: idx === this.selectedBodyIdx,
+          onClick: () => {
+            this.selectedBodyIdx = idx;
+            this.renderBinding();
+          },
+        });
+        row.position.set(10, 38 + idx * (bodyRowH + 6));
+        bodiesCard.addChild(row);
+        this.focusManager.register({
+          container: row,
+          width: colW - 20,
+          height: bodyRowH,
+          onActivate: () => {
+            this.selectedBodyIdx = idx;
+            this.renderBinding();
+          },
+        });
+      });
+    }
+
+    const prevY = isDesktop ? Math.max(soulsCardH, bodiesCardH) + 12 : soulsCardH + bodiesCardH + 24;
+    const prevH = 220;
+    const prevCard = new KitCard({
+      width: cw,
+      height: prevH,
+      variant: 'parchment',
+      title: t.sec_preview,
+    });
+    prevCard.position.set(0, prevY);
+    this.screenFrame.contentRoot.addChild(prevCard);
+
+    if (preview.hasSelection) {
+      const compatBadge = new KitBadge(
+        preview.isCompatible ? t.compat_bonus : t.compat_normal,
+        'tier',
+        'tier'
+      );
+      compatBadge.position.set(14, 40);
+      prevCard.addChild(compatBadge);
+
+      const sil = new HumanoidPartSilhouette();
+      sil.position.set(18, 72);
+      sil.updateParts(preview.partMaxHP, preview.partMaxHP);
+      prevCard.addChild(sil);
+
+      const statsList: Array<{ key: 'hp' | 'atk' | 'def' | 'spAtk' | 'spDef' | 'speed'; label: string; val: number }> = [
+        { key: 'hp', label: 'PS', val: preview.hpMax },
+        { key: 'atk', label: 'ATK', val: preview.atk },
+        { key: 'def', label: 'DEF', val: preview.def },
+        { key: 'spAtk', label: 'AT.ESP', val: preview.spAtk },
+        { key: 'spDef', label: 'DF.ESP', val: preview.spDef },
+        { key: 'speed', label: 'VEL', val: preview.speed },
+      ];
+      const gridW = cw - 124;
+      const boxW = Math.floor((gridW - 16) / 3);
+      statsList.forEach((st, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        const sb = new KitStatBox({
+          statKey: st.key,
+          label: st.label,
+          value: st.val,
+          width: boxW,
+          height: 54,
+        });
+        sb.position.set(108 + col * (boxW + 8), 72 + row * 62);
+        prevCard.addChild(sb);
+      });
+    }
+
+    this.screenFrame.setContentTotalHeight(prevY + prevH + 24);
+    UIKitLinter.inspectTree(this.screenFrame, 'SoulBindingScene');
   }
 
-  private executeBind(soul: Souldoll, body: BodyInstance): void {
+  private executeBind(): void {
     const state = GlobalSaveService.getCurrentState();
-    
-    // Assign body instance
-    soul.bodyInstanceId = body.instanceId;
-    
-    // Recalculate stats & parts
-    const updated = StatCalculator.createSouldoll(soul.speciesId, soul.level, body.chassisId, soul.nickname);
-    soul.maxHp = updated.maxHp;
-    soul.currentHp = updated.maxHp;
-    soul.partHP = { ...updated.maxPartHP };
-    soul.maxPartHP = { ...updated.maxPartHP };
+    const souls = getSealedSoulsList(state);
+    const bodies = getFreeBodiesList(state);
+    const soul = souls[this.selectedSoulIdx];
+    const body = bodies[this.selectedBodyIdx];
+    if (!soul || !body) return;
 
-    // Move to party if room
-    if (state.party.length < 6 && !state.party.some((s: Souldoll) => s.uid === soul.uid)) {
+    soul.bodyInstanceId = body.instanceId;
+    soul.maxPartHP = StatCalculator.calculatePartMaxHp(soul.stats.hp, body.chassisId, body.ivs, body.evs);
+    soul.partHP = { ...soul.maxPartHP };
+    StatCalculator.ensurePartHp(soul);
+
+    const stIdx = state.storage.findIndex((s) => s.uid === soul.uid);
+    if (stIdx >= 0) {
+      state.storage.splice(stIdx, 1);
+    }
+
+    if (state.party.length < 6) {
       state.party.push(soul);
-      state.storage = (state.storage || []).filter((s: Souldoll) => s.uid !== soul.uid);
+    } else {
+      state.storage.push(soul);
     }
 
     GlobalSaveService.save();
     GlobalAudioService.playSfx('levelUp');
-    this.selectedBodyId = null;
-    this.renderUI();
+    GlobalSceneManager.popScene();
   }
 
-  private renderUnbindMode(state: any): void {
-    const boundSouls: Souldoll[] = [
-      ...state.party.filter((s: Souldoll) => s.bodyInstanceId !== null),
-      ...(state.storage || []).filter((s: Souldoll) => s.bodyInstanceId !== null),
-    ];
-
-    const title = new Text({
-      text: `DESVINCULAR ALMAS DE SU CUERPO (${boundSouls.length}):`,
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', fill: '#ef4444' }),
-    });
-    title.position.set(24, 130);
-    this.leftListContainer.addChild(title);
-
-    boundSouls.forEach((soul, idx) => {
-      const species = CREATURES_DATA[soul.speciesId];
-      const btn = new Container();
-      btn.position.set(24, 160 + idx * 56);
-
-      const bg = new Graphics();
-      bg.roundRect(0, 0, 480, 48, 8);
-      bg.fill({ color: 0x0f172a });
-      bg.stroke({ color: 0xef4444, width: 2 });
-      btn.addChild(bg);
-
-      const txt = new Text({
-        text: `🔮 ${species?.name || soul.speciesId} (Nv.${soul.level}) — Vinculado a Chasis`,
-        style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', fill: '#ffffff' }),
-      });
-      txt.position.set(12, 14);
-      btn.addChild(txt);
-
-      const unbindBtn = this.createButton('✂️ DESVINCULAR', 340, 6, 128, 36, 0xef4444, () => {
-        soul.bodyInstanceId = null;
-        GlobalSaveService.save();
-        GlobalAudioService.playSfx('confirm');
-        this.renderUI();
-      });
-      btn.addChild(unbindBtn);
-
-      this.leftListContainer.addChild(btn);
-    });
+  public update(_dt: number): void {
+    this.screenFrame.updateInertia();
+    this.focusManager.update();
+    if (GlobalInput.justPressed('CANCEL')) {
+      GlobalAudioService.playSfx('cancel');
+      GlobalSceneManager.popScene();
+    }
   }
 
-  private createButton(label: string, x: number, y: number, w: number, h: number, color: number, onClick: () => void): Container {
-    const btn = new Container();
-    btn.position.set(x, y);
-    btn.eventMode = 'static';
-    btn.cursor = 'pointer';
-
-    const bg = new Graphics();
-    bg.roundRect(0, 0, w, h, 8);
-    bg.fill({ color: 0x0f172a });
-    bg.stroke({ color, width: 2 });
-    btn.addChild(bg);
-
-    const txt = new Text({
-      text: label,
-      style: new TextStyle({ fontFamily: 'monospace, system-ui', fontSize: 12, fontWeight: '900', fill: '#ffffff' }),
-    });
-    txt.anchor.set(0.5);
-    txt.position.set(w / 2, h / 2);
-    btn.addChild(txt);
-
-    btn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      onClick();
-    });
-
-    return btn;
-  }
-
-  public update(_dt: number): void {}
   public render(): void {}
-  public async exit(): Promise<void> { this.container.destroy({ children: true }); }
+
+  public async exit(): Promise<void> {
+    this.focusManager.clear();
+    this.container.destroy({ children: true });
+  }
 }

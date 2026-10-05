@@ -8,6 +8,12 @@ import { LOOT_TABLES_DATA } from '../loot/lootTables';
 import { STATUS_EFFECT_RULES } from '../status/statusEffects';
 import { WorldGraph } from '../maps/worldGraph';
 import { QUESTS_DATA } from '../quests/quests';
+import {
+  GACHA_CONFIG,
+  BODY_PIECES_DATA,
+  TECHNIQUE_SCROLLS_DATA,
+  GACHA_TABLES_DATA,
+} from '../gacha/gachaData';
 
 export interface ValidationReport {
   isValid: boolean;
@@ -300,6 +306,85 @@ export class DataValidator {
       }
     });
 
+    // 9. Validate Bloque 28A: Fragmentos de Alma y Gacha
+    if (!ITEMS_DATA['soul_fragment']) {
+      errors.push('[Gacha] Missing required item "soul_fragment" in ITEMS_DATA.');
+    }
+    if (GACHA_CONFIG.piecesRequired !== 5) {
+      errors.push(
+        `[Gacha] GACHA_CONFIG.piecesRequired must be 5 (found ${GACHA_CONFIG.piecesRequired}).`
+      );
+    }
+
+    Object.entries(BODY_PIECES_DATA).forEach(([pieceId, piece]) => {
+      if (piece.id !== pieceId) {
+        errors.push(`[Gacha:BodyPiece] Key mismatch: "${pieceId}" !== "${piece.id}"`);
+      }
+      if (!BODY_CHASSIS_DATA[piece.chassisId]) {
+        errors.push(
+          `[Gacha:BodyPiece] Piece "${pieceId}" references nonexistent chassisId "${piece.chassisId}".`
+        );
+      }
+    });
+
+    Object.entries(TECHNIQUE_SCROLLS_DATA).forEach(([scrollId, scroll]) => {
+      if (scroll.id !== scrollId) {
+        errors.push(`[Gacha:Scroll] Key mismatch: "${scrollId}" !== "${scroll.id}"`);
+      }
+      if (!MOVES_DATA[scroll.moveId]) {
+        errors.push(
+          `[Gacha:Scroll] Scroll "${scrollId}" references nonexistent moveId "${scroll.moveId}".`
+        );
+      }
+      if (scroll.price < 0 || !scroll.description) {
+        errors.push(`[Gacha:Scroll] Scroll "${scrollId}" has invalid price or description.`);
+      }
+    });
+
+    Object.entries(GACHA_TABLES_DATA).forEach(([tableId, table]) => {
+      if (table.id !== tableId) {
+        errors.push(`[Gacha:Table] Key mismatch: "${tableId}" !== "${table.id}"`);
+      }
+      const rates = table.rarityRates;
+      const sumRates =
+        (rates?.common || 0) +
+        (rates?.uncommon || 0) +
+        (rates?.rare || 0) +
+        (rates?.epic || 0);
+      if (Math.abs(sumRates - 1.0) > 0.0001) {
+        errors.push(
+          `[Gacha:Table] Table "${tableId}" rarityRates sum is ${sumRates.toFixed(4)} (must equal 1.0).`
+        );
+      }
+      if (!table.pity || table.pity.threshold <= 0) {
+        errors.push(`[Gacha:Table] Table "${tableId}" has invalid pity threshold.`);
+      }
+      if (!table.entries || table.entries.length === 0) {
+        errors.push(`[Gacha:Table] Table "${tableId}" has no entries.`);
+      } else {
+        table.entries.forEach((entry, idx) => {
+          if (entry.weight <= 0) {
+            errors.push(
+              `[Gacha:Table] Table "${tableId}" entry #${idx} has non-positive weight ${entry.weight}.`
+            );
+          }
+          if (entry.kind === 'item' && !ITEMS_DATA[entry.id]) {
+            errors.push(
+              `[Gacha:Table] Table "${tableId}" references nonexistent item "${entry.id}".`
+            );
+          } else if (entry.kind === 'bodyPiece' && !BODY_PIECES_DATA[entry.id]) {
+            errors.push(
+              `[Gacha:Table] Table "${tableId}" references nonexistent bodyPiece "${entry.id}".`
+            );
+          } else if (entry.kind === 'scroll' && !TECHNIQUE_SCROLLS_DATA[entry.id]) {
+            errors.push(
+              `[Gacha:Table] Table "${tableId}" references nonexistent scroll "${entry.id}".`
+            );
+          }
+        });
+      }
+    });
+
     const report: ValidationReport = {
       isValid: errors.length === 0,
       errors,
@@ -366,7 +451,7 @@ export class DataValidator {
     }
 
     console.log('\n========================================================================');
-    console.log('🤖 TABLA 2: LOS 8 CHASIS CONTENEDORES (BODY CHASSIS)');
+    console.log('🤖 TABLA 2: LOS 8 CUERPOS CONTENEDORES (BODY CHASSIS)');
     console.log('========================================================================');
 
     const chassisTable = Object.values(BODY_CHASSIS_DATA).map((c) => {

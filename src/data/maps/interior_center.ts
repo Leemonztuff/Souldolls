@@ -1,5 +1,5 @@
 import { MapData } from '../../types/maps';
-import { TileType } from '../../render/procedural/TileFactory';
+import { TileType } from '../../types/tilesets';
 import workshopData from './workshop_interior.json';
 
 const W = workshopData.width; // 14
@@ -124,6 +124,7 @@ export const INTERIOR_CENTER_MAP: MapData = {
       targetX: 7,
       targetY: 18,
       targetDirection: 'down',
+      interactLabel: 'Entrar',
     },
   ],
   triggers: [],
@@ -135,6 +136,7 @@ export const INTERIOR_CENTER_MAP: MapData = {
       x: 6,
       y: 4,
       direction: 'down',
+      interactLabel: 'Hablar',
       dialogueLines: [
         workshopData.dialogues.welcome,
         workshopData.dialogues.first_visit,

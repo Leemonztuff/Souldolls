@@ -21,7 +21,8 @@ export type SoundEffectType =
   | 'porcelain'  // Brand high doll chime / ring
   | 'crystal'    // Brand crystal resonance shimmer / ping
   | 'ki_burst'   // Brand ki burst whoosh / explosion
-  | 'soul_seal'; // Brand soul capture bottle sound
+  | 'soul_seal'  // Brand soul capture bottle sound
+  | 'heal';      // Workshop & item healing chime
 
 export class AudioService {
   private static instance: AudioService;
@@ -46,16 +47,18 @@ export class AudioService {
     });
 
     // Auto-unlock on first user gesture
-    const unlock = () => {
-      this.initAudioContext();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('touchstart', unlock);
-    };
+    if (typeof window !== 'undefined') {
+      const unlock = () => {
+        this.initAudioContext();
+        window.removeEventListener('pointerdown', unlock);
+        window.removeEventListener('keydown', unlock);
+        window.removeEventListener('touchstart', unlock);
+      };
 
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    window.addEventListener('touchstart', unlock, { once: true });
+      window.addEventListener('pointerdown', unlock, { once: true });
+      window.addEventListener('keydown', unlock, { once: true });
+      window.addEventListener('touchstart', unlock, { once: true });
+    }
   }
 
   public static getInstance(): AudioService {
@@ -178,7 +181,8 @@ export class AudioService {
         break;
       }
 
-      case 'save': {
+      case 'save':
+      case 'heal': {
         const notes = [523.25, 659.25, 783.99, 1046.5];
         notes.forEach((freq, idx) => {
           if (!this.ctx || !this.sfxGain) return;

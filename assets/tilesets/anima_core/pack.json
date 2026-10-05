@@ -1,0 +1,10 @@
+{
+  "name": "Anima Core Original Tileset Pack",
+  "author": "Souldolls Artificer Guild (Original First-Party CC0)",
+  "source": "Original Procedural-to-PNG Art Pipeline for Souldolls",
+  "license": "CC0-1.0",
+  "commercialUse": true,
+  "allowedEngines": ["any", "threejs", "pixijs", "web"],
+  "attribution": "Anima Core Tileset Pack by Souldolls Studio — Released under CC0 1.0 Universal (No RPG Maker RTP / No munokura assets).",
+  "approved": true
+}

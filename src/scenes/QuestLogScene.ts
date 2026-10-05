@@ -1,424 +1,293 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
 import { GlobalQuestSystem } from '../systems/quest/QuestSystem';
+import { GlobalSaveService } from '../services/SaveService';
 import { GlobalInput } from '../core/Input';
 import { GlobalAudioService } from '../services/AudioService';
-import { QuestData, QuestProgressState } from '../types/quests';
-import { COLOR_NUM, COLOR_HEX, FONTS, COLOR_SEMANTIC } from '../ui/styles';
+import {
+  ScreenFrame,
+  KitCard,
+  KitListRow,
+  KitBadge,
+  KitDivider,
+  KitCurrencyChip,
+  FocusManager,
+  UIKitLinter,
+} from '../ui/kit';
+import { buildQuestLogVM } from '../ui/viewmodels/GroupAViewModels';
+import { COLOR_HEX, FONTS } from '../ui/styles';
+import esText from '../data/text/es.json';
 
+/**
+ * BLOQUE 42 (GRUPO A): Diario de Misiones ("QuestLogScene")
+ * Construido 100% con /ui/kit (ScreenFrame, KitCard, KitListRow, KitBadge, KitDivider, KitCurrencyChip, FocusManager).
+ * Cero colores, fuentes o emojis hardcodeados.
+ */
 export class QuestLogScene implements IScene {
   public name = 'QuestLog';
   public isTransparentOverlay = true;
 
   private container: Container = new Container();
-  private listContainer: Container = new Container();
-  private detailContainer: Container = new Container();
-
-  private questsWithState: Array<{ data: QuestData; state: QuestProgressState }> = [];
+  private screenFrame: ScreenFrame | null = null;
+  private focusManager: FocusManager = new FocusManager();
   private selectedIndex = 0;
 
   public async enter(): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
     this.container = new Container();
+    this.container.roundPixels = true;
     this.container.zIndex = 1000;
     GlobalPixiRenderer.menuLayer.addChild(this.container);
 
-    this.questsWithState = GlobalQuestSystem.getAllQuestsWithStatus();
+    this.selectedIndex = 0;
     this.buildUI();
     GlobalAudioService.playSfx('confirm');
   }
 
+  public pause(): void {
+    if (this.container && !this.container.destroyed) {
+      this.container.visible = false;
+    }
+  }
+
+  public async resume(): Promise<void> {
+    if (!this.container || this.container.destroyed) {
+      this.container = new Container();
+      this.container.roundPixels = true;
+      this.container.zIndex = 1000;
+    }
+    this.container.visible = true;
+    if (this.container.parent !== GlobalPixiRenderer.menuLayer) {
+      GlobalPixiRenderer.menuLayer.addChild(this.container);
+    }
+    this.buildUI();
+  }
+
   private buildUI(): void {
+    this.container.removeChildren();
+    this.focusManager.clear();
+
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
+    const state = GlobalSaveService.getCurrentState();
+    const rawQuests = GlobalQuestSystem.getAllQuestsWithStatus();
+    const vm = buildQuestLogVM(rawQuests);
+    const t = (esText as any).terms.group_a.quests;
 
-    // Dark backdrop
-    const bg = new Graphics();
-    bg.rect(0, 0, width, height);
-    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.96 });
-    bg.eventMode = 'static';
-    this.container.addChild(bg);
-
-    // 1. Header Bar (Large & Highly Legible)
-    const header = new Container();
-    header.position.set(0, 0);
-
-    const headerBg = new Graphics();
-    headerBg.rect(0, 0, width, 68);
-    headerBg.fill({ color: COLOR_NUM.smokedWood });
-    headerBg.stroke({ color: COLOR_NUM.gold, width: 2.5 });
-    header.addChild(headerBg);
-
-    const titleText = new Text({
-      text: '📜 DIARIO DE MISIONES',
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 24,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-        letterSpacing: 2,
-      }),
-    });
-    titleText.position.set(24, 18);
-    header.addChild(titleText);
-
-    // Close Button (Big & Touch-Friendly)
-    const closeBtn = new Container();
-    closeBtn.position.set(width - 160, 10);
-    closeBtn.eventMode = 'static';
-    closeBtn.cursor = 'pointer';
-
-    const closeBg = new Graphics();
-    closeBg.roundRect(0, 0, 140, 48, 8);
-    closeBg.fill({ color: COLOR_NUM.rift });
-    closeBg.stroke({ color: COLOR_NUM.gold, width: 2 });
-    closeBtn.addChild(closeBg);
-
-    // Inner highlight line
-    closeBg.roundRect(2, 2, 136, 44, 6);
-    closeBg.stroke({ color: COLOR_NUM.white, width: 0.5, alpha: 0.2 });
-
-    const closeTxt = new Text({
-      text: '✕ CERRAR',
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 16,
-        fontWeight: 'bold',
-        fill: COLOR_HEX.white,
-      }),
-    });
-    closeTxt.anchor.set(0.5);
-    closeTxt.position.set(70, 24);
-    closeBtn.addChild(closeTxt);
-
-    closeBtn.on('pointerdown', () => this.close());
-    header.addChild(closeBtn);
-
-    this.container.addChild(header);
-
-    // 2. Left Column: Quest List (Width 360)
-    this.listContainer = new Container();
-    this.listContainer.position.set(20, 84);
-    this.container.addChild(this.listContainer);
-
-    // 3. Right Column: Detailed View (Width 540)
-    this.detailContainer = new Container();
-    this.detailContainer.position.set(400, 84);
-    this.container.addChild(this.detailContainer);
-
-    this.renderQuestList();
-    this.renderQuestDetails();
-  }
-
-  private renderQuestList(): void {
-    this.listContainer.removeChildren();
-    const itemHeight = 92;
-    const itemWidth = 360;
-
-    if (this.questsWithState.length === 0) {
-      const emptyText = new Text({
-        text: 'No hay misiones registradas aún.',
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 18,
-          fill: COLOR_HEX.smoke,
-        }),
-      });
-      this.listContainer.addChild(emptyText);
-      return;
+    if (this.selectedIndex >= vm.quests.length) {
+      this.selectedIndex = Math.max(0, vm.quests.length - 1);
     }
 
-    this.questsWithState.forEach(({ data, state }, idx) => {
-      const isSelected = idx === this.selectedIndex;
-      const card = new Container();
-      card.position.set(0, idx * (itemHeight + 10));
-      card.eventMode = 'static';
-      card.cursor = 'pointer';
-
-      const bg = new Graphics();
-      bg.roundRect(0, 0, itemWidth, itemHeight, 10);
-
-      let borderColor = COLOR_NUM.bronze;
-      let statusBadgeColor = COLOR_NUM.smokedWood;
-      let statusLabel = 'BLOQUEADA';
-
-      if (state.status === 'active') {
-        borderColor = isSelected ? COLOR_NUM.cyan : COLOR_NUM.bronze;
-        statusBadgeColor = COLOR_NUM.smokedWood;
-        statusLabel = 'ACTIVA';
-      } else if (state.status === 'completable') {
-        borderColor = isSelected ? COLOR_NUM.gold : COLOR_NUM.bronze;
-        statusBadgeColor = COLOR_NUM.gold;
-        statusLabel = 'COMPLETABLE';
-      } else if (state.status === 'completed') {
-        borderColor = isSelected ? COLOR_SEMANTIC.ok : COLOR_NUM.bronze;
-        statusBadgeColor = COLOR_SEMANTIC.ok;
-        statusLabel = 'COMPLETADA';
-      } else if (state.status === 'available') {
-        borderColor = isSelected ? COLOR_NUM.soulViolet : COLOR_NUM.bronze;
-        statusBadgeColor = COLOR_NUM.soulViolet;
-        statusLabel = 'DISPONIBLE';
-      }
-
-      bg.fill({ color: isSelected ? COLOR_NUM.smokedWood : COLOR_NUM.inkCrypt, alpha: 0.95 });
-      bg.stroke({ color: isSelected ? COLOR_NUM.gold : borderColor, width: isSelected ? 3 : 1.5 });
-      card.addChild(bg);
-
-      // Inner hairline
-      bg.roundRect(3, 3, itemWidth - 6, itemHeight - 6, 8);
-      bg.stroke({ color: COLOR_NUM.white, width: 0.5, alpha: 0.1 });
-
-      // Status Tag Badge
-      const badge = new Graphics();
-      badge.roundRect(itemWidth - 140, 10, 130, 28, 6);
-      badge.fill({ color: statusBadgeColor, alpha: 0.85 });
-      badge.stroke({ color: COLOR_NUM.gold, width: 0.5, alpha: 0.3 });
-      card.addChild(badge);
-
-      const badgeTxt = new Text({
-        text: statusLabel,
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 11,
-          fontWeight: 'bold',
-          fill: COLOR_HEX.parchment,
-        }),
-      });
-      badgeTxt.anchor.set(0.5);
-      badgeTxt.position.set(itemWidth - 75, 24);
-      card.addChild(badgeTxt);
-
-      // Quest Title (Big & Bold)
-      const catPrefix = data.category === 'main' ? '★ ' : '◇ ';
-      const titleTxt = new Text({
-        text: `${catPrefix}${data.title}`,
-        style: new TextStyle({
-          fontFamily: FONTS.title,
-          fontSize: 16,
-          fontWeight: '900',
-          fill: isSelected ? COLOR_HEX.gold : COLOR_HEX.parchment,
-          wordWrap: true,
-          wordWrapWidth: itemWidth - 150,
-        }),
-      });
-      titleTxt.position.set(14, 10);
-      card.addChild(titleTxt);
-
-      // Summary preview text
-      const summaryTxt = new Text({
-        text: data.summary,
-        style: new TextStyle({
-          fontFamily: FONTS.body,
-          fontSize: 13,
-          fill: COLOR_HEX.smoke,
-          wordWrap: true,
-          wordWrapWidth: itemWidth - 28,
-        }),
-      });
-      summaryTxt.position.set(14, 46);
-      card.addChild(summaryTxt);
-
-      card.on('pointerdown', () => {
-        if (this.selectedIndex !== idx) {
-          this.selectedIndex = idx;
-          GlobalAudioService.playSfx('select');
-          this.renderQuestList();
-          this.renderQuestDetails();
-        }
-      });
-
-      this.listContainer.addChild(card);
+    const frame = new ScreenFrame({
+      width,
+      height,
+      title: vm.title,
+      currencies: [{ iconId: 'coin', value: state.player?.money || 0 }],
+      onClose: () => this.close(),
+      primaryAction: {
+        label: vm.btnBack,
+        iconId: 'chevron_left',
+        onClick: () => this.close(),
+      },
     });
-  }
+    this.screenFrame = frame;
+    this.container.addChild(frame);
 
-  private renderQuestDetails(): void {
-    this.detailContainer.removeChildren();
-    const item = this.questsWithState[this.selectedIndex];
-    if (!item) return;
+    const cw = frame.contentWidth;
+    const isTwoCol = frame.isTwoColumn;
+    const colW = isTwoCol ? Math.floor((cw - 12) / 2) : cw;
 
-    const { data, state } = item;
-    const detailWidth = 540;
-    const detailHeight = 610;
+    const rowH = 58;
+    const listCardH = Math.max(160, vm.quests.length * rowH + 44);
 
-    const bg = new Graphics();
-    bg.roundRect(0, 0, detailWidth, detailHeight, 12);
-    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.98 });
-    bg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-    
-    // Inner frame
-    bg.roundRect(4, 4, detailWidth - 8, detailHeight - 8, 10);
-    bg.stroke({ color: COLOR_NUM.gold, width: 0.8, alpha: 0.3 });
-    this.detailContainer.addChild(bg);
-
-    // Title (Large & Prominent)
-    const title = new Text({
-      text: `${data.category === 'main' ? '★ Misión Principal' : '◇ Misión Secundaria'}: ${data.title}`,
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 18,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-        wordWrap: true,
-        wordWrapWidth: detailWidth - 48,
-      }),
+    // 1. Left / Top Quest List Card
+    const listCard = new KitCard({
+      width: colW,
+      height: listCardH,
+      variant: 'smokedWood',
+      title: vm.secList,
     });
-    title.position.set(24, 18);
-    this.detailContainer.addChild(title);
+    listCard.position.set(0, 0);
+    frame.contentRoot.addChild(listCard);
 
-    // Description (Large & Easy to Read)
-    const desc = new Text({
-      text: data.description,
-      style: new TextStyle({
-        fontFamily: FONTS.body,
-        fontSize: 14,
-        lineHeight: 22,
-        fill: COLOR_HEX.parchment,
-        wordWrap: true,
-        wordWrapWidth: detailWidth - 48,
-      }),
-    });
-    desc.position.set(24, 66);
-    this.detailContainer.addChild(desc);
-
-    // Objectives Section Header
-    const objHeader = new Text({
-      text: '🎯 OBJETIVOS:',
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 16,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-      }),
-    });
-    objHeader.position.set(24, 160);
-    this.detailContainer.addChild(objHeader);
-
-    data.objectives.forEach((obj, idx) => {
-      const objBox = new Container();
-      objBox.position.set(24, 196 + idx * 72);
-
-      const current = state.objectiveProgress[obj.id] || 0;
-      const isDone = current >= obj.requiredCount;
-
-      const objBg = new Graphics();
-      objBg.roundRect(0, 0, detailWidth - 48, 62, 8);
-      objBg.fill({ color: isDone ? COLOR_NUM.smokedWood : COLOR_NUM.inkCrypt, alpha: 0.85 });
-      objBg.stroke({ color: isDone ? COLOR_SEMANTIC.ok : COLOR_NUM.bronze, width: 1.5 });
-      objBox.addChild(objBg);
-
-      const checkIcon = isDone ? '✅' : '◻️';
-      const objTxt = new Text({
-        text: `${checkIcon}  ${obj.description}`,
+    if (vm.quests.length === 0) {
+      const emptyTxt = new Text({
+        text: vm.emptyText,
         style: new TextStyle({
           fontFamily: FONTS.body,
           fontSize: 14,
-          fontWeight: isDone ? 'normal' : 'bold',
-          fill: isDone ? COLOR_HEX.cyan : COLOR_HEX.parchment,
-          wordWrap: true,
-          wordWrapWidth: detailWidth - 160,
+          fill: COLOR_HEX.smoke,
         }),
       });
-      objTxt.position.set(16, 16);
-      objBox.addChild(objTxt);
-
-      if (obj.requiredCount > 1) {
-        const countTxt = new Text({
-          text: `${current} / ${obj.requiredCount}`,
-          style: new TextStyle({
-            fontFamily: FONTS.hud,
-            fontSize: 16,
-            fontWeight: '900',
-            fill: isDone ? COLOR_HEX.cyan : COLOR_HEX.gold,
-          }),
+      emptyTxt.roundPixels = true;
+      emptyTxt.position.set(16, 48);
+      listCard.addChild(emptyTxt);
+    } else {
+      vm.quests.forEach((q, idx) => {
+        const row = new KitListRow({
+          width: colW - 16,
+          height: 52,
+          iconId: q.status === 'completed' ? 'check' : 'quest_scroll',
+          title: q.title,
+          subtitle: `${q.categoryLabel} • ${q.summary.slice(0, 32)}`,
+          value: q.statusLabel,
+          selected: idx === this.selectedIndex,
+          onClick: () => {
+            this.selectedIndex = idx;
+            this.buildUI();
+          },
         });
-        countTxt.anchor.set(1, 0.5);
-        countTxt.position.set(detailWidth - 70, 31);
-        objBox.addChild(countTxt);
-      }
+        row.position.set(8, 36 + idx * rowH);
+        listCard.addChild(row);
 
-      this.detailContainer.addChild(objBox);
+        this.focusManager.register({
+          container: row,
+          width: colW - 16,
+          height: 52,
+          onActivate: () => {
+            this.selectedIndex = idx;
+            this.buildUI();
+          },
+        });
+      });
+      this.focusManager.setFocus(this.selectedIndex, false);
+    }
+
+    // 2. Right / Bottom Quest Detail Card
+    const sel = vm.quests[this.selectedIndex];
+    const objRowsH = sel ? sel.objectives.length * 54 : 0;
+    const detailCardH = Math.max(300, 220 + objRowsH);
+
+    const detailCard = new KitCard({
+      width: colW,
+      height: detailCardH,
+      variant: 'parchment',
+      title: sel ? sel.title : vm.secDetail,
     });
+    detailCard.position.set(
+      isTwoCol ? colW + 12 : 0,
+      isTwoCol ? 0 : listCardH + 12
+    );
+    frame.contentRoot.addChild(detailCard);
 
-    // Rewards Section Header
-    const rewHeader = new Text({
-      text: '🎁 RECOMPENSAS:',
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 16,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-      }),
-    });
-    rewHeader.position.set(24, 430);
-    this.detailContainer.addChild(rewHeader);
+    if (sel) {
+      const catBadge = new KitBadge(sel.categoryLabel, 'tier', 'tier');
+      catBadge.position.set(12, 36);
+      detailCard.addChild(catBadge);
 
-    const rewBox = new Container();
-    rewBox.position.set(24, 466);
+      const statusBadge = new KitBadge(
+        sel.statusLabel,
+        sel.status === 'completed' ? 'rarity' : 'element',
+        sel.status === 'completed' ? 'poco_comun' : 'agua'
+      );
+      statusBadge.position.set(18 + catBadge.width, 36);
+      detailCard.addChild(statusBadge);
 
-    const rewBg = new Graphics();
-    rewBg.roundRect(0, 0, detailWidth - 48, 110, 8);
-    rewBg.fill({ color: COLOR_NUM.smokedWood, alpha: 0.85 });
-    rewBg.stroke({ color: COLOR_NUM.bronze, width: 1.5 });
-    rewBox.addChild(rewBg);
-
-    const rewItemsStr =
-      (data.rewards.money ? `💰 ¥${data.rewards.money}  ` : '') +
-      (data.rewards.items
-        ? data.rewards.items.map((i) => `📦 ${i.count}x ${i.itemId.toUpperCase()}`).join('  ')
-        : '');
-
-    const rewTxt = new Text({
-      text: rewItemsStr || 'Sincronía y reconocimiento de los Artífices.',
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 16,
-        fontWeight: 'bold',
-        fill: COLOR_HEX.cyan,
-      }),
-    });
-    rewTxt.position.set(18, 16);
-    rewBox.addChild(rewTxt);
-
-    if (data.rewards.message) {
-      const msgTxt = new Text({
-        text: data.rewards.message,
+      const descTxt = new Text({
+        text: sel.description,
         style: new TextStyle({
           fontFamily: FONTS.body,
-          fontSize: 13,
-          fill: COLOR_HEX.smoke,
+          fontSize: 14,
+          lineHeight: 20,
+          fill: COLOR_HEX.inkCrypt,
           wordWrap: true,
-          wordWrapWidth: detailWidth - 84,
+          wordWrapWidth: colW - 24,
         }),
       });
-      msgTxt.position.set(18, 52);
-      rewBox.addChild(msgTxt);
+      descTxt.roundPixels = true;
+      descTxt.position.set(12, 68);
+      detailCard.addChild(descTxt);
+
+      let cursorY = 124;
+      const div1 = new KitDivider(colW - 24);
+      div1.position.set(12, cursorY);
+      detailCard.addChild(div1);
+      cursorY += 16;
+
+      sel.objectives.forEach((obj) => {
+        const objRow = new KitListRow({
+          width: colW - 24,
+          height: 48,
+          iconId: obj.isDone ? 'check' : 'quest_scroll',
+          title: obj.description,
+          value: obj.required > 1 ? `${obj.current}/${obj.required}` : obj.isDone ? 'OK' : '...',
+          selected: obj.isDone,
+        });
+        objRow.position.set(12, cursorY);
+        detailCard.addChild(objRow);
+        cursorY += 54;
+      });
+
+      const div2 = new KitDivider(colW - 24);
+      div2.position.set(12, cursorY + 4);
+      detailCard.addChild(div2);
+      cursorY += 18;
+
+      const rewTitle = new Text({
+        text: t.rewards,
+        style: new TextStyle({
+          fontFamily: FONTS.title,
+          fontSize: 14,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.inkCrypt,
+        }),
+      });
+      rewTitle.roundPixels = true;
+      rewTitle.position.set(12, cursorY);
+      detailCard.addChild(rewTitle);
+
+      let chipX = 12;
+      if (sel.rewardMoney > 0) {
+        const moneyChip = new KitCurrencyChip('coin', sel.rewardMoney, 96);
+        moneyChip.position.set(chipX, cursorY + 22);
+        detailCard.addChild(moneyChip);
+        chipX += 104;
+      }
+
+      sel.rewardItems.forEach((ri) => {
+        const itemBadge = new KitBadge(`${ri.count}x ${ri.name}`, 'rarity', 'rara');
+        itemBadge.position.set(chipX, cursorY + 24);
+        detailCard.addChild(itemBadge);
+        chipX += itemBadge.width + 8;
+      });
     }
 
-    this.detailContainer.addChild(rewBox);
+    const totalH = isTwoCol
+      ? Math.max(listCardH, detailCardH) + 16
+      : listCardH + detailCardH + 28;
+    frame.setContentTotalHeight(totalH);
+
+    UIKitLinter.inspectTree(frame, 'QuestLogScene');
   }
 
-  public update(dt: number): void {
-    if (GlobalInput.justPressed('UP')) {
-      if (this.selectedIndex > 0) {
-        this.selectedIndex--;
-        GlobalAudioService.playSfx('select');
-        this.renderQuestList();
-        this.renderQuestDetails();
-      }
-    } else if (GlobalInput.justPressed('DOWN')) {
-      if (this.selectedIndex < this.questsWithState.length - 1) {
-        this.selectedIndex++;
-        GlobalAudioService.playSfx('select');
-        this.renderQuestList();
-        this.renderQuestDetails();
-      }
+  public update(_dt: number): void {
+    if (this.screenFrame) {
+      this.screenFrame.updateInertia();
     }
 
-    if (GlobalInput.justPressed('CANCEL') || GlobalInput.justPressed('MENU')) {
+    const rawQuests = GlobalQuestSystem.getAllQuestsWithStatus();
+    const len = rawQuests.length;
+
+    if (GlobalInput.justPressed('UP')) {
+      if (len > 0) {
+        this.selectedIndex = (this.selectedIndex - 1 + len) % len;
+        GlobalAudioService.playSfx('select');
+        this.buildUI();
+      }
+    } else if (GlobalInput.justPressed('DOWN')) {
+      if (len > 0) {
+        this.selectedIndex = (this.selectedIndex + 1) % len;
+        GlobalAudioService.playSfx('select');
+        this.buildUI();
+      }
+    } else if (GlobalInput.justPressed('CANCEL') || GlobalInput.justPressed('MENU')) {
       this.close();
     }
+  }
+
+  public onResize(_width: number, _height: number): void {
+    this.buildUI();
   }
 
   public close(): void {
@@ -429,6 +298,7 @@ export class QuestLogScene implements IScene {
   public render(): void {}
 
   public async exit(): Promise<void> {
+    this.focusManager.clear();
     this.container.destroy({ children: true });
   }
 }

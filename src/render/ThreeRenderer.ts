@@ -25,8 +25,8 @@ export class ThreeRenderer {
 
     // 1. Create Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0b132b);
-    this.scene.fog = new THREE.FogExp2(0x0b132b, 0.025);
+    this.scene.background = new THREE.Color(0x14101c);
+    this.scene.fog = new THREE.FogExp2(0x14101c, 0.025);
 
     // 2. Create Camera with HD-2D ~38° FOV
     const aspect = w / h;
@@ -84,6 +84,10 @@ export class ThreeRenderer {
     if (this.renderer && this.scene && this.camera) {
       this.renderer.render(this.scene, this.camera);
     }
+  }
+
+  public isReady(): boolean {
+    return Boolean(this.renderer && this.scene && this.camera && this.container);
   }
 
   public clearScene(): void {

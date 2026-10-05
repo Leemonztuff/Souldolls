@@ -32,8 +32,8 @@ export class PixiRenderer {
     if (this.isInitialized) return;
 
     this.container = container;
-    this.width = Math.round(width);
-    this.height = Math.round(height);
+    this.width = Math.max(320, Math.round(width || window.innerWidth || 960));
+    this.height = Math.max(240, Math.round(height || window.innerHeight || 720));
     this.resolution = Math.min(window.devicePixelRatio || 1, 3);
 
     // Configurar valores por defecto de texturas PixiJS v8 para pixel-art nítido
@@ -88,8 +88,8 @@ export class PixiRenderer {
   }
 
   public resize(width: number, height: number): void {
-    this.width = Math.round(width);
-    this.height = Math.round(height);
+    this.width = Math.max(320, Math.round(width || window.innerWidth || 960));
+    this.height = Math.max(240, Math.round(height || window.innerHeight || 720));
     this.resolution = Math.min(window.devicePixelRatio || 1, 3);
 
     if (this.app && this.app.renderer) {
@@ -111,6 +111,10 @@ export class PixiRenderer {
     if (this.isInitialized && this.app && this.app.renderer) {
       this.app.renderer.render(this.stage);
     }
+  }
+
+  public isReady(): boolean {
+    return Boolean(this.isInitialized && this.app && this.app.renderer && this.stage);
   }
 }
 

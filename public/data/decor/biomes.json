@@ -10,60 +10,60 @@
           "id": "village_grass",
           "layer": "grass",
           "group": "grass",
-          "density": 1.4,
+          "density": 0.9,
           "tileTypes": ["grass"],
           "avoidTypes": ["path", "water", "sand", "bridge", "wall", "interior_floor"],
           "avoidRadius": 0,
-          "scaleRange": [0.85, 1.08]
+          "scaleRange": [0.68, 0.88]
         },
         {
           "id": "village_flowerbeds",
           "layer": "flowers",
           "frames": ["flower_pink_cluster", "flower_daisy_cluster", "flower_pink_b", "flower_daisy_b", "flower_yellow_b"],
-          "density": 3.0,
+          "density": 1.5,
           "tileTypes": ["flowers"],
           "avoidTypes": ["path", "water"],
           "avoidRadius": 0,
-          "scaleRange": [0.92, 1.15]
+          "scaleRange": [0.65, 0.85]
         },
         {
           "id": "village_daisies",
           "layer": "flowers",
           "group": "flower_daisy",
-          "density": 1.8,
+          "density": 0.9,
           "tileTypes": ["grass"],
           "avoidTypes": ["path", "water"],
           "avoidRadius": 0,
-          "cluster": { "noiseScale": 0.28, "threshold": 0.52 },
-          "scaleRange": [0.88, 1.12]
+          "cluster": { "noiseScale": 0.28, "threshold": 0.56 },
+          "scaleRange": [0.62, 0.82]
         },
         {
           "id": "village_pink_flowers",
           "layer": "flowers",
           "group": "flower_pink",
-          "density": 1.6,
+          "density": 0.85,
           "tileTypes": ["grass"],
           "avoidTypes": ["path", "water"],
           "avoidRadius": 0,
-          "cluster": { "noiseScale": 0.30, "threshold": 0.56 },
-          "scaleRange": [0.88, 1.10]
+          "cluster": { "noiseScale": 0.30, "threshold": 0.58 },
+          "scaleRange": [0.62, 0.82]
         },
         {
           "id": "village_reeds",
           "layer": "grass",
           "group": "reed",
-          "density": 1.5,
+          "density": 1.1,
           "tileTypes": ["grass", "sand"],
           "shoreOnly": true,
-          "scaleRange": [0.85, 1.10]
+          "scaleRange": [0.75, 0.95]
         },
         {
           "id": "village_lilypads",
           "layer": "flowers",
           "group": "water_deco",
-          "density": 0.85,
+          "density": 0.7,
           "tileTypes": ["water"],
-          "scaleRange": [0.85, 1.15]
+          "scaleRange": [0.72, 0.95]
         }
       ]
     },
@@ -77,21 +77,21 @@
           "id": "meadow_grass_normal",
           "layer": "grass",
           "group": "grass",
-          "density": 1.6,
+          "density": 1.1,
           "tileTypes": ["grass"],
           "avoidTypes": ["path", "water", "sand", "bridge"],
           "avoidRadius": 0,
           "excludeEncounterTiles": true,
-          "scaleRange": [0.90, 1.10]
+          "scaleRange": [0.70, 0.90]
         },
         {
           "id": "meadow_tall_grass_encounter",
           "layer": "grass",
           "frames": ["grass_tuft_b", "bush_clover", "tall_grass_blade_a", "grass_tuft_a", "clover_patch"],
-          "density": 4.2,
+          "density": 2.8,
           "tileTypes": ["grass"],
           "encounterOnly": true,
-          "scaleRange": [1.08, 1.32],
+          "scaleRange": [0.92, 1.12],
           "tint": "#3B8E3E",
           "swayMultiplier": 1.45
         },
@@ -99,62 +99,62 @@
           "id": "meadow_daisies",
           "layer": "flowers",
           "group": "flower_daisy",
-          "density": 2.2,
+          "density": 1.1,
           "tileTypes": ["grass", "flowers"],
           "avoidTypes": ["path", "water"],
           "excludeEncounterTiles": true,
-          "cluster": { "noiseScale": 0.24, "threshold": 0.46 },
-          "scaleRange": [0.90, 1.15]
+          "cluster": { "noiseScale": 0.24, "threshold": 0.52 },
+          "scaleRange": [0.64, 0.84]
         },
         {
           "id": "meadow_yellow_flowers",
           "layer": "flowers",
           "group": "flower_yellow",
-          "density": 2.4,
+          "density": 1.2,
           "tileTypes": ["grass", "flowers"],
           "avoidTypes": ["path", "water"],
           "excludeEncounterTiles": true,
-          "cluster": { "noiseScale": 0.22, "threshold": 0.45 },
-          "scaleRange": [0.90, 1.15]
+          "cluster": { "noiseScale": 0.22, "threshold": 0.50 },
+          "scaleRange": [0.64, 0.84]
         },
         {
           "id": "meadow_poppies",
           "layer": "flowers",
           "group": "flower_poppy",
-          "density": 2.0,
+          "density": 1.0,
           "tileTypes": ["grass", "flowers"],
           "avoidTypes": ["path", "water"],
           "excludeEncounterTiles": true,
-          "cluster": { "noiseScale": 0.26, "threshold": 0.50 },
-          "scaleRange": [0.92, 1.16]
+          "cluster": { "noiseScale": 0.26, "threshold": 0.54 },
+          "scaleRange": [0.65, 0.85]
         },
         {
           "id": "meadow_blue_flowers",
           "layer": "flowers",
           "group": "flower_blue",
-          "density": 2.0,
+          "density": 1.0,
           "tileTypes": ["grass", "flowers"],
           "avoidTypes": ["path", "water"],
           "excludeEncounterTiles": true,
-          "cluster": { "noiseScale": 0.25, "threshold": 0.48 },
-          "scaleRange": [0.90, 1.14]
+          "cluster": { "noiseScale": 0.25, "threshold": 0.52 },
+          "scaleRange": [0.64, 0.84]
         },
         {
           "id": "meadow_reeds",
           "layer": "grass",
           "group": "reed",
-          "density": 1.8,
+          "density": 1.3,
           "tileTypes": ["grass", "sand"],
           "shoreOnly": true,
-          "scaleRange": [0.90, 1.18]
+          "scaleRange": [0.78, 0.98]
         },
         {
           "id": "meadow_lilypads",
           "layer": "flowers",
           "group": "water_deco",
-          "density": 0.9,
+          "density": 0.75,
           "tileTypes": ["water"],
-          "scaleRange": [0.88, 1.15]
+          "scaleRange": [0.75, 0.95]
         }
       ]
     },
@@ -168,21 +168,21 @@
           "id": "forest_undergrowth",
           "layer": "grass",
           "frames": ["fern_bush", "moss_patch", "clover_patch", "sprout", "grass_tuft_a"],
-          "density": 1.8,
+          "density": 1.2,
           "tileTypes": ["grass"],
           "avoidTypes": ["path", "water"],
           "excludeEncounterTiles": true,
-          "scaleRange": [0.88, 1.14],
+          "scaleRange": [0.72, 0.92],
           "tint": "#4EA858"
         },
         {
           "id": "forest_tall_grass_encounter",
           "layer": "grass",
           "frames": ["grass_ki_glow", "grass_tuft_b", "fern_bush", "tall_grass_blade_a", "bush_clover"],
-          "density": 4.4,
+          "density": 3.0,
           "tileTypes": ["grass"],
           "encounterOnly": true,
-          "scaleRange": [1.10, 1.35],
+          "scaleRange": [0.95, 1.15],
           "tint": "#2E7D4E",
           "swayMultiplier": 1.5
         },
@@ -190,57 +190,57 @@
           "id": "forest_mushrooms_ki",
           "layer": "mushrooms",
           "group": "mushroom_ki",
-          "density": 2.2,
+          "density": 1.5,
           "tileTypes": ["grass", "flowers"],
           "avoidTypes": ["path", "water"],
-          "cluster": { "noiseScale": 0.25, "threshold": 0.40 },
-          "scaleRange": [0.88, 1.22]
+          "cluster": { "noiseScale": 0.25, "threshold": 0.45 },
+          "scaleRange": [0.72, 0.95]
         },
         {
           "id": "forest_moss_ki",
           "layer": "mushrooms",
           "frames": ["moss_glow", "grass_ki_glow"],
-          "density": 1.9,
+          "density": 1.3,
           "tileTypes": ["grass", "flowers"],
           "avoidTypes": ["path", "water"],
-          "cluster": { "noiseScale": 0.28, "threshold": 0.44 },
-          "scaleRange": [0.90, 1.18]
+          "cluster": { "noiseScale": 0.28, "threshold": 0.48 },
+          "scaleRange": [0.75, 0.95]
         },
         {
           "id": "forest_mushrooms_natural",
           "layer": "mushrooms",
           "group": "mushroom",
-          "density": 1.5,
+          "density": 1.1,
           "tileTypes": ["grass"],
           "avoidTypes": ["path", "water"],
-          "cluster": { "noiseScale": 0.28, "threshold": 0.48 },
-          "scaleRange": [0.85, 1.12]
+          "cluster": { "noiseScale": 0.28, "threshold": 0.50 },
+          "scaleRange": [0.68, 0.90]
         },
         {
           "id": "forest_debris",
           "layer": "grass",
           "group": "forest_debris",
-          "density": 1.3,
+          "density": 0.9,
           "tileTypes": ["grass", "path"],
           "avoidTypes": ["water"],
-          "scaleRange": [0.82, 1.08]
+          "scaleRange": [0.70, 0.90]
         },
         {
           "id": "forest_reeds",
           "layer": "grass",
           "group": "reed",
-          "density": 1.8,
+          "density": 1.3,
           "tileTypes": ["grass"],
           "shoreOnly": true,
-          "scaleRange": [0.90, 1.18]
+          "scaleRange": [0.78, 0.98]
         },
         {
           "id": "forest_lilypads",
           "layer": "flowers",
           "group": "water_deco",
-          "density": 1.0,
+          "density": 0.75,
           "tileTypes": ["water"],
-          "scaleRange": [0.88, 1.15]
+          "scaleRange": [0.75, 0.95]
         },
         {
           "id": "forest_fireflies",
@@ -249,7 +249,7 @@
           "density": 0.65,
           "tileTypes": ["grass", "flowers", "water"],
           "timeOfDay": "night_or_forest",
-          "scaleRange": [0.85, 1.25]
+          "scaleRange": [0.75, 1.05]
         }
       ]
     },
@@ -263,30 +263,30 @@
           "id": "cave_mushrooms_ki",
           "layer": "mushrooms",
           "group": "mushroom_ki",
-          "density": 1.9,
+          "density": 1.4,
           "tileTypes": ["cave_floor", "rock", "grass", "sand"],
           "avoidTypes": ["path", "water"],
-          "cluster": { "noiseScale": 0.25, "threshold": 0.42 },
-          "scaleRange": [0.85, 1.20]
+          "cluster": { "noiseScale": 0.25, "threshold": 0.46 },
+          "scaleRange": [0.72, 0.95]
         },
         {
           "id": "cave_moss_crystals",
           "layer": "mushrooms",
           "frames": ["moss_glow", "grass_ki_glow"],
-          "density": 1.6,
+          "density": 1.2,
           "tileTypes": ["cave_floor", "rock", "grass"],
           "avoidTypes": ["path", "water"],
-          "cluster": { "noiseScale": 0.28, "threshold": 0.45 },
-          "scaleRange": [0.85, 1.15]
+          "cluster": { "noiseScale": 0.28, "threshold": 0.48 },
+          "scaleRange": [0.72, 0.92]
         },
         {
           "id": "cave_encounter_patches",
           "layer": "grass",
           "frames": ["grass_ki_glow", "moss_glow", "mushroom_ki_cyan", "mushroom_ki_violet"],
-          "density": 3.6,
+          "density": 2.6,
           "tileTypes": ["cave_floor", "grass"],
           "encounterOnly": true,
-          "scaleRange": [1.02, 1.28],
+          "scaleRange": [0.88, 1.08],
           "tint": "#48B5A8",
           "swayMultiplier": 1.3
         },
@@ -294,11 +294,11 @@
           "id": "cave_debris_bones",
           "layer": "grass",
           "frames": ["pebbles_a", "pebbles_b", "bones", "bones_b"],
-          "density": 0.9,
+          "density": 0.8,
           "tileTypes": ["cave_floor", "sand", "grass"],
           "avoidTypes": ["water", "path"],
-          "cluster": { "noiseScale": 0.32, "threshold": 0.52 },
-          "scaleRange": [0.80, 1.05]
+          "cluster": { "noiseScale": 0.32, "threshold": 0.54 },
+          "scaleRange": [0.70, 0.90]
         }
       ]
     }

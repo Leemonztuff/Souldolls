@@ -31,7 +31,7 @@ export interface ThemeTokens {
   spacing: Record<string, number>;
   radii: Record<string, number>;
   shadows: Record<string, string>;
-  animation: Record<string, number>;
+  animation: Record<string, number | string>;
 }
 
 export class ThemeManager {
@@ -39,7 +39,7 @@ export class ThemeManager {
   private tokens: ThemeTokens;
 
   private constructor() {
-    this.tokens = this.validateTokens(themeTokens as ThemeTokens);
+    this.tokens = this.validateTokens(themeTokens as unknown as ThemeTokens);
   }
 
   public static getInstance(): ThemeManager {

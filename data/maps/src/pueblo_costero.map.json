@@ -1,0 +1,352 @@
+{
+  "id": "pueblo_costero",
+  "name": "Puerto Marea",
+  "category": "town",
+  "seed": 45044,
+  "width": 32,
+  "height": 24,
+  "baseGround": "grass",
+  "skyColor": 3718648,
+  "sunlightColor": 16707722,
+  "ambientMusic": "town",
+  "borders": {
+    "style": "coastal_ocean",
+    "depth": 2,
+    "primaryDecor": "tree",
+    "gaps": [
+      {
+        "side": "east",
+        "start": 10,
+        "end": 13
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "southern_ocean_bay",
+      "biome": "lake",
+      "shape": "rect_noisy",
+      "bounds": [
+        0,
+        16,
+        31,
+        23
+      ],
+      "groundTile": "water",
+      "noiseAmplitude": 0.25,
+      "noiseFrequency": 0.35
+    },
+    {
+      "id": "golden_beach_shore",
+      "biome": "beach",
+      "shape": "rect_noisy",
+      "bounds": [
+        1,
+        12,
+        30,
+        16
+      ],
+      "groundTile": "sand",
+      "noiseAmplitude": 0.28,
+      "noiseFrequency": 0.3
+    }
+  ],
+  "paths": [
+    {
+      "id": "east_harbor_promenade",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          31,
+          11
+        ],
+        [
+          16,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          8,
+          7
+        ]
+      ],
+      "wobble": 0.15
+    },
+    {
+      "id": "upper_coastal_loop",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          8,
+          7
+        ],
+        [
+          16,
+          6
+        ],
+        [
+          24,
+          6
+        ],
+        [
+          24,
+          11
+        ]
+      ],
+      "wobble": 0.2
+    },
+    {
+      "id": "wooden_harbor_pier",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          16,
+          6
+        ],
+        [
+          16,
+          20
+        ]
+      ],
+      "wobble": 0
+    }
+  ],
+  "patches": [
+    {
+      "id": "coastal_dune_tall_grass",
+      "kind": "tall_grass",
+      "center": [
+        22,
+        8
+      ],
+      "radiusX": 3.4,
+      "radiusY": 2.2,
+      "noise": 0.32,
+      "minTiles": 14,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "west_cliff_wildflowers",
+      "kind": "flowers",
+      "center": [
+        5,
+        10
+      ],
+      "radiusX": 2.2,
+      "radiusY": 1.6,
+      "noise": 0.28,
+      "minTiles": 6,
+      "groundTile": "flowers"
+    }
+  ],
+  "stamps": [
+    {
+      "id": "stamp_coastal_gym",
+      "prefab": "gym_sanctuary",
+      "x": 6,
+      "y": 3,
+      "width": 6,
+      "height": 4,
+      "doorOffset": [
+        2,
+        3
+      ],
+      "label": "Santuario Gremial de Puerto Marea"
+    },
+    {
+      "id": "stamp_harbor_pier_bridge",
+      "prefab": "wooden_bridge",
+      "x": 16,
+      "y": 15,
+      "width": 2,
+      "height": 6,
+      "label": "Muelle de Madera de Puerto Marea"
+    }
+  ],
+  "scatter": [
+    {
+      "id": "coastal_palm_groves",
+      "decorType": "tree",
+      "clusterSizes": [
+        3,
+        5
+      ],
+      "density": 0.32,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 6,
+      "preferNearBorders": true,
+      "allowedGround": [
+        "grass"
+      ]
+    },
+    {
+      "id": "shore_sea_rocks",
+      "decorType": "rock",
+      "clusterSizes": [
+        3
+      ],
+      "density": 0.22,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 7,
+      "preferNearBorders": false,
+      "allowedGround": [
+        "sand",
+        "grass"
+      ]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_coastal_gym_plaza",
+      "name": "Pórtico del Gremio de Marea",
+      "role": "focus",
+      "x": 8,
+      "y": 8,
+      "radius": 3
+    },
+    {
+      "id": "lm_ocean_pier_tip",
+      "name": "Faro del Muelle Sur",
+      "role": "rest",
+      "x": 17,
+      "y": 19,
+      "radius": 3,
+      "loreProp": {
+        "type": "sparkle_hidden",
+        "offsetX": -1,
+        "offsetY": 1,
+        "reward": "soul_bottle_plata"
+      }
+    },
+    {
+      "id": "lm_east_dune_cove",
+      "name": "Cala de los Cristales Marinos",
+      "role": "secret",
+      "x": 27,
+      "y": 14,
+      "radius": 3,
+      "loreProp": {
+        "type": "mana_berry_plant",
+        "offsetX": 0,
+        "offsetY": 0,
+        "reward": "cristal_agua"
+      }
+    }
+  ],
+  "signs": [
+    {
+      "x": 18,
+      "y": 11,
+      "text": "PUERTO MAREA\n\"Donde la brisa marina despierta las almas del océano.\""
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "text": "GREMIO DE PUERTO MAREA\nMaestra Marina — Guardiana del Sello de Marea."
+    }
+  ],
+  "warps": [
+    {
+      "x": 31,
+      "y": 11,
+      "targetMapId": "villa_brote",
+      "targetX": 1,
+      "targetY": 11,
+      "targetDirection": "right"
+    },
+    {
+      "x": 31,
+      "y": 12,
+      "targetMapId": "villa_brote",
+      "targetX": 1,
+      "targetY": 12,
+      "targetDirection": "right"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_leader_marina",
+      "name": "Maestra Marina",
+      "paletteId": "lass",
+      "x": 8,
+      "y": 8,
+      "direction": "down",
+      "dialogueLines": [
+        "¡Te doy la bienvenida al Gremio de Puerto Marea!",
+        "Las olas moldean a los Soultrainers fuertes. ¡Enfrenta el poder del océano!"
+      ],
+      "isTrainer": true,
+      "trainerData": {
+        "trainerClass": "Maestra de Gremio",
+        "creatureSpeciesId": "cantora_marea",
+        "creatureLevel": 20
+      }
+    },
+    {
+      "id": "npc_sailor_paco",
+      "name": "Marinero Paco",
+      "paletteId": "hiker",
+      "x": 17,
+      "y": 18,
+      "direction": "up",
+      "dialogueLines": [
+        "El mar hoy está en calma, pero en aguas profundas resuenan las Cantoras de Marea.",
+        "Desde aquí tienes un camino directo de regreso al Taller de Aldea Marioneta."
+      ]
+    },
+    {
+      "id": "npc_surfer_leo",
+      "name": "Vigilante Leo",
+      "paletteId": "lass",
+      "x": 14,
+      "y": 13,
+      "direction": "right",
+      "dialogueLines": [
+        "¡La arena dorada y la brisa del muelle son ideales para descansar tras un largo viaje!"
+      ]
+    }
+  ],
+  "spawnPoints": {
+    "default": {
+      "x": 30,
+      "y": 11,
+      "direction": "left"
+    },
+    "from_east": {
+      "x": 30,
+      "y": 11,
+      "direction": "left"
+    }
+  },
+  "encounterRate": 0.18,
+  "encounterTable": [
+    {
+      "speciesId": "hidromante",
+      "minLevel": 10,
+      "maxLevel": 14,
+      "weight": 60
+    },
+    {
+      "speciesId": "maga",
+      "minLevel": 10,
+      "maxLevel": 13,
+      "weight": 30
+    },
+    {
+      "speciesId": "cantora_marea",
+      "minLevel": 16,
+      "maxLevel": 18,
+      "weight": 10
+    }
+  ]
+}

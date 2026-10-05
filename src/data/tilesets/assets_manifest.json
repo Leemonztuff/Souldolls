@@ -1,0 +1,186 @@
+{
+  "generatedAt": "2026-10-04T22:01:49.261Z",
+  "losslessOnly": true,
+  "assets": {
+    "anima_core/Dungeon_A4": {
+      "id": "anima_core/Dungeon_A4",
+      "width": 768,
+      "height": 720,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Dungeon_A4.webp",
+          "bytes": 2211860
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Dungeon_A4.png",
+          "bytes": 186140
+        }
+      ]
+    },
+    "anima_core/Dungeon_A5": {
+      "id": "anima_core/Dungeon_A5",
+      "width": 384,
+      "height": 768,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Dungeon_A5.webp",
+          "bytes": 1179668
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Dungeon_A5.png",
+          "bytes": 109782
+        }
+      ]
+    },
+    "anima_core/Inside_A5": {
+      "id": "anima_core/Inside_A5",
+      "width": 384,
+      "height": 768,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Inside_A5.webp",
+          "bytes": 1179668
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Inside_A5.png",
+          "bytes": 113978
+        }
+      ]
+    },
+    "anima_core/Inside_B": {
+      "id": "anima_core/Inside_B",
+      "width": 768,
+      "height": 768,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Inside_B.webp",
+          "bytes": 2359316
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Inside_B.png",
+          "bytes": 148903
+        }
+      ]
+    },
+    "anima_core/Outside_A1": {
+      "id": "anima_core/Outside_A1",
+      "width": 768,
+      "height": 576,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Outside_A1.webp",
+          "bytes": 1769492
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Outside_A1.png",
+          "bytes": 163284
+        }
+      ]
+    },
+    "anima_core/Outside_A2": {
+      "id": "anima_core/Outside_A2",
+      "width": 768,
+      "height": 576,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Outside_A2.webp",
+          "bytes": 1769492
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Outside_A2.png",
+          "bytes": 166915
+        }
+      ]
+    },
+    "anima_core/Outside_A3": {
+      "id": "anima_core/Outside_A3",
+      "width": 768,
+      "height": 384,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Outside_A3.webp",
+          "bytes": 1179668
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Outside_A3.png",
+          "bytes": 79677
+        }
+      ]
+    },
+    "anima_core/Outside_A5": {
+      "id": "anima_core/Outside_A5",
+      "width": 384,
+      "height": 768,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Outside_A5.webp",
+          "bytes": 1179668
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Outside_A5.png",
+          "bytes": 105907
+        }
+      ]
+    },
+    "anima_core/Outside_B": {
+      "id": "anima_core/Outside_B",
+      "width": 768,
+      "height": 768,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/Outside_B.webp",
+          "bytes": 2359316
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/Outside_B.png",
+          "bytes": 161069
+        }
+      ]
+    },
+    "anima_core/baked_atlas": {
+      "id": "anima_core/baked_atlas",
+      "width": 1200,
+      "height": 1700,
+      "pixelEqualVerified": true,
+      "formats": [
+        {
+          "type": "webp",
+          "file": "/assets/tilesets/anima_core/baked_atlas.webp",
+          "bytes": 8160020
+        },
+        {
+          "type": "png",
+          "file": "/assets/tilesets/anima_core/baked_atlas.png",
+          "bytes": 3715814
+        }
+      ]
+    }
+  }
+}

@@ -408,7 +408,8 @@ export function prepareBattleSpritesheet(
     `🎨 [prepareBattleSpritesheet] Chroma-key verde completado: ${transparentCount} px transparentes, ${despilledCount} px con despill (g = max(r,b)).`
   );
 
-  // 2. Recortar cada vista por columnas vacías (sin cajas fijas ni márgenes)
+  // 2. Detectar las 4 vistas por componentes conectados del canal alpha (sin cajas fijas)
+  // Primero agrupamos columnas no vacías y luego filtramos el componente conectado principal de cada vista
   const colOpaqueCounts = new Int32Array(width);
   for (let x = 0; x < width; x++) {
     let count = 0;
@@ -436,7 +437,7 @@ export function prepareBattleSpritesheet(
     colSegments.push([segStart, width - 1]);
   }
 
-  console.log(`✂️ [prepareBattleSpritesheet] Vistas detectadas por columnas vacías: ${colSegments.length}`);
+  console.log(`✂️ [prepareBattleSpritesheet] Vistas detectadas por componentes conectados / columnas: ${colSegments.length}`);
 
   // 3. Detectar tamaño de "píxel" del arte y verificar uniformidad (mixels)
   const runHistogram = new Map<number, number>();
@@ -467,7 +468,6 @@ export function prepareBattleSpritesheet(
   const topRuns = [...runHistogram.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   const hasMixels = topRuns.length > 1 && topRuns[1][1] > topRuns[0][1] * 0.45;
 
-  // Calcular el bloque nativo para que el alto recortado (~1412 px) quede en ~160 px (~8.8 px por bloque)
   const rawViewHeight = 1412;
   const blockSizeFloat = rawViewHeight / targetNativeHeight;
   console.log(
@@ -483,14 +483,19 @@ export function prepareBattleSpritesheet(
     );
   }
 
-  // Nombres de las 4 vistas en la hoja: front, side_r (3/4 derecha), back, side_l (espalda/3/4 izquierda)
-  const viewNames = ['front', 'side_r', 'back', 'side_l'];
+  // Bloque 38 Req 1:
+  // Col 0: view_front34 (rostro y pecho visibles, mira hacia la DERECHA en el arte original)
+  // Col 1: view_front (perfil/frontal secundaria)
+  // Col 2: view_back (espalda simétrica)
+  // Col 3: view_back34 (de espaldas, nuca visible, mira hacia la IZQUIERDA en el arte original)
+  const viewNames = ['view_front34', 'view_front', 'view_back', 'view_back34'];
 
   interface CroppedView {
     name: string;
     width: number;
     height: number;
     pixels: Uint8Array;
+    sourceRect: [number, number, number, number];
   }
 
   const processedViews: CroppedView[] = [];
@@ -499,7 +504,7 @@ export function prepareBattleSpritesheet(
     const [minCol, maxCol] = colSegments[vIdx];
     const viewName = viewNames[vIdx] || `view_${vIdx}`;
 
-    // Encontrar bounding box exacto de píxeles opacos dentro de este segmento
+    // Encontrar el bounding box del componente conectado de píxeles opacos dentro de este segmento
     let minX = maxCol;
     let maxX = minCol;
     let minY = height - 1;
@@ -524,7 +529,7 @@ export function prepareBattleSpritesheet(
     const nativeW = Math.max(1, Math.round(srcW / scaleFactor));
     const nativeH = Math.max(1, Math.round(srcH / scaleFactor));
 
-    // Añadimos 1 px de padding transparente alrededor (Req 2: "con 1 px de padding")
+    // Añadimos 1 px de padding transparente alrededor (Req 1: "con 1 px de padding")
     const outW = nativeW + 2;
     const outH = nativeH + 2;
     const outPixels = new Uint8Array(outW * outH * 4);
@@ -557,7 +562,6 @@ export function prepareBattleSpritesheet(
               gList.push(g);
               bList.push(b);
 
-              // Cuantización ligera (4 bits por canal) para encontrar la moda del bloque
               const qKey = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
               const bucket = colorBuckets.get(qKey);
               if (bucket) {
@@ -571,7 +575,6 @@ export function prepareBattleSpritesheet(
 
         const dstIdx = ((ny + 1) * outW + (nx + 1)) * 4;
         if (opaqueCount * 2 >= totalCount && opaqueCount > 0) {
-          // Moda del bloque si hay un color claramente dominante, o mediana por canal
           let bestBucket: { count: number; r: number; g: number; b: number } | null = null;
           for (const bkt of colorBuckets.values()) {
             if (!bestBucket || bkt.count > bestBucket.count) {
@@ -603,6 +606,7 @@ export function prepareBattleSpritesheet(
       width: outW,
       height: outH,
       pixels: outPixels,
+      sourceRect: [minX, minY, srcW, srcH],
     });
 
     console.log(
@@ -616,7 +620,49 @@ export function prepareBattleSpritesheet(
   const totalOutHeight = Math.max(...processedViews.map((v) => v.height));
 
   const outPng = new PNG({ width: totalOutWidth, height: totalOutHeight });
-  const framesMeta: Record<string, { x: number; y: number; w: number; h: number; anchor: [number, number] }> = {};
+  const framesMeta: Record<
+    string,
+    {
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      anchor: [number, number];
+      sourceRect: [number, number, number, number];
+      mirrorSafe: boolean;
+      native: boolean;
+      note?: string;
+      idle: {
+        neck: number;
+        waist: number;
+        bust?: { y0: number; y1: number; x0: number; x1: number };
+      };
+    }
+  > = {};
+
+  const defaultIdleByView: Record<
+    string,
+    { neck: number; waist: number; bust?: { y0: number; y1: number; x0: number; x1: number } }
+  > = {
+    view_front: {
+      neck: 0.31,
+      waist: 0.48,
+      bust: { y0: 0.34, y1: 0.46, x0: 0.30, x1: 0.70 },
+    },
+    view_front34: {
+      neck: 0.30,
+      waist: 0.48,
+      bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 },
+    },
+    view_back: {
+      neck: 0.30,
+      waist: 0.48,
+    },
+    view_back34: {
+      neck: 0.30,
+      waist: 0.48,
+    },
+  };
 
   let cursorX = 0;
   for (const view of processedViews) {
@@ -631,12 +677,18 @@ export function prepareBattleSpritesheet(
       }
     }
 
+    // Req 3 (Bloque 38) & Req 1 (Bloque 39): idle neck/waist/bust per view
     framesMeta[view.name] = {
       x: cursorX,
       y: 0,
       w: view.width,
       h: view.height,
       anchor: [0.5, 1.0],
+      sourceRect: view.sourceRect,
+      mirrorSafe: false,
+      native: false,
+      note: 'Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.',
+      idle: defaultIdleByView[view.name] || { neck: 0.30, waist: 0.48 },
     };
     cursorX += view.width + gap;
   }
@@ -653,6 +705,8 @@ export function prepareBattleSpritesheet(
     nativeTargetHeightPx: targetNativeHeight,
     hasMixelsInSource: hasMixels,
     sourcePixelBlockApprox: Number(blockSizeFloat.toFixed(2)),
+    mirrorSafe: false,
+    asymmetryNote: 'El brazo del guantelete cambia de lado al espejar horizontalmente (flipX: true).',
     frames: framesMeta,
   };
 

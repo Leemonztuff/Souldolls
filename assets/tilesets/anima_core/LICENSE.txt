@@ -1,0 +1,9 @@
+CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
+
+Pack: Anima Core Original Tileset Pack (anima_core)
+Author: Souldolls Artificer Guild
+Engine Restrictions: None (allowedEngines: ["any", "threejs", "pixijs", "web"])
+
+This tileset pack is 100% original pixel art generated specifically for the Souldolls 2.5D project.
+It contains zero RPG Maker RTP material and zero munokura/MZ-tilesets-MV-style assets.
+Commercial and non-commercial use in any engine (including Three.js + PixiJS) is unrestricted.

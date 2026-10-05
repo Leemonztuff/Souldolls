@@ -1,0 +1,249 @@
+{
+  "id": "bosque_eco",
+  "name": "Bosque Eco",
+  "category": "forest",
+  "seed": 45033,
+  "width": 36,
+  "height": 36,
+  "baseGround": "grass",
+  "skyColor": 1973067,
+  "sunlightColor": 14202110,
+  "ambientMusic": "forest",
+  "borders": {
+    "style": "forest_belt",
+    "depth": 2,
+    "primaryDecor": "tree",
+    "gaps": [
+      { "side": "west", "start": 17, "end": 20 }
+    ]
+  },
+  "regions": [],
+  "paths": [
+    {
+      "id": "west_entry_to_clearing",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [0, 18],
+        [18, 18]
+      ],
+      "wobble": 0.25
+    },
+    {
+      "id": "north_ascent_to_echo_cave",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [18, 18],
+        [18, 11],
+        [27, 11]
+      ],
+      "wobble": 0.2
+    },
+    {
+      "id": "south_shrine_loop",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [18, 18],
+        [28, 18],
+        [28, 29],
+        [14, 29],
+        [14, 18]
+      ],
+      "wobble": 0.3
+    }
+  ],
+  "patches": [
+    {
+      "id": "nw_shadow_thicket_grass",
+      "kind": "tall_grass",
+      "center": [8, 7],
+      "radiusX": 4.2,
+      "radiusY": 3.0,
+      "noise": 0.34,
+      "minTiles": 18,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "sw_glade_tall_grass",
+      "kind": "tall_grass",
+      "center": [8, 26],
+      "radiusX": 4.5,
+      "radiusY": 3.4,
+      "noise": 0.35,
+      "minTiles": 22,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "se_deep_woods_grass",
+      "kind": "tall_grass",
+      "center": [23, 23],
+      "radiusX": 3.6,
+      "radiusY": 3.2,
+      "noise": 0.32,
+      "minTiles": 16,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    }
+  ],
+  "stamps": [
+    {
+      "id": "stamp_echo_cave_sanctuary",
+      "prefab": "cave_sanctuary",
+      "x": 22,
+      "y": 2,
+      "width": 12,
+      "height": 9,
+      "doorOffset": [5, 8],
+      "label": "Santuario de la Cueva del Eco"
+    }
+  ],
+  "scatter": [
+    {
+      "id": "ancient_forest_groves",
+      "decorType": "tree",
+      "clusterSizes": [3, 5, 7],
+      "density": 0.55,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 5,
+      "preferNearBorders": false,
+      "allowedGround": ["grass"]
+    },
+    {
+      "id": "mossy_ritual_stones",
+      "decorType": "rock",
+      "clusterSizes": [3, 5],
+      "density": 0.28,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 6,
+      "preferNearBorders": false,
+      "allowedGround": ["grass", "cave_floor"]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_echo_cave_mouth",
+      "name": "Umbral de la Cueva del Eco",
+      "role": "danger",
+      "x": 18,
+      "y": 11,
+      "radius": 4
+    },
+    {
+      "id": "lm_guardian_altar",
+      "name": "Altar del Guardián del Eco",
+      "role": "focus",
+      "x": 27,
+      "y": 5,
+      "radius": 3
+    },
+    {
+      "id": "lm_southern_ruined_shrine",
+      "name": "Relicario del Artífice Olvidado",
+      "role": "secret",
+      "x": 28,
+      "y": 29,
+      "radius": 3,
+      "loreProp": {
+        "type": "doll_arm_buried",
+        "offsetX": 1,
+        "offsetY": 0
+      }
+    },
+    {
+      "id": "lm_central_campfire_clearing",
+      "name": "Claro de Descanso del Explorador",
+      "role": "rest",
+      "x": 16,
+      "y": 18,
+      "radius": 3,
+      "loreProp": {
+        "type": "mana_berry_plant",
+        "offsetX": -1,
+        "offsetY": -2,
+        "reward": "cristal_fuego"
+      }
+    }
+  ],
+  "signs": [
+    {
+      "x": 4,
+      "y": 17,
+      "text": "BOSQUE ECO\nOeste: Ruta Claro.\nNoreste: Caverna del Eco Profundo."
+    },
+    {
+      "x": 25,
+      "y": 11,
+      "text": "CUEVA DEL ECO\n\"Se dice que en las profundidades algo llama a las almas salvajes.\""
+    }
+  ],
+  "warps": [
+    {
+      "x": 0,
+      "y": 18,
+      "targetMapId": "ruta_claro",
+      "targetX": 38,
+      "targetY": 14,
+      "targetDirection": "left"
+    },
+    {
+      "x": 0,
+      "y": 19,
+      "targetMapId": "ruta_claro",
+      "targetX": 38,
+      "targetY": 15,
+      "targetDirection": "left"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_explorer_alicia",
+      "name": "Exploradora Alicia",
+      "paletteId": "lass",
+      "x": 16,
+      "y": 17,
+      "direction": "left",
+      "dialogueLines": [
+        "¡El ki en este bosque vibra con una frecuencia ancestral!",
+        "El sendero del sur forma un bucle que te permite rodear la maleza densa y regresar a salvo hacia el Taller."
+      ]
+    },
+    {
+      "id": "npc_boss_guardian",
+      "name": "Guardián del Eco",
+      "paletteId": "professor",
+      "x": 27,
+      "y": 5,
+      "direction": "down",
+      "dialogueLines": [
+        "¡Has llegado a lo más profundo de la Cueva del Eco!",
+        "Demuestra tu valía y la sincronía de tu ki con tus Souldolls."
+      ],
+      "isTrainer": true,
+      "trainerData": {
+        "trainerClass": "Guardián",
+        "creatureSpeciesId": "espectro",
+        "creatureLevel": 15
+      }
+    }
+  ],
+  "spawnPoints": {
+    "default": { "x": 2, "y": 18, "direction": "right" },
+    "from_west": { "x": 2, "y": 18, "direction": "right" }
+  },
+  "encounterRate": 0.18,
+  "encounterTable": [
+    { "speciesId": "asesina", "minLevel": 8, "maxLevel": 12, "weight": 30 },
+    { "speciesId": "paladin", "minLevel": 8, "maxLevel": 12, "weight": 25 },
+    { "speciesId": "sacerdotisa", "minLevel": 8, "maxLevel": 12, "weight": 20 },
+    { "speciesId": "bruja", "minLevel": 8, "maxLevel": 10, "weight": 15 },
+    { "speciesId": "espectro", "minLevel": 16, "maxLevel": 20, "weight": 5 },
+    { "speciesId": "hierofante", "minLevel": 16, "maxLevel": 20, "weight": 5 }
+  ]
+}

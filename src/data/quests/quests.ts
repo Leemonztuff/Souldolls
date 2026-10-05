@@ -532,4 +532,94 @@ export const QUESTS_DATA: Record<string, QuestData> = {
       message: '¡El Prof. Roble te recompensa con 10 Ultra Cápsulas y $5000!',
     },
   },
+
+  // -------------------------------------------------------------
+  // BLOQUE 28A: MISIONES DE FRAGMENTOS DE ALMA, ENSAMBLAJE Y PERGAMINOS
+  // -------------------------------------------------------------
+  side_first_fragment: {
+    id: 'side_first_fragment',
+    title: 'Primer fragmento',
+    category: 'side',
+    giverNpcId: 'npc_prof_roble_lab',
+    turnInNpcId: 'npc_prof_roble_lab',
+    summary: 'Resuena 1 Fragmento de alma mediante un código QR para manifestar una reliquia o pieza.',
+    description:
+      'El Maestro Artífice ha descubierto que los Fragmentos de alma reaccionan ante patrones rúnicos (códigos QR). Utiliza 1 Fragmento de alma para comprobar la resonancia.',
+    objectives: [
+      {
+        id: 'use_fragment_1',
+        type: 'use_fragment',
+        description: 'Usa 1 Fragmento de alma en el resonador de códigos.',
+        requiredCount: 1,
+        currentCount: 0,
+        isCompleted: false,
+      },
+    ],
+    rewards: {
+      money: 800,
+      items: [
+        { itemId: 'soul_fragment', count: 3 },
+        { itemId: 'soul_fragment_brilliant', count: 1 },
+      ],
+      message: '¡Has completado "Primer fragmento" y recibido 3 Fragmentos de Alma y 1 Fragmento Brillante!',
+    },
+  },
+
+  side_body_assembler: {
+    id: 'side_body_assembler',
+    title: 'Ensamblador',
+    category: 'side',
+    giverNpcId: 'npc_nurse_joy',
+    turnInNpcId: 'npc_nurse_joy',
+    summary: 'Reúne 5 piezas del mismo chasis y fabrica un cuerpo completo por piezas.',
+    description:
+      'Al acumular 5 piezas idénticas de chasis mediante resonancia de fragmentos, los mecanismos se ensamblan automáticamente en un Cuerpo contenedor nuevo con calidades (IVs) propias.',
+    objectives: [
+      {
+        id: 'assemble_body_1',
+        type: 'assemble_body',
+        description: 'Fabrica 1 cuerpo contenedor completo reuniendo 5 piezas.',
+        requiredCount: 1,
+        currentCount: 0,
+        isCompleted: false,
+      },
+    ],
+    rewards: {
+      money: 1500,
+      items: [
+        { itemId: 'kit_reparacion', count: 3 },
+        { itemId: 'soul_fragment', count: 2 },
+      ],
+      message: '¡Has completado "Ensamblador" y recibido 3 Kits de Reparación, 2 Fragmentos y $1500!',
+    },
+  },
+
+  side_scroll_master: {
+    id: 'side_scroll_master',
+    title: 'Maestro de técnicas',
+    category: 'side',
+    giverNpcId: 'npc_prof_roble_lab',
+    turnInNpcId: 'npc_prof_roble_lab',
+    summary: 'Enseña 3 movimientos a tus Souldolls utilizando Pergaminos de técnica.',
+    description:
+      'Los Pergaminos obtenidos en resonancias contienen técnicas ancestrales de un solo uso. Úsalos sobre Souldolls compatibles de tu equipo para transmitirles su conocimiento.',
+    objectives: [
+      {
+        id: 'learn_scroll_3',
+        type: 'learn_technique',
+        description: 'Aprende 3 movimientos usando Pergaminos de técnica.',
+        requiredCount: 3,
+        currentCount: 0,
+        isCompleted: false,
+      },
+    ],
+    rewards: {
+      money: 2500,
+      items: [
+        { itemId: 'soul_fragment_brilliant', count: 2 },
+        { itemId: 'nucleo_resonancia', count: 1 },
+      ],
+      message: '¡Has completado "Maestro de técnicas" y recibido 2 Fragmentos Brillantes y 1 Núcleo de Resonancia!',
+    },
+  },
 };

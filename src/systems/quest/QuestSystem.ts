@@ -28,6 +28,25 @@ export class QuestSystem {
     GlobalEventBus.on('creature:caught', ({ speciesId }) => {
       this.handleCreatureCaught(speciesId);
     });
+
+    // 3. Bloque 28A: Fragmentos de alma, ensamblaje de cuerpos y pergaminos de técnica
+    GlobalEventBus.on('FragmentUsed', () => {
+      if (GlobalSaveService.hasActiveState()) {
+        this.handleObjectiveByType('use_fragment', 1);
+      }
+    });
+
+    GlobalEventBus.on('BodyAssembled', () => {
+      if (GlobalSaveService.hasActiveState()) {
+        this.handleObjectiveByType('assemble_body', 1);
+      }
+    });
+
+    GlobalEventBus.on('TechniqueLearned', () => {
+      if (GlobalSaveService.hasActiveState()) {
+        this.handleObjectiveByType('learn_technique', 1);
+      }
+    });
   }
 
   /**
@@ -117,6 +136,12 @@ export class QuestSystem {
         objectiveProgress: {},
       },
     }));
+  }
+
+  public getActiveQuests(): Array<{ data: QuestData; state: QuestProgressState }> {
+    return this.getAllQuestsWithStatus().filter(
+      (q) => q.state.status === 'active' || q.state.status === 'completable'
+    );
   }
 
   /**
@@ -248,6 +273,31 @@ export class QuestSystem {
             this.advanceObjective(quest.id, obj.id, 1);
           }
         });
+      }
+    });
+  }
+
+  private handleObjectiveByType(
+    type: 'use_fragment' | 'assemble_body' | 'learn_technique',
+    amount = 1
+  ): void {
+    this.ensureQuestsInitialized();
+    const state = GlobalSaveService.getCurrentState();
+    Object.values(QUESTS_DATA).forEach((quest) => {
+      const qState = state.quests[quest.id];
+      // Permitir que misiones disponibles o activas de gacha se activen/avancen al ocurrir el evento
+      if (qState && (qState.status === 'active' || qState.status === 'available')) {
+        const hasType = quest.objectives.some((o) => o.type === type);
+        if (hasType && qState.status === 'available') {
+          qState.status = 'active';
+        }
+        if (qState.status === 'active') {
+          quest.objectives.forEach((obj) => {
+            if (obj.type === type) {
+              this.advanceObjective(quest.id, obj.id, amount);
+            }
+          });
+        }
       }
     });
   }

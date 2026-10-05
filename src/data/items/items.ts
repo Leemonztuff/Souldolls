@@ -415,6 +415,112 @@ export const ITEMS_DATA: Record<string, Item> = {
   },
 
   // -------------------------------------------------------------
+  // BLOQUE 28A: FRAGMENTOS DE ALMA, POLVO DE KI Y PERGAMINOS DE TÉCNICA
+  // -------------------------------------------------------------
+  soul_fragment: {
+    id: 'soul_fragment',
+    name: 'Fragmento de Alma',
+    category: 'fragment',
+    effect: { type: 'gacha_fragment', tableId: 'standard_resonance' },
+    price: 500,
+    description:
+      'Esquirla cristalizada de ki ancestral hallada en las grietas de Anima. Al resonar con un patrón rúnico (QR), manifiesta reliquias, piezas de chasis o pergaminos olvidados.',
+    iconColor: '#a855f7',
+  },
+  soul_fragment_brilliant: {
+    id: 'soul_fragment_brilliant',
+    name: 'Fragmento de Alma Brillante',
+    category: 'fragment',
+    effect: { type: 'gacha_fragment', tableId: 'brilliant_resonance' },
+    price: 1800,
+    description:
+      'Fragmento de alma de pureza excepcional que emite destellos dorados. Garantiza resonancias de alta calidad y mayor probabilidad de piezas raras y épicas.',
+    iconColor: '#facc15',
+  },
+  ki_dust: {
+    id: 'ki_dust',
+    name: 'Polvo de Ki',
+    category: 'general',
+    effect: { type: 'currency', currencyId: 'ki_dust' },
+    price: 50,
+    description:
+      'Polvo luminiscente obtenido al desintegrar pergaminos de técnica duplicados. Muy valorado por los Artífices.',
+    iconColor: '#38bdf8',
+  },
+  scroll_chispa_ignea: {
+    id: 'scroll_chispa_ignea',
+    name: 'Pergamino: Chispa Ígnea',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'chispa_ignea', scrollId: 'scroll_chispa_ignea' },
+    price: 600,
+    description: 'Pergamino de técnica de un solo uso. Enseña Chispa Ígnea a Souldolls afines al Fuego o conjuros.',
+    iconColor: '#f97316',
+  },
+  scroll_latigazo_ki: {
+    id: 'scroll_latigazo_ki',
+    name: 'Pergamino: Latigazo de Ki',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'latigazo_ki', scrollId: 'scroll_latigazo_ki' },
+    price: 600,
+    description: 'Pergamino de técnica de un solo uso. Enseña Latigazo de Ki a Souldolls de Planta o canalización marcial.',
+    iconColor: '#22c55e',
+  },
+  scroll_orbe_flamigero: {
+    id: 'scroll_orbe_flamigero',
+    name: 'Pergamino: Orbe Flamígero',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'orbe_flamigero', scrollId: 'scroll_orbe_flamigero' },
+    price: 1400,
+    description: 'Pergamino arcano de un solo uso. Enseña Orbe Flamígero a clases mágicas o de elemento Fuego.',
+    iconColor: '#ef4444',
+  },
+  scroll_pulso_arrecife: {
+    id: 'scroll_pulso_arrecife',
+    name: 'Pergamino: Pulso de Arrecife',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'pulso_arrecife', scrollId: 'scroll_pulso_arrecife' },
+    price: 1400,
+    description: 'Pergamino oceánico de un solo uso. Enseña Pulso de Arrecife a Souldolls de Agua o Planta.',
+    iconColor: '#0284c7',
+  },
+  scroll_llamarada_arcana: {
+    id: 'scroll_llamarada_arcana',
+    name: 'Pergamino: Llamarada Arcana',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'llamarada_arcana', scrollId: 'scroll_llamarada_arcana' },
+    price: 2800,
+    description: 'Pergamino de alto rango. Enseña Llamarada Arcana a Souldolls de Fuego o Hechiceras.',
+    iconColor: '#dc2626',
+  },
+  scroll_impacto_telurico: {
+    id: 'scroll_impacto_telurico',
+    name: 'Pergamino: Impacto Telúrico',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'impacto_telurico', scrollId: 'scroll_impacto_telurico' },
+    price: 2800,
+    description: 'Pergamino marcial pesado. Enseña Impacto Telúrico a clases acorazadas o de elemento Tierra.',
+    iconColor: '#92400e',
+  },
+  scroll_meteorito_ki: {
+    id: 'scroll_meteorito_ki',
+    name: 'Pergamino: Meteorito de Ki',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'meteorito_ki', scrollId: 'scroll_meteorito_ki' },
+    price: 5000,
+    description: 'Reliquia escrita por antiguos Artífices. Enseña la técnica suprema Meteorito de Ki.',
+    iconColor: '#7e22ce',
+  },
+  scroll_juicio_sagrado: {
+    id: 'scroll_juicio_sagrado',
+    name: 'Pergamino: Juicio Sagrado',
+    category: 'scroll',
+    effect: { type: 'teach_move', moveId: 'juicio_sagrado', scrollId: 'scroll_juicio_sagrado' },
+    price: 5000,
+    description: 'Códice ancestral de un solo uso. Enseña Juicio Sagrado a clases devotas y guardianes.',
+    iconColor: '#eab308',
+  },
+
+  // -------------------------------------------------------------
   // ALIASES DE COMPATIBILIDAD
   // -------------------------------------------------------------
   potion: {

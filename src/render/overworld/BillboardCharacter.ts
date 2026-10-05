@@ -38,13 +38,13 @@ export class BillboardCharacter {
     this.mesh.visible = true;
     this.mesh.position.set(this.worldX, 0, this.worldZ);
 
-    // 1. Soft Circular Shadow on Ground (depthWrite: false, renderOrder: 99)
-    const shadowGeo = new THREE.CircleGeometry(0.38, 16);
+    // 1. Soft Circular Shadow on Ground (depthWrite: false, renderOrder: 99, radius 0.42 per scale.json)
+    const shadowGeo = new THREE.CircleGeometry(0.42, 16);
     shadowGeo.rotateX(-Math.PI / 2);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.38,
       depthWrite: false,
     });
     this.shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
@@ -53,9 +53,9 @@ export class BillboardCharacter {
     this.shadowMesh.frustumCulled = false;
     this.mesh.add(this.shadowMesh);
 
-    // 2. Sprite Plane (Pivot at feet: translate y by 0.6)
-    const spriteGeo = new THREE.PlaneGeometry(1.2, 1.2);
-    spriteGeo.translate(0, 0.6, 0);
+    // 2. Sprite Plane (Bloque 45 Req. 3: Escala fija jugador/NPC 1.0 x 1.5 tiles, pivote en los pies)
+    const spriteGeo = new THREE.PlaneGeometry(1.0, 1.5);
+    spriteGeo.translate(0, 0.75, 0);
 
     const initialTex = GlobalAssetRegistry.getCharacterFrameThree(this.paletteId, this.direction, 0);
     if (initialTex) {

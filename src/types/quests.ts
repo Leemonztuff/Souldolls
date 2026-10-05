@@ -7,7 +7,10 @@ export type QuestObjectiveType =
   | 'reach_map'
   | 'collect_item'
   | 'defeat_boss'
-  | 'dex_count';
+  | 'dex_count'
+  | 'use_fragment'
+  | 'assemble_body'
+  | 'learn_technique';
 
 export interface QuestObjective {
   id: string;

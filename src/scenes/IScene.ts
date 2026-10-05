@@ -3,6 +3,7 @@ export interface IScene {
   isTransparentOverlay?: boolean;
   enter(params?: any): void | Promise<void>;
   exit(): void | Promise<void>;
+  pause?(): void | Promise<void>;
   resume?(): void | Promise<void>;
   update(dt: number): void;
   render(alpha: number): void;

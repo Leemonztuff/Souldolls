@@ -1,7 +1,6 @@
 {
-  "name": "Souldolls Design Tokens",
-  "version": "1.0.0",
-  "description": "Tokens de diseño oficial para Souldolls: RPG de captura 2.5D",
+  "name": "Souldolls Dark Fantasy & Craft",
+  "version": "2.1.0",
   "colors": {
     "base": {
       "inkCrypt": "#14101C",
@@ -9,13 +8,33 @@
       "bronze": "#8A6A3B",
       "gold": "#E8B84A",
       "parchment": "#F2E6C9",
-      "smoke": "#A89BB0"
+      "parchmentDark": "#3B2F2F",
+      "smoke": "#A89BB0",
+      "white": "#FFFFFF",
+      "black": "#000000",
+      "disabledBg": "#27272A",
+      "disabledBorder": "#52525B",
+      "disabledText": "#71717A"
     },
     "ki": {
       "cyan": "#5FE3D2",
       "soulViolet": "#9B6BFF",
       "rift": "#C2234B",
       "porcelainPink": "#FF8FB8"
+    },
+    "semantic": {
+      "ok": "#3CCF6E",
+      "warning": "#F5A623",
+      "danger": "#E24A4A",
+      "info": "#5FE3D2"
+    },
+    "stats": {
+      "hp": { "bg": "#163024", "border": "#3CCF6E", "label": "#6EE7B7" },
+      "atk": { "bg": "#361920", "border": "#E2583E", "label": "#FCA5A5" },
+      "def": { "bg": "#332615", "border": "#D9A441", "label": "#FDE68A" },
+      "spAtk": { "bg": "#261A38", "border": "#9B6BFF", "label": "#D8B4FE" },
+      "spDef": { "bg": "#142C38", "border": "#3A9EFD", "label": "#93C5FD" },
+      "speed": { "bg": "#133033", "border": "#5FE3D2", "label": "#5FE3D2" }
     },
     "elements": {
       "fuego": { "primary": "#FF6B35", "secondary": "#FFC15E" },
@@ -30,50 +49,70 @@
       "comun": "#B8B8C4",
       "pocoComun": "#4C8DFF",
       "rara": "#B05CFF",
-      "epica": "#FFB020"
+      "epica": "#FFB020",
+      "legendaria": "#FF5E7E"
     }
   },
   "typography": {
     "titleFont": "'Cinzel Decorative', 'Cinzel', serif",
     "bodyFont": "'Nunito', sans-serif",
-    "hudFont": "'Pixelify Sans', monospace",
+    "hudFont": "'Pixelify Sans', sans-serif",
     "damageFont": "'Cinzel', serif",
+    "pixelBasePx": 8,
+    "minBodyPx": 14,
+    "minNumberPx": 16,
     "sizes": {
-      "xs": 11,
-      "sm": 13,
+      "xs": 12,
+      "sm": 14,
       "md": 16,
       "lg": 20,
-      "xl": 26,
-      "xxl": 38,
-      "display": 54
+      "xl": 24,
+      "xxl": 32,
+      "title": 48
     }
   },
   "spacing": {
+    "xxs": 2,
     "xs": 4,
     "sm": 8,
     "md": 12,
     "lg": 16,
     "xl": 24,
-    "xxl": 32
+    "xxl": 32,
+    "minTouchTarget": 44
   },
   "radii": {
     "none": 0,
     "sm": 4,
     "md": 8,
     "lg": 12,
-    "xl": 18,
     "pill": 999
   },
+  "borderWidths": {
+    "hairline": 1,
+    "thin": 1.5,
+    "normal": 2,
+    "thick": 3,
+    "focus": 2.5
+  },
+  "layers": {
+    "world": 0,
+    "hud": 100,
+    "screen": 200,
+    "modal": 400,
+    "toast": 600,
+    "debug": 800
+  },
   "shadows": {
-    "subtle": "0 2px 4px rgba(0,0,0,0.4)",
-    "glowKi": "0 0 12px #5FE3D2",
-    "glowGold": "0 0 12px #E8B84A",
-    "glowViolet": "0 0 14px #9B6BFF"
+    "panel": "0 8px 24px rgba(0, 0, 0, 0.75)",
+    "glowCyan": "0 0 12px rgba(95, 227, 210, 0.5)",
+    "glowViolet": "0 0 12px rgba(155, 107, 255, 0.5)",
+    "glowGold": "0 0 10px rgba(232, 184, 74, 0.45)"
   },
   "animation": {
     "fast": 150,
-    "normal": 250,
-    "slow": 400,
-    "pulse": 1200
+    "normal": 200,
+    "slow": 450,
+    "curve": "easeOutCubic"
   }
 }

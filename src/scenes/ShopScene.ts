@@ -1,463 +1,393 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
-import { GlobalAudioService } from '../services/AudioService';
 import { GlobalSaveService } from '../services/SaveService';
-import { ITEMS_DATA } from '../data/items/items';
-import { BODY_CHASSIS_DATA } from '../data/bodies/chassis';
+import { GlobalAudioService } from '../services/AudioService';
+import { GlobalInput } from '../core/Input';
 import { StatCalculator } from '../systems/battle/StatCalculator';
-import { COLOR_NUM, COLOR_HEX, FONTS, COLOR_SEMANTIC } from '../ui/styles';
-
-export type ShopCategory = 'bottles' | 'elixirs' | 'bodies' | 'crystals' | 'gear';
+import {
+  ScreenFrame,
+  KitCard,
+  KitTabBar,
+  KitListRow,
+  KitStepper,
+  KitButton,
+  KitBadge,
+  KitBar,
+  FocusManager,
+  UIKitLinter,
+} from '../ui/kit';
+import { COLOR_HEX, FONTS } from '../ui/styles';
+import {
+  buildShopCatalogVM,
+  ShopCategoryFilter,
+  ShopCatalogItemVM,
+} from '../ui/viewmodels/GroupBViewModels';
+import esText from '../data/text/es.json';
 
 export class ShopScene implements IScene {
   public name = 'Shop';
   private container: Container = new Container();
-  private moneyText!: Text;
-  private itemsContainer: Container = new Container();
-
+  private screenFrame!: ScreenFrame;
+  private focusManager: FocusManager = new FocusManager();
   private mode: 'buy' | 'sell' = 'buy';
-  private activeCategory: ShopCategory = 'bottles';
+  private category: ShopCategoryFilter = 'all';
+  private selectedIndex = 0;
+  private quantity = 1;
+  private statusMessage = '';
 
-  public async enter(params?: any): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
+  public async enter(params?: { mode?: 'buy' | 'sell'; category?: ShopCategoryFilter }): Promise<void> {
+    if (params?.mode) this.mode = params.mode;
+    if (params?.category) this.category = params.category;
+    this.container = new Container();
+    this.container.roundPixels = true;
+    this.container.zIndex = 1000;
+    GlobalPixiRenderer.menuLayer.addChild(this.container);
+    this.renderShop();
+  }
+
+  public pause(): void {
+    if (this.container && !this.container.destroyed) {
+      this.container.visible = false;
+    }
+  }
+
+  public async resume(): Promise<void> {
+    if (!this.container || this.container.destroyed) {
+      this.container = new Container();
+      this.container.roundPixels = true;
+      this.container.zIndex = 1000;
+    }
+    this.container.visible = true;
+    if (this.container.parent !== GlobalPixiRenderer.menuLayer) {
+      GlobalPixiRenderer.menuLayer.addChild(this.container);
+    }
+    this.renderShop();
+  }
+
+  public onResize(_width: number, _height: number): void {
+    this.renderShop();
+  }
+
+  private renderShop(): void {
+    this.container.removeChildren();
+    this.focusManager.clear();
+
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
+    const isDesktop = width >= 840;
+    const state = GlobalSaveService.getCurrentState();
+    const t = (esText as any).terms.group_b.shop;
+    const catalog = buildShopCatalogVM(state, this.mode, this.category);
 
-    if (params?.mode) {
-      this.mode = params.mode;
+    if (this.selectedIndex >= catalog.length) {
+      this.selectedIndex = Math.max(0, catalog.length - 1);
     }
-    if (params?.category) {
-      this.activeCategory = params.category;
-    }
+    const selItem: ShopCatalogItemVM | undefined = catalog[this.selectedIndex];
 
-    this.container = new Container();
-    this.container.position.set(0, 0);
-
-    // Dark Background
-    const bg = new Graphics();
-    bg.rect(0, 0, width, height);
-    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.98 });
-    this.container.addChild(bg);
-
-    // Header Bar
-    const headerBg = new Graphics();
-    headerBg.rect(0, 0, width, 70);
-    headerBg.fill({ color: COLOR_NUM.smokedWood });
-    headerBg.stroke({ color: COLOR_NUM.gold, width: 2 });
-    this.container.addChild(headerBg);
-
-    const titleText = new Text({
-      text: '🏛 MERCADO DE ARTÍFICES',
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 20,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-        letterSpacing: 1.5,
-      }),
+    this.screenFrame = new ScreenFrame({
+      width,
+      height,
+      title: t.title,
+      currencies: [
+        { iconId: 'coin', value: state.player?.money || 0 },
+        { iconId: 'guild_seal', value: (state.player?.badges || []).length },
+      ],
+      onClose: () => {
+        GlobalAudioService.playSfx('cancel');
+        GlobalSceneManager.popScene();
+      },
+      secondaryAction: {
+        label: t.btn_back,
+        iconId: 'back',
+        onClick: () => {
+          GlobalAudioService.playSfx('cancel');
+          GlobalSceneManager.popScene();
+        },
+      },
+      primaryAction: {
+        label: this.mode === 'buy' ? t.btn_buy : t.btn_sell,
+        iconId: 'coin',
+        disabled: !selItem,
+        onClick: () => {
+          if (selItem) this.executeTransaction(selItem);
+        },
+      },
     });
-    titleText.position.set(24, 22);
-    this.container.addChild(titleText);
+    this.container.addChild(this.screenFrame);
 
-    const saveState = GlobalSaveService.getCurrentState();
-    this.moneyText = new Text({
-      text: `💸 Monedas: ¥${saveState.player.money}`,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 15,
-        fontWeight: 'bold',
-        fill: COLOR_HEX.cyan,
-      }),
+    const cw = this.screenFrame.contentWidth;
+
+    const modeTabs = new KitTabBar({
+      width: cw,
+      absX: 0,
+      activeId: this.mode,
+      tabs: [
+        { id: 'buy', label: t.tab_buy, iconId: 'shop' },
+        { id: 'sell', label: t.tab_sell, iconId: 'coin' },
+      ],
+      onSelect: (id) => {
+        this.mode = id as 'buy' | 'sell';
+        this.selectedIndex = 0;
+        this.quantity = 1;
+        this.statusMessage = '';
+        this.renderShop();
+      },
     });
-    this.moneyText.position.set(width - 340, 25);
-    this.container.addChild(this.moneyText);
+    modeTabs.position.set(0, 0);
+    this.screenFrame.contentRoot.addChild(modeTabs);
 
-    // Close Button
-    const closeBtn = this.createButton('✕ SALIR', width - 130, 16, 110, 38, COLOR_NUM.rift, () => {
-      GlobalAudioService.playSfx('select');
-      GlobalSceneManager.popScene();
+    const catTabs = new KitTabBar({
+      width: cw,
+      absX: 0,
+      activeId: this.category,
+      tabs: [
+        { id: 'all', label: t.cat_all },
+        { id: 'bodies', label: t.cat_bodies },
+        { id: 'weapons', label: t.cat_weapons },
+        { id: 'crystals', label: t.cat_crystals },
+        { id: 'souls', label: t.cat_souls },
+      ],
+      onSelect: (id) => {
+        this.category = id as ShopCategoryFilter;
+        this.selectedIndex = 0;
+        this.quantity = 1;
+        this.statusMessage = '';
+        this.renderShop();
+      },
     });
-    this.container.addChild(closeBtn);
+    catTabs.position.set(0, 44);
+    this.screenFrame.contentRoot.addChild(catTabs);
 
-    // Mode & Category Tabs
-    this.buildTabs();
+    const leftW = isDesktop ? Math.floor(cw * 0.52) : cw;
+    const rightW = isDesktop ? cw - leftW - 12 : cw;
 
-    this.container.addChild(this.itemsContainer);
-    this.renderList();
+    const rowH = 50;
+    const leftH = Math.max(180, catalog.length * (rowH + 6) + 52);
+    const leftCard = new KitCard({
+      width: leftW,
+      height: leftH,
+      variant: 'smokedWood',
+      title: t.sec_catalog,
+    });
+    leftCard.position.set(0, 90);
+    this.screenFrame.contentRoot.addChild(leftCard);
 
-    GlobalPixiRenderer.hudLayer.addChild(this.container);
-  }
-
-  private buildTabs(): void {
-    const buyBtn = this.createButton(
-      '📥 COMPRAR',
-      24,
-      80,
-      130,
-      36,
-      this.mode === 'buy' ? COLOR_NUM.gold : COLOR_NUM.bronze,
-      () => {
-        this.mode = 'buy';
-        GlobalAudioService.playSfx('select');
-        this.enter();
-      }
-    );
-    this.container.addChild(buyBtn);
-
-    const sellBtn = this.createButton(
-      '💰 VENDER',
-      160,
-      80,
-      130,
-      36,
-      this.mode === 'sell' ? COLOR_NUM.gold : COLOR_NUM.bronze,
-      () => {
-        this.mode = 'sell';
-        GlobalAudioService.playSfx('select');
-        this.enter();
-      }
-    );
-    this.container.addChild(sellBtn);
-
-    if (this.mode === 'buy') {
-      const categories: Array<{ id: ShopCategory; label: string }> = [
-        { id: 'bottles', label: '🧪 SOUL BOTTLES' },
-        { id: 'elixirs', label: '🍷 ELIXIRES' },
-        { id: 'bodies', label: '🤖 CUERPOS' },
-        { id: 'crystals', label: '💎 CRISTALES' },
-        { id: 'gear', label: '⚔️ RECO/ARMAS' },
-      ];
-
-      categories.forEach((cat, idx) => {
-        const isSel = cat.id === this.activeCategory;
-        const btn = this.createButton(
-          cat.label,
-          310 + idx * 125,
-          80,
-          120,
-          36,
-          isSel ? COLOR_NUM.cyan : COLOR_NUM.bronze,
-          () => {
-            this.activeCategory = cat.id;
-            GlobalAudioService.playSfx('select');
-            this.renderList();
-          }
-        );
-        this.container.addChild(btn);
-      });
-    }
-  }
-
-  private renderList(): void {
-    this.itemsContainer.removeChildren();
-    const saveState = GlobalSaveService.getCurrentState();
-    this.moneyText.text = `💸 Monedas: ¥${saveState.player.money}`;
-
-    if (this.mode === 'buy') {
-      this.renderBuyList(saveState);
-    } else {
-      this.renderSellList(saveState);
-    }
-  }
-
-  private renderBuyList(saveState: any): void {
-    let stockItems: Array<{ id: string; name: string; price: number; desc: string; isChassis?: boolean }> = [];
-
-    if (this.activeCategory === 'bottles') {
-      stockItems = [
-        {
-          id: 'soul_bottle_comun',
-          name: 'Soul Bottle Común',
-          price: 200,
-          desc: 'Frasco estándar para resonar con almas salvajes comunes.',
-        },
-        {
-          id: 'soul_bottle_plata',
-          name: 'Soul Bottle Plata',
-          price: 600,
-          desc: 'Frasco plateado con mayor tasa de resonancia de ki.',
-        },
-        {
-          id: 'soul_bottle_oro',
-          name: 'Soul Bottle Oro',
-          price: 1200,
-          desc: 'Frasco de oro óptimo para capturar almas de alta categoría.',
-        },
-        {
-          id: 'soul_bottle_cristal',
-          name: 'Soul Bottle Cristal',
-          price: 5000,
-          desc: 'Frasco cristalino bendecido que atrapa almas al instante sin fallar.',
-        },
-      ];
-    } else if (this.activeCategory === 'elixirs') {
-      stockItems = [
-        {
-          id: 'elixir_ki',
-          name: 'Elixir de Ki Pequeño',
-          price: 100,
-          desc: 'Restaura 20 PS de tus partes de cuerpo activas.',
-        },
-        {
-          id: 'purga_ki',
-          name: 'Purga de Ki Corrupto',
-          price: 150,
-          desc: 'Limpia cualquier estado alterado o corrupto de ki del contenedor.',
-        },
-        {
-          id: 'reencarnacion',
-          name: 'Reencarnación del Alma',
-          price: 1000,
-          desc: 'Restablece el enlace de una Souldoll debilitada con el 50% de sus PS.',
-        },
-        {
-          id: 'repair_kit',
-          name: 'Kit de Reparación',
-          price: 300,
-          desc: 'Restaura instantáneamente una sección destruida (cabeza, torso, extremidades).',
-        },
-      ];
-    } else if (this.activeCategory === 'bodies') {
-      stockItems = Object.values(BODY_CHASSIS_DATA).map((chassis) => ({
-        id: chassis.id,
-        name: chassis.name,
-        price: chassis.price,
-        desc: `${chassis.description} (Tier ${chassis.tier} physical chassis)`,
-        isChassis: true,
-      }));
-    } else if (this.activeCategory === 'crystals') {
-      stockItems = [
-        {
-          id: 'cristal_fuego',
-          name: 'Cristal de Maná (Fuego)',
-          price: 400,
-          desc: 'Núcleo místico para desatar el ascenso de resonancia ígnea.',
-        },
-        {
-          id: 'cristal_planta',
-          name: 'Cristal de Maná (Planta)',
-          price: 400,
-          desc: 'Núcleo místico para el ascenso de Souldolls de planta.',
-        },
-        {
-          id: 'cristal_agua',
-          name: 'Cristal de Maná (Agua)',
-          price: 400,
-          desc: 'Núcleo místico para el ascenso de Souldolls de agua.',
-        },
-      ];
-    } else if (this.activeCategory === 'gear') {
-      stockItems = [
-        {
-          id: 'baculo_solaria',
-          name: 'Báculo Solaria',
-          price: 1500,
-          desc: 'Reliquia de Archimaga. Incrementa enormemente el Ataque Especial de Fuego.',
-        },
-        {
-          id: 'baculo_gaia',
-          name: 'Báculo Gaia',
-          price: 1500,
-          desc: 'Reliquia de Hierofante. Potencia curas y habilidades de Planta.',
-        },
-        {
-          id: 'martillo_titan',
-          name: 'Martillo Titán',
-          price: 2000,
-          desc: 'Arma pesada de Templario. Otorga gran daño físico contundente de Tierra.',
-        },
-      ];
-    }
-
-    stockItems.forEach((item, idx) => {
-      const cardY = 130 + idx * 80;
-      const card = new Container();
-      card.position.set(24, cardY);
-
-      const bg = new Graphics();
-      bg.roundRect(0, 0, 910, 70, 8);
-      bg.fill({ color: COLOR_NUM.smokedWood });
-      bg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-      card.addChild(bg);
-
-      // Inner highlight line
-      bg.roundRect(3, 3, 904, 64, 6);
-      bg.stroke({ color: COLOR_NUM.gold, width: 0.5, alpha: 0.2 });
-
-      const title = new Text({
-        text: `${item.name.toUpperCase()} — ¥${item.price}`,
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 15,
-          fontWeight: '900',
-          fill: COLOR_HEX.gold,
-        }),
-      });
-      title.position.set(16, 12);
-      card.addChild(title);
-
-      const desc = new Text({
-        text: item.desc,
+    if (catalog.length === 0) {
+      const emptyTxt = new Text({
+        text: t.empty_list,
         style: new TextStyle({
           fontFamily: FONTS.body,
-          fontSize: 12,
-          fill: COLOR_HEX.parchment,
-        }),
-      });
-      desc.position.set(16, 40);
-      card.addChild(desc);
-
-      const buyBtn = this.createButton(
-        '📥 ADQUIRIR',
-        740,
-        15,
-        150,
-        40,
-        COLOR_NUM.gold,
-        () => {
-          if (saveState.player.money < item.price) {
-            GlobalAudioService.playSfx('cancel');
-            return;
-          }
-          saveState.player.money -= item.price;
-          if (item.isChassis) {
-            if (!saveState.bodies) saveState.bodies = {};
-            const newBody = StatCalculator.createBodyInstance(item.id, item.name);
-            saveState.bodies[newBody.instanceId] = newBody;
-          } else {
-            if (!saveState.inventory) saveState.inventory = {};
-            saveState.inventory[item.id] = (saveState.inventory[item.id] || 0) + 1;
-          }
-          GlobalSaveService.save();
-          GlobalAudioService.playSfx('confirm');
-          this.renderList();
-        }
-      );
-      card.addChild(buyBtn);
-
-      this.itemsContainer.addChild(card);
-    });
-  }
-
-  private renderSellList(saveState: any): void {
-    const inventory = saveState.inventory || {};
-    const entries = Object.entries(inventory).filter(([_, count]) => (count as number) > 0);
-
-    if (entries.length === 0) {
-      const emptyText = new Text({
-        text: 'No tienes objetos en tu inventario para vender en el gremio.',
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 15,
+          fontSize: 13,
           fill: COLOR_HEX.smoke,
         }),
       });
-      emptyText.position.set(40, 160);
-      this.itemsContainer.addChild(emptyText);
-      return;
+      emptyTxt.position.set(14, 48);
+      leftCard.addChild(emptyTxt);
+    } else {
+      catalog.forEach((item, idx) => {
+        const row = new KitListRow({
+          width: leftW - 20,
+          height: rowH,
+          iconId: item.iconId,
+          title: item.name,
+          subtitle: item.subtitle,
+          valueText: `${item.unitPrice} G`,
+          selected: idx === this.selectedIndex,
+          onClick: () => {
+            this.selectedIndex = idx;
+            this.quantity = 1;
+            this.statusMessage = '';
+            this.renderShop();
+          },
+        });
+        row.position.set(10, 38 + idx * (rowH + 6));
+        leftCard.addChild(row);
+
+        this.focusManager.register({
+          container: row,
+          width: leftW - 20,
+          height: rowH,
+          onActivate: () => {
+            this.selectedIndex = idx;
+            this.quantity = 1;
+            this.statusMessage = '';
+            this.renderShop();
+          },
+        });
+      });
     }
 
-    entries.forEach(([itemId, count], idx) => {
-      const itemDef = ITEMS_DATA[itemId];
-      const price = Math.floor((itemDef?.price || 100) / 2);
+    const rightY = isDesktop ? 90 : 90 + leftH + 12;
+    const rightH = 340;
+    const rightCard = new KitCard({
+      width: rightW,
+      height: rightH,
+      variant: 'parchment',
+      title: t.sec_detail,
+    });
+    rightCard.position.set(isDesktop ? leftW + 12 : 0, rightY);
+    this.screenFrame.contentRoot.addChild(rightCard);
 
-      const cardY = 130 + idx * 80;
-      const card = new Container();
-      card.position.set(24, cardY);
-
-      const bg = new Graphics();
-      bg.roundRect(0, 0, 910, 70, 8);
-      bg.fill({ color: COLOR_NUM.smokedWood });
-      bg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-      card.addChild(bg);
-
-      // Inner highlight line
-      bg.roundRect(3, 3, 904, 64, 6);
-      bg.stroke({ color: COLOR_NUM.white, width: 0.5, alpha: 0.15 });
-
-      const title = new Text({
-        text: `${(itemDef?.name || itemId).toUpperCase()} (x${count}) — Reembolso: ¥${price}`,
+    if (selItem) {
+      const titleTxt = new Text({
+        text: selItem.name.toUpperCase(),
         style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 15,
-          fontWeight: '900',
-          fill: COLOR_HEX.cyan,
+          fontFamily: FONTS.title,
+          fontSize: 16,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.inkCrypt,
         }),
       });
-      title.position.set(16, 12);
-      card.addChild(title);
+      titleTxt.position.set(14, 40);
+      rightCard.addChild(titleTxt);
 
-      const sellBtn = this.createButton(
-        '💰 COBRAR x1',
-        740,
-        15,
-        150,
-        40,
-        COLOR_NUM.cyan,
-        () => {
-          inventory[itemId] = (inventory[itemId] as number) - 1;
-          saveState.player.money += price;
-          GlobalSaveService.save();
-          GlobalAudioService.playSfx('confirm');
-          this.renderList();
+      const ownedTxt = new Text({
+        text: `${t.owned}: x${selItem.ownedQty} | ${t.price_unit}: ${selItem.unitPrice} G`,
+        style: new TextStyle({
+          fontFamily: FONTS.hud,
+          fontSize: 16,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.woodMid,
+        }),
+      });
+      ownedTxt.position.set(14, 62);
+      rightCard.addChild(ownedTxt);
+
+      const descTxt = new Text({
+        text: selItem.description,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 13,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.inkCrypt,
+          wordWrap: true,
+          wordWrapWidth: rightW - 28,
+        }),
+      });
+      descTxt.position.set(14, 88);
+      rightCard.addChild(descTxt);
+
+      if (selItem.partShare) {
+        const pKeys: Array<'head' | 'torso' | 'arms' | 'legs'> = ['head', 'torso', 'arms', 'legs'];
+        pKeys.forEach((pk, pIdx) => {
+          const pct = Math.round((selItem.partShare![pk] || 0.25) * 100);
+          const bar = new KitBar({
+            width: rightW - 28,
+            height: 14,
+            value: pct,
+            max: 50,
+            kind: 'ki',
+            showText: true,
+          });
+          bar.position.set(14, 136 + pIdx * 18);
+          rightCard.addChild(bar);
+        });
+      }
+
+      const maxQty =
+        this.mode === 'sell'
+          ? Math.max(1, selItem.ownedQty)
+          : Math.max(1, Math.min(99, Math.floor((state.player?.money || 0) / Math.max(1, selItem.unitPrice))));
+
+      const stepper = new KitStepper({
+        value: this.quantity,
+        min: 1,
+        max: maxQty,
+        onChange: (val) => {
+          this.quantity = val;
+          this.renderShop();
+        },
+      });
+      stepper.position.set(14, 218);
+      rightCard.addChild(stepper);
+
+      const totalCost = selItem.unitPrice * this.quantity;
+      const totalBadge = new KitBadge(`${t.total}: ${totalCost} G`, 'tier', 'tier');
+      totalBadge.position.set(162, 224);
+      rightCard.addChild(totalBadge);
+
+      const actBtn = new KitButton({
+        width: rightW - 28,
+        height: 42,
+        label: `${this.mode === 'buy' ? t.btn_buy : t.btn_sell} (x${this.quantity})`,
+        variant: 'primary',
+        iconId: 'coin',
+        onClick: () => this.executeTransaction(selItem),
+      });
+      actBtn.position.set(14, 268);
+      rightCard.addChild(actBtn);
+      this.focusManager.register(actBtn.toFocusable());
+    }
+
+    if (this.statusMessage) {
+      const msgBadge = new KitBadge(this.statusMessage, 'tier', 'tier');
+      msgBadge.position.set(14, rightH - 28);
+      rightCard.addChild(msgBadge);
+    }
+
+    const totalH = isDesktop ? Math.max(leftH, rightH) + 100 : rightY + rightH + 24;
+    this.screenFrame.setContentTotalHeight(totalH);
+
+    UIKitLinter.inspectTree(this.screenFrame, 'ShopScene');
+  }
+
+  private executeTransaction(item: ShopCatalogItemVM): void {
+    const state = GlobalSaveService.getCurrentState();
+    const t = (esText as any).terms.group_b.shop;
+    const total = item.unitPrice * this.quantity;
+
+    if (this.mode === 'buy') {
+      if ((state.player?.money || 0) < total) {
+        GlobalAudioService.playSfx('cancel');
+        this.statusMessage = t.msg_no_money;
+        this.renderShop();
+        return;
+      }
+      state.player.money -= total;
+      if (item.isChassis && item.chassisId) {
+        if (!state.bodies) state.bodies = {};
+        for (let i = 0; i < this.quantity; i++) {
+          const b = StatCalculator.createBodyInstance(item.chassisId);
+          state.bodies[b.instanceId] = b;
         }
-      );
-      card.addChild(sellBtn);
-
-      this.itemsContainer.addChild(card);
-    });
+      } else {
+        state.inventory[item.id] = (state.inventory[item.id] || 0) + this.quantity;
+      }
+      GlobalSaveService.save();
+      GlobalAudioService.playSfx('confirm');
+      this.statusMessage = t.msg_bought.replace('{qty}', String(this.quantity)).replace('{name}', item.name);
+      this.quantity = 1;
+      this.renderShop();
+    } else {
+      const curOwned = state.inventory[item.id] || 0;
+      const sellQty = Math.min(curOwned, this.quantity);
+      if (sellQty <= 0) return;
+      state.inventory[item.id] = curOwned - sellQty;
+      if (state.inventory[item.id] <= 0) delete state.inventory[item.id];
+      state.player.money += item.unitPrice * sellQty;
+      GlobalSaveService.save();
+      GlobalAudioService.playSfx('confirm');
+      this.statusMessage = t.msg_sold.replace('{qty}', String(sellQty)).replace('{name}', item.name);
+      this.quantity = 1;
+      this.renderShop();
+    }
   }
 
-  private createButton(
-    label: string,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    color: number,
-    onClick: () => void
-  ): Container {
-    const btn = new Container();
-    btn.position.set(x, y);
-    btn.eventMode = 'static';
-    btn.cursor = 'pointer';
-
-    const bg = new Graphics();
-    bg.roundRect(0, 0, w, h, 8);
-    bg.fill({ color: COLOR_NUM.inkCrypt });
-    bg.stroke({ color, width: 2 });
-    btn.addChild(bg);
-
-    // Inner highlight
-    bg.roundRect(2, 2, w - 4, h - 4, 6);
-    bg.stroke({ color: COLOR_NUM.white, width: 0.5, alpha: 0.15 });
-
-    const txt = new Text({
-      text: label,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 11,
-        fontWeight: '900',
-        fill: COLOR_HEX.parchment,
-      }),
-    });
-    txt.anchor.set(0.5);
-    txt.position.set(w / 2, h / 2);
-    btn.addChild(txt);
-
-    btn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      onClick();
-    });
-
-    return btn;
+  public update(_dt: number): void {
+    this.screenFrame.updateInertia();
+    this.focusManager.update();
+    if (GlobalInput.justPressed('CANCEL')) {
+      GlobalAudioService.playSfx('cancel');
+      GlobalSceneManager.popScene();
+    }
   }
 
-  public update(_dt: number): void {}
   public render(): void {}
+
   public async exit(): Promise<void> {
+    this.focusManager.clear();
     this.container.destroy({ children: true });
   }
 }

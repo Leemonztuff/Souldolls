@@ -3,7 +3,17 @@ import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { GlobalSaveService } from '../../services/SaveService';
 
 export type ChassisMaterial = 'wood' | 'iron' | 'crystal' | 'stone' | 'clay' | 'bone';
-export type SpriteView = 'front' | 'back' | 'side_r' | 'side_l' | 'icon' | 'attack';
+export type SpriteView =
+  | 'view_front34'
+  | 'view_front'
+  | 'view_back'
+  | 'view_back34'
+  | 'front'
+  | 'back'
+  | 'side_r'
+  | 'side_l'
+  | 'icon'
+  | 'attack';
 
 export interface LayeredRenderConfig {
   speciesId: string;
@@ -18,6 +28,10 @@ export interface LayeredRenderConfig {
 }
 
 export interface CreatureSpriteSet {
+  view_front34: HTMLCanvasElement;
+  view_front: HTMLCanvasElement;
+  view_back: HTMLCanvasElement;
+  view_back34: HTMLCanvasElement;
   front: HTMLCanvasElement;
   back: HTMLCanvasElement;
   side_r: HTMLCanvasElement;
@@ -26,11 +40,33 @@ export interface CreatureSpriteSet {
   attack?: HTMLCanvasElement;
 }
 
+export interface IdleBustBox {
+  y0: number;
+  y1: number;
+  x0: number;
+  x1: number;
+}
+
+export interface IdleBandMeta {
+  neck: number;
+  waist: number;
+  bust?: IdleBustBox;
+}
+
+export interface BattleFrameAtlasMeta {
+  anchor: [number, number];
+  mirrorSafe: boolean;
+  native: boolean;
+  note: string;
+  idle?: IdleBandMeta;
+}
+
 export class SoulDollSpriteFactory {
   private static cache: Map<string, HTMLCanvasElement> = new Map();
   private static customSpritesheet: HTMLImageElement | null = null;
   private static customSpritesheetLoaded = false;
   private static keyedViewsCache: Map<string, HTMLCanvasElement> = new Map();
+  private static frameMetaCache: Map<string, BattleFrameAtlasMeta> = new Map();
   private static onSheetReadyCallbacks: Array<() => void> = [];
 
   static {
@@ -191,15 +227,42 @@ export class SoulDollSpriteFactory {
       segments.push([startX, w - 1]);
     }
 
-    const viewNames: SpriteView[] = ['front', 'side_r', 'back', 'side_l'];
+    // Bloque 38 Req 1:
+    // Col 0: view_front34 (rostro y pecho visibles, mira hacia la DERECHA en el arte original)
+    // Col 1: view_front (frontal/perfil secundario)
+    // Col 2: view_back (espalda simétrica)
+    // Col 3: view_back34 (de espaldas, nuca visible, mira hacia la IZQUIERDA en el arte original)
+    const defaultIdleMap: Record<string, IdleBandMeta> = {
+      view_front: {
+        neck: 0.31,
+        waist: 0.48,
+        bust: { y0: 0.34, y1: 0.46, x0: 0.30, x1: 0.70 },
+      },
+      view_front34: {
+        neck: 0.30,
+        waist: 0.48,
+        bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 },
+      },
+      view_back: {
+        neck: 0.30,
+        waist: 0.48,
+      },
+      view_back34: {
+        neck: 0.30,
+        waist: 0.48,
+      },
+    };
+
+    const viewNames: SpriteView[] = ['view_front34', 'view_front', 'view_back', 'view_back34'];
     segments.forEach(([sx, ex], idx) => {
-      const vName = viewNames[idx] || 'side_r';
+      const vName = viewNames[idx] || 'view_front34';
       const segW = ex - sx + 1;
       const { canvas: rawSeg, ctx: segCtx } = this.createCanvas(segW, h);
       segCtx.drawImage(keyedSheet, sx, 0, segW, h, 0, 0, segW, h);
       const trimmed = this.trimToOpaqueBoundingBox(rawSeg, 1);
 
-      // Si es la imagen JPG original (~1412px de alto), reducir por bloques (nearest/mediana) a ~160px
+      let finalViewCanvas = trimmed;
+      // Si es la imagen JPG original (~1412px de alto), reducir por bloques (nearest) a ~160px
       if (trimmed.height > 300) {
         const targetH = 160;
         const scale = trimmed.height / targetH;
@@ -207,11 +270,32 @@ export class SoulDollSpriteFactory {
         const { canvas: downCanvas, ctx: downCtx } = this.createCanvas(targetW, targetH);
         downCtx.imageSmoothingEnabled = false;
         downCtx.drawImage(trimmed, 0, 0, targetW, targetH);
-        this.keyedViewsCache.set(vName, this.trimToOpaqueBoundingBox(downCanvas, 1));
-      } else {
-        this.keyedViewsCache.set(vName, trimmed);
+        finalViewCanvas = this.trimToOpaqueBoundingBox(downCanvas, 1);
       }
+
+      this.keyedViewsCache.set(vName, finalViewCanvas);
+      this.frameMetaCache.set(vName, {
+        anchor: [0.5, 1.0],
+        mirrorSafe: false,
+        native: false,
+        note: 'Asimetría de diseño: el brazo del guantelete cambia de lado al espejar (flipX: true).',
+        idle: defaultIdleMap[vName],
+      });
     });
+
+    // Alias de compatibilidad hacia atrás con Bloque 37
+    if (this.keyedViewsCache.has('view_front34')) {
+      this.keyedViewsCache.set('side_r', this.keyedViewsCache.get('view_front34')!);
+    }
+    if (this.keyedViewsCache.has('view_front')) {
+      this.keyedViewsCache.set('front', this.keyedViewsCache.get('view_front')!);
+    }
+    if (this.keyedViewsCache.has('view_back')) {
+      this.keyedViewsCache.set('back', this.keyedViewsCache.get('view_back')!);
+    }
+    if (this.keyedViewsCache.has('view_back34')) {
+      this.keyedViewsCache.set('side_l', this.keyedViewsCache.get('view_back34')!);
+    }
   }
 
   public static hasRealView(_speciesId: string, view: SpriteView): boolean {
@@ -219,6 +303,41 @@ export class SoulDollSpriteFactory {
       return true;
     }
     return view !== 'side_l';
+  }
+
+  public static getBattleFrameMeta(speciesId: string, view: SpriteView): BattleFrameAtlasMeta {
+    return this.getFrameMeta(speciesId, view);
+  }
+
+  public static getFrameMeta(_speciesId: string, view: SpriteView): BattleFrameAtlasMeta {
+    const resolvedView: SpriteView =
+      view === 'side_r'
+        ? 'view_front34'
+        : view === 'front'
+        ? 'view_front'
+        : view === 'back'
+        ? 'view_back'
+        : view === 'side_l'
+        ? 'view_back34'
+        : view;
+
+    const cached = this.frameMetaCache.get(resolvedView);
+    if (cached) return cached;
+
+    const isBack = resolvedView === 'view_back' || resolvedView === 'view_back34';
+    const isFront = resolvedView === 'view_front';
+
+    return {
+      anchor: [0.5, 1.0],
+      mirrorSafe: false,
+      native: false,
+      note: 'Asimetría de diseño: el brazo del guantelete cambia de lado al espejar (flipX: true).',
+      idle: isBack
+        ? { neck: 0.30, waist: 0.48 }
+        : isFront
+        ? { neck: 0.31, waist: 0.48, bust: { y0: 0.34, y1: 0.46, x0: 0.30, x1: 0.70 } }
+        : { neck: 0.30, waist: 0.48, bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 } },
+    };
   }
 
   /**
@@ -320,12 +439,14 @@ export class SoulDollSpriteFactory {
     const frame = config.frame || 0;
     const status = config.statusCondition || 'none';
 
-    // Get current Outfit Style setting from GlobalSaveService
+    // Get current Outfit Style setting from GlobalSaveService if a save is active
     let styleSetting: 'clasico' | 'atrevido' = 'clasico';
     try {
-      const state = GlobalSaveService.getCurrentState();
-      if (state && state.settings && state.settings.outfitStyle) {
-        styleSetting = state.settings.outfitStyle;
+      if (GlobalSaveService.hasActiveState()) {
+        const state = GlobalSaveService.getCurrentState();
+        if (state && state.settings && state.settings.outfitStyle) {
+          styleSetting = state.settings.outfitStyle;
+        }
       }
     } catch (_) {
       // Ignore
@@ -345,11 +466,23 @@ export class SoulDollSpriteFactory {
 
     if (useRealSpritesheet && view !== 'icon') {
       let targetView: SpriteView = view;
-      if (view === 'attack') targetView = 'side_r';
-      const baseViewCanvas =
-        this.keyedViewsCache.get(targetView) ||
-        this.keyedViewsCache.get('side_r') ||
-        this.keyedViewsCache.get('front');
+      if (view === 'attack' || view === 'side_r') targetView = 'view_front34';
+      else if (view === 'front') targetView = 'view_front';
+      else if (view === 'back') targetView = 'view_back';
+      else if (view === 'side_l') targetView = 'view_back34';
+
+      // Req 2: Fallback si falta view_back34 -> view_back; si falta view_front34 -> view_front
+      let baseViewCanvas = this.keyedViewsCache.get(targetView);
+      if (!baseViewCanvas && targetView === 'view_back34') {
+        baseViewCanvas = this.keyedViewsCache.get('view_back');
+      } else if (!baseViewCanvas && targetView === 'view_front34') {
+        baseViewCanvas = this.keyedViewsCache.get('view_front');
+      }
+      if (!baseViewCanvas) {
+        baseViewCanvas =
+          this.keyedViewsCache.get('view_front34') ||
+          this.keyedViewsCache.get('view_front');
+      }
 
       if (baseViewCanvas) {
         const { canvas: nativeCanvas, ctx: nCtx } = this.createCanvas(baseViewCanvas.width, baseViewCanvas.height);
@@ -388,16 +521,17 @@ export class SoulDollSpriteFactory {
     const { canvas: rawCanvas, ctx } = this.createCanvas(64, 64);
     ctx.save();
     const isLegsBroken = config.brokenParts && config.brokenParts.legs <= 0;
+    const isBackView = view === 'back' || view === 'view_back' || view === 'view_back34';
     if (isLegsBroken) {
       ctx.translate(32, 40);
-      ctx.rotate(view === 'back' ? -0.12 : 0.12);
+      ctx.rotate(isBackView ? -0.12 : 0.12);
       ctx.translate(-32, -36);
     }
 
     // Layer 1: Chassis / Material Body
     this.drawChassisLayer(ctx, mat, view, config.brokenParts);
 
-    // Layer 2: Class Outfit (respecting classic vs bold outfitStyle and 3/4 right facing)
+    // Layer 2: Class Outfit (respecting classic vs bold outfitStyle and 3/4 facing)
     this.drawClassOutfitLayer(ctx, species, view, outfitStyle);
 
     // Layer 3: Weapon
@@ -439,14 +573,22 @@ export class SoulDollSpriteFactory {
   }
 
   /**
-   * Generates full sprite set (front, back, side_r, side_l, icon, attack)
+   * Generates full sprite set (view_front34, view_front, view_back, view_back34, front, back, side_r, side_l, icon, attack)
    */
   public static generateSpriteSet(species: any, mat: ChassisMaterial = 'wood'): CreatureSpriteSet {
+    const view_front34 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_front34' });
+    const view_front = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_front' });
+    const view_back = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_back' });
+    const view_back34 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_back34' });
     return {
-      front: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'front' }),
-      back: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'back' }),
-      side_r: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'side_r' }),
-      side_l: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'side_l' }),
+      view_front34,
+      view_front,
+      view_back,
+      view_back34,
+      front: view_front,
+      back: view_back,
+      side_r: view_front34,
+      side_l: view_back34,
       icon: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'icon' }),
       attack: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'attack', frame: 1 }),
     };
@@ -662,10 +804,11 @@ export class SoulDollSpriteFactory {
       ctx.fillRect(cx - 8, cy - 22, 16, 6); // Cowl mask
     }
 
-    // Eyes
-    if (view !== 'back') {
+    // Eyes (visible only in front / 3/4 front views, hidden in back / 3/4 back views)
+    const isBackView = view === 'back' || view === 'view_back' || view === 'view_back34';
+    if (!isBackView) {
       ctx.fillStyle = pal.gold;
-      const eyeOffsetX = view === 'side_r' ? 2 : 0;
+      const eyeOffsetX = view === 'side_r' || view === 'view_front34' ? 2 : 0;
       ctx.fillRect(cx - 4 + eyeOffsetX, cy - 16, 3, 3);
       ctx.fillRect(cx + 1 + eyeOffsetX, cy - 16, 3, 3);
     }

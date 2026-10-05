@@ -11,6 +11,8 @@ export type ItemCategory =
   | 'resonance_core'
   | 'repair_kit'
   | 'body_part'
+  | 'fragment'
+  | 'scroll'
   | 'key'
   | 'general';
 
@@ -25,7 +27,9 @@ export type ItemEffect =
   | { type: 'mana_crystal'; effect: 'boost_atk' | 'restore_pp' | 'regen_hp' | 'boost_speed' | 'boost_def' | 'boost_crit' }
   | { type: 'relic_passive'; passiveId: string }
   | { type: 'weapon_stat'; atkBonus: number; spAtkBonus: number }
-  | { type: 'teach_move'; moveId: string }
+  | { type: 'teach_move'; moveId: string; scrollId?: string }
+  | { type: 'gacha_fragment'; tableId: string }
+  | { type: 'currency'; currencyId: 'ki_dust' }
   | { type: 'badge'; gymId: string };
 
 export interface Item {

@@ -1,175 +1,218 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
 import { GlobalAudioService } from '../services/AudioService';
 import { GlobalSaveService } from '../services/SaveService';
-import { CREATURES_DATA } from '../data/creatures/creatures';
-import { COLOR_NUM, COLOR_HEX, FONTS } from '../ui/styles';
+import { GlobalInput } from '../core/Input';
+import {
+  ScreenFrame,
+  KitCard,
+  KitListRow,
+  KitBadge,
+  KitStars,
+  KitDivider,
+  FocusManager,
+  UIKitLinter,
+} from '../ui/kit';
+import { buildCreditsVM } from '../ui/viewmodels/GroupAViewModels';
+import { COLOR_HEX, FONTS } from '../ui/styles';
+import esText from '../data/text/es.json';
 
+/**
+ * BLOQUE 42 (GRUPO A): Pantalla de Fin de Demo / Epílogo ("CreditsScene")
+ * Construida 100% con /ui/kit (ScreenFrame, KitCard, KitListRow, KitBadge, KitStars, KitDivider, FocusManager).
+ * Cero colores, fuentes o emojis hardcodeados.
+ */
 export class CreditsScene implements IScene {
   public name = 'Credits';
   private container: Container = new Container();
+  private screenFrame: ScreenFrame | null = null;
+  private focusManager: FocusManager = new FocusManager();
 
-  public async enter(params?: any): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
+  public async enter(): Promise<void> {
+    this.container = new Container();
+    this.container.roundPixels = true;
+    this.container.zIndex = 1000;
+    GlobalPixiRenderer.menuLayer.addChild(this.container);
+
+    this.buildUI();
+    GlobalAudioService.playVictoryTheme();
+  }
+
+  private buildUI(): void {
+    this.container.removeChildren();
+    this.focusManager.clear();
+
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
+    const saveState = GlobalSaveService.getCurrentState();
+    const vm = buildCreditsVM(saveState);
+    const t = (esText as any).terms.group_a.credits;
 
-    this.container = new Container();
-    this.container.position.set(0, 0);
-
-    // Background
-    const bg = new Graphics();
-    bg.rect(0, 0, width, height);
-    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.98 });
-    this.container.addChild(bg);
-
-    // Header / Banner
-    const headerBg = new Graphics();
-    headerBg.roundRect(width / 2 - 380, 40, 760, 100, 12);
-    headerBg.fill({ color: COLOR_NUM.smokedWood });
-    headerBg.stroke({ color: COLOR_NUM.gold, width: 2.5 });
-    this.container.addChild(headerBg);
-
-    const titleText = new Text({
-      text: '🎉 ¡FIN DE LA DEMO - EPÍLOGO!',
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 26,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-        letterSpacing: 2,
-        stroke: { color: COLOR_HEX.inkCrypt, width: 3 },
-      }),
+    const frame = new ScreenFrame({
+      width,
+      height,
+      title: vm.title,
+      currencies: [
+        { iconId: 'coin', value: vm.money },
+        { iconId: 'guild_seal', value: vm.hasSeal ? 1 : 0 },
+      ],
+      onClose: () => GlobalSceneManager.popScene(),
+      secondaryAction: {
+        label: vm.btnTitle,
+        iconId: 'trainer',
+        onClick: () => {
+          GlobalAudioService.playSfx('confirm');
+          GlobalSceneManager.changeScene('Title');
+        },
+      },
+      primaryAction: {
+        label: vm.btnContinue,
+        iconId: 'check',
+        onClick: () => {
+          GlobalAudioService.playSfx('confirm');
+          GlobalSceneManager.popScene();
+        },
+      },
     });
-    titleText.anchor.set(0.5);
-    titleText.position.set(width / 2, 75);
-    this.container.addChild(titleText);
+    this.screenFrame = frame;
+    this.container.addChild(frame);
 
-    const subText = new Text({
-      text: 'Has superado al Guardián del Eco y obtenido el Sello sagrado de Gremio.',
+    const cw = frame.contentWidth;
+    const isTwoCol = frame.isTwoColumn;
+    const colW = isTwoCol ? Math.floor((cw - 12) / 2) : cw;
+
+    // 1. Victory Banner Card
+    const bannerCard = new KitCard({
+      width: colW,
+      height: 220,
+      variant: 'parchment',
+      title: vm.bannerTitle,
+    });
+    bannerCard.position.set(0, 0);
+    frame.contentRoot.addChild(bannerCard);
+
+    const stars = new KitStars(5, 5, 16);
+    stars.position.set(12, 38);
+    bannerCard.addChild(stars);
+
+    const sealBadge = new KitBadge(
+      vm.sealText,
+      vm.hasSeal ? 'tier' : 'rarity',
+      vm.hasSeal ? 'tier' : 'comun'
+    );
+    sealBadge.position.set(120, 36);
+    bannerCard.addChild(sealBadge);
+
+    const subTxt = new Text({
+      text: vm.bannerSub,
       style: new TextStyle({
         fontFamily: FONTS.body,
         fontSize: 14,
-        fill: COLOR_HEX.parchment,
-      }),
-    });
-    subText.anchor.set(0.5);
-    subText.position.set(width / 2, 112);
-    this.container.addChild(subText);
-
-    // Stats Box
-    const statsBg = new Graphics();
-    statsBg.roundRect(width / 2 - 320, 165, 640, 260, 12);
-    statsBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
-    statsBg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-    
-    // Inner ornate line
-    statsBg.roundRect(width / 2 - 316, 169, 632, 252, 10);
-    statsBg.stroke({ color: COLOR_NUM.gold, width: 0.8, alpha: 0.3 });
-    this.container.addChild(statsBg);
-
-    const saveState = GlobalSaveService.getCurrentState();
-    const codex = (saveState as any).soulCodex || saveState.pokedex || {};
-    const caughtCount = Object.keys(codex).filter(
-      (id) => codex[id]?.caught
-    ).length;
-    const totalSpecies = Object.keys(CREATURES_DATA).length;
-    const pokedexPct = Math.round((caughtCount / totalSpecies) * 100);
-
-    const statsContent = [
-      `📊 ESTADÍSTICAS FINALES DE LA AVENTURA`,
-      `────────────────────────────────────────`,
-      `• Almas Registradas en Códice      : ${caughtCount} / ${totalSpecies} (${pokedexPct}%)`,
-      `• Souldolls en Equipo Actual       : ${saveState.party.length} muñecas`,
-      `• Ki / Dinero Acumulado            : ¥${saveState.player.money}`,
-      `• Sello de Gremio del Eco          : ${saveState.keyItems?.includes('sello_eco') ? '✅ OBTENIDO' : '❌ PENDIENTE'}`,
-      `• Misiones Principales             : ¡Completadas con honor!`,
-    ].join('\n');
-
-    const statsTxt = new Text({
-      text: statsContent,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 14,
-        lineHeight: 22,
-        fill: COLOR_HEX.parchment,
-      }),
-    });
-    statsTxt.position.set(width / 2 - 290, 190);
-    this.container.addChild(statsTxt);
-
-    // Continue / Explore Button
-    const continueBtn = this.createButton(
-      '✨ CONTINUAR EXPLORANDO EL MUNDO',
-      width / 2 - 200,
-      450,
-      400,
-      50,
-      COLOR_NUM.bronze,
-      () => {
-        GlobalAudioService.playSfx('confirm');
-        GlobalSceneManager.popScene();
-      }
-    );
-    this.container.addChild(continueBtn);
-
-    GlobalAudioService.playVictoryTheme();
-    GlobalPixiRenderer.hudLayer.addChild(this.container);
-  }
-
-  private createButton(
-    label: string,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    color: number,
-    onClick: () => void
-  ): Container {
-    const btn = new Container();
-    btn.position.set(x, y);
-    btn.eventMode = 'static';
-    btn.cursor = 'pointer';
-
-    const bg = new Graphics();
-    bg.roundRect(0, 0, w, h, 8);
-    bg.fill({ color: COLOR_NUM.smokedWood });
-    bg.stroke({ color: COLOR_NUM.gold, width: 2 });
-    
-    // Inner line highlight
-    bg.roundRect(2, 2, w - 4, h - 4, 6);
-    bg.stroke({ color: COLOR_NUM.white, width: 0.5, alpha: 0.2 });
-    btn.addChild(bg);
-
-    const txt = new Text({
-      text: label,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 14,
         fontWeight: 'bold',
-        fill: COLOR_HEX.parchment,
-        letterSpacing: 0.5,
+        lineHeight: 20,
+        fill: COLOR_HEX.inkCrypt,
+        wordWrap: true,
+        wordWrapWidth: colW - 24,
       }),
     });
-    txt.anchor.set(0.5);
-    txt.position.set(w / 2, h / 2);
-    btn.addChild(txt);
+    subTxt.roundPixels = true;
+    subTxt.position.set(12, 68);
+    bannerCard.addChild(subTxt);
 
-    btn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      onClick();
+    const div = new KitDivider(colW - 24);
+    div.position.set(12, 118);
+    bannerCard.addChild(div);
+
+    const loreTxt = new Text({
+      text: vm.loreClosing,
+      style: new TextStyle({
+        fontFamily: FONTS.body,
+        fontSize: 14,
+        lineHeight: 20,
+        fill: COLOR_HEX.inkCrypt,
+        wordWrap: true,
+        wordWrapWidth: colW - 24,
+      }),
+    });
+    loreTxt.roundPixels = true;
+    loreTxt.position.set(12, 134);
+    bannerCard.addChild(loreTxt);
+
+    // 2. Summary Stats Card
+    const statsCard = new KitCard({
+      width: colW,
+      height: 276,
+      variant: 'smokedWood',
+      title: vm.secStats,
+    });
+    statsCard.position.set(isTwoCol ? colW + 12 : 0, isTwoCol ? 0 : 232);
+    frame.contentRoot.addChild(statsCard);
+
+    const rowsData: Array<{
+      iconId: 'codex_book' | 'soul_orb' | 'coin' | 'guild_seal';
+      title: string;
+      value: string;
+    }> = [
+      {
+        iconId: 'codex_book',
+        title: t.stat_codex,
+        value: `${vm.caughtCount}/${vm.totalSpecies} (${vm.codexPct}%)`,
+      },
+      {
+        iconId: 'soul_orb',
+        title: t.stat_party,
+        value: `${vm.partyCount}/6`,
+      },
+      {
+        iconId: 'coin',
+        title: t.stat_money,
+        value: `${vm.money}`,
+      },
+      {
+        iconId: 'guild_seal',
+        title: t.stat_seal,
+        value: vm.sealText,
+      },
+    ];
+
+    rowsData.forEach((r, idx) => {
+      const row = new KitListRow({
+        width: colW - 16,
+        height: 52,
+        iconId: r.iconId,
+        title: r.title,
+        value: r.value,
+      });
+      row.position.set(8, 38 + idx * 58);
+      statsCard.addChild(row);
     });
 
-    return btn;
+    const totalH = isTwoCol ? 290 : 520;
+    frame.setContentTotalHeight(totalH);
+
+    UIKitLinter.inspectTree(frame, 'CreditsScene');
   }
 
-  public update(_dt: number): void {}
+  public update(_dt: number): void {
+    if (this.screenFrame) {
+      this.screenFrame.updateInertia();
+    }
+    if (GlobalInput.justPressed('CONFIRM') || GlobalInput.justPressed('CANCEL')) {
+      GlobalAudioService.playSfx('confirm');
+      GlobalSceneManager.popScene();
+    }
+  }
+
   public render(_alpha: number): void {}
-  public onResize(_width: number, _height: number): void {}
+
+  public onResize(_width: number, _height: number): void {
+    this.buildUI();
+  }
 
   public async exit(): Promise<void> {
+    this.focusManager.clear();
     if (this.container.parent) {
       this.container.parent.removeChildren();
     }

@@ -1,0 +1,42 @@
+{
+  "packId": "anima_core",
+  "ground": {
+    "grass": "pack:anima_core:Outside_A2:0",
+    "tall_grass": "pack:anima_core:Outside_A2:4",
+    "path": "pack:anima_core:Outside_A2:8",
+    "cobble": "pack:anima_core:Outside_A2:10",
+    "plaza": "pack:anima_core:Outside_A5:56",
+    "sand": "pack:anima_core:Outside_A2:16",
+    "flowers": "pack:anima_core:Outside_A2:9",
+    "water": "pack:anima_core:Outside_A1:0",
+    "cave_floor": "pack:anima_core:Dungeon_A5:24",
+    "interior_floor": "pack:anima_core:Inside_A5:16"
+  },
+  "decor": {
+    "tree": "pack:anima_core:Outside_B:154",
+    "rock": "pack:anima_core:Outside_B:232",
+    "flowers": "pack:anima_core:Outside_B:102",
+    "building_wall": "pack:anima_core:Outside_A3:10",
+    "roof": "pack:anima_core:Outside_A3:0",
+    "wall": "pack:anima_core:Dungeon_A4:0",
+    "door": "pack:anima_core:Outside_B:4",
+    "counter": "pack:anima_core:Inside_B:0",
+    "counter_scale": "pack:anima_core:Inside_B:1",
+    "shelf": "pack:anima_core:Inside_B:2",
+    "mannequin": "pack:anima_core:Inside_B:3",
+    "mannequins": "pack:anima_core:Inside_B:3",
+    "vitrina": "pack:anima_core:Inside_B:4",
+    "soul_vitrine": "pack:anima_core:Inside_B:4",
+    "weapon_rack": "pack:anima_core:Inside_B:5",
+    "relics_case": "pack:anima_core:Inside_B:5",
+    "crystals": "pack:anima_core:Inside_B:6",
+    "mana_crystals": "pack:anima_core:Inside_B:6",
+    "notice_board": "pack:anima_core:Inside_B:7",
+    "bounty_board": "pack:anima_core:Inside_B:7",
+    "safe": "pack:anima_core:Inside_B:8",
+    "crates": "pack:anima_core:Inside_B:9",
+    "carpet": "pack:anima_core:Inside_A5:80",
+    "flasks_shelf": "pack:anima_core:Inside_B:2",
+    "elixirs_shelf": "pack:anima_core:Inside_B:2"
+  }
+}

@@ -1,11 +1,12 @@
 import { IScene } from '../scenes/IScene';
 import { GlobalEventBus } from './EventBus';
+import { GlobalInput } from './Input';
 
 export class SceneManager {
   private static instance: SceneManager;
   private sceneFactories: Map<string, () => IScene> = new Map();
   private sceneStack: IScene[] = [];
-  private isTransitioning = false;
+  private transitionQueue: Promise<void> = Promise.resolve();
 
   private constructor() {
     GlobalEventBus.on('scene:change', ({ sceneName, params }) => {
@@ -32,87 +33,86 @@ export class SceneManager {
     this.sceneFactories.set(name, factory);
   }
 
-  public async changeScene(name: string, params?: any): Promise<void> {
-    if (this.isTransitioning) return;
-    this.isTransitioning = true;
+  private enqueue(op: () => Promise<void>): Promise<void> {
+    this.transitionQueue = this.transitionQueue.then(op).catch((err) => {
+      console.error('[SceneManager] Error in transition queue:', err);
+    });
+    return this.transitionQueue;
+  }
 
-    try {
-      // Exit all active scenes from top to bottom
-      while (this.sceneStack.length > 0) {
+  public async changeScene(name: string, params?: any): Promise<void> {
+    return this.enqueue(async () => {
+      try {
+        GlobalInput.clearTransientStates();
+
+        // Exit all active scenes from top to bottom
+        while (this.sceneStack.length > 0) {
+          const top = this.sceneStack.pop();
+          if (top) {
+            await top.exit();
+          }
+        }
+
+        const factory = this.sceneFactories.get(name);
+        if (!factory) {
+          throw new Error(`[SceneManager] Scene "${name}" is not registered.`);
+        }
+
+        const nextScene = factory();
+        this.sceneStack.push(nextScene);
+        await nextScene.enter(params);
+        GlobalInput.clearTransientStates();
+      } catch (err) {
+        console.error(`[SceneManager] Error changing scene to "${name}":`, err);
+      }
+    });
+  }
+
+  public async pushScene(name: string, params?: any): Promise<void> {
+    return this.enqueue(async () => {
+      try {
+        GlobalInput.clearTransientStates();
+
+        const current = this.getCurrentScene();
+        if (current && current.pause) {
+          await current.pause();
+        }
+
+        const factory = this.sceneFactories.get(name);
+        if (!factory) {
+          throw new Error(`[SceneManager] Scene "${name}" is not registered.`);
+        }
+
+        const overlayScene = factory();
+        this.sceneStack.push(overlayScene);
+        await overlayScene.enter(params);
+        GlobalInput.clearTransientStates();
+      } catch (err) {
+        console.error(`[SceneManager] Error pushing scene "${name}":`, err);
+      }
+    });
+  }
+
+  public async popScene(): Promise<void> {
+    return this.enqueue(async () => {
+      if (this.sceneStack.length <= 1) return;
+
+      try {
+        GlobalInput.clearTransientStates();
+
         const top = this.sceneStack.pop();
         if (top) {
           await top.exit();
         }
+        const current = this.getCurrentScene();
+        if (current && current.resume) {
+          await current.resume();
+        }
+        GlobalInput.clearTransientStates();
+      } catch (err) {
+        console.error(`[SceneManager] Error popping scene:`, err);
       }
-
-      const factory = this.sceneFactories.get(name);
-      if (!factory) {
-        throw new Error(`[SceneManager] Scene "${name}" is not registered.`);
-      }
-
-      const nextScene = factory();
-      this.sceneStack.push(nextScene);
-      await nextScene.enter(params);
-      this.updateTouchHudVisibility();
-    } catch (err) {
-      console.error(`[SceneManager] Error changing scene to "${name}":`, err);
-    } finally {
-      this.isTransitioning = false;
-    }
-  }
-
-  public async pushScene(name: string, params?: any): Promise<void> {
-    if (this.isTransitioning) return;
-    this.isTransitioning = true;
-
-    try {
-      const factory = this.sceneFactories.get(name);
-      if (!factory) {
-        throw new Error(`[SceneManager] Scene "${name}" is not registered.`);
-      }
-
-      const overlayScene = factory();
-      this.sceneStack.push(overlayScene);
-      await overlayScene.enter(params);
-      this.updateTouchHudVisibility();
-    } catch (err) {
-      console.error(`[SceneManager] Error pushing scene "${name}":`, err);
-    } finally {
-      this.isTransitioning = false;
-    }
-  }
-
-  public async popScene(): Promise<void> {
-    if (this.isTransitioning || this.sceneStack.length <= 1) return;
-    this.isTransitioning = true;
-
-    try {
-      const top = this.sceneStack.pop();
-      if (top) {
-        await top.exit();
-      }
-      const current = this.getCurrentScene();
-      if (current && current.resume) {
-        await current.resume();
-      }
-      this.updateTouchHudVisibility();
-    } catch (err) {
-      console.error(`[SceneManager] Error popping scene:`, err);
-    } finally {
-      this.isTransitioning = false;
-    }
-  }
-
-  private updateTouchHudVisibility(): void {
-    const topScene = this.getCurrentScene();
-    const hud = document.getElementById('touch-controls-hud');
-    if (hud) {
-      if (topScene && topScene.name === 'Overworld') {
-        hud.style.display = 'flex';
-      } else {
-        hud.style.display = 'none';
-      }
-    }
+    });
   }
 
   public update(dt: number): void {

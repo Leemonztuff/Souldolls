@@ -124,19 +124,23 @@ export class TallerAtlasManager {
 
   private initTexture(): void {
     const imagePath = this.resolveImagePath();
-    const loader = new THREE.TextureLoader();
+    if (typeof document !== 'undefined') {
+      const loader = new THREE.TextureLoader();
 
-    this.sharedTexture = loader.load(imagePath, (tex) => {
-      // Req. 2: Ajustes de textura pixel art (obligatorio)
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.magFilter = THREE.NearestFilter;
-      tex.minFilter = THREE.NearestFilter;
-      tex.generateMipmaps = false;
-      tex.premultiplyAlpha = false;
-      tex.wrapS = THREE.ClampToEdgeWrapping;
-      tex.wrapT = THREE.ClampToEdgeWrapping;
-      tex.needsUpdate = true;
-    });
+      this.sharedTexture = loader.load(imagePath, (tex) => {
+        // Req. 2: Ajustes de textura pixel art (obligatorio)
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        tex.generateMipmaps = false;
+        tex.premultiplyAlpha = false;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.needsUpdate = true;
+      });
+    } else {
+      this.sharedTexture = new THREE.Texture();
+    }
 
     // Texture settings upfront
     this.sharedTexture.colorSpace = THREE.SRGBColorSpace;
@@ -148,8 +152,10 @@ export class TallerAtlasManager {
     this.sharedTexture.wrapT = THREE.ClampToEdgeWrapping;
 
     // Keep HTMLImageElement for canvas crops (Req. 3)
-    this.atlasImage = new Image();
-    this.atlasImage.src = imagePath;
+    if (typeof Image !== 'undefined') {
+      this.atlasImage = new Image();
+      this.atlasImage.src = imagePath;
+    }
 
     // Req. 4: material: MeshBasicMaterial({ transparent: true, alphaTest: 0.5, side: DoubleSide })
     this.sharedMaterial = new THREE.MeshBasicMaterial({

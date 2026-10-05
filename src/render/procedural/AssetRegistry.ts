@@ -5,7 +5,8 @@ import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { SpriteFactory, CreatureSpriteSet } from './SpriteFactory';
 import { SoulDollSpriteFactory, SpriteView } from './SoulDollSpriteFactory';
 import { CharacterFactory, CHARACTER_PALETTES } from './CharacterFactory';
-import { TileFactory, TileType, ALL_TILE_TYPES } from './TileFactory';
+import { TileType, ALL_TILE_TYPES } from '../../types/tilesets';
+import { GlobalTileRegistry } from '../overworld/TileRegistry';
 
 export class AssetRegistry {
   private static instance: AssetRegistry;
@@ -17,8 +18,10 @@ export class AssetRegistry {
   private tileCanvases: Map<TileType, HTMLCanvasElement> = new Map();
 
   // Cached Pixi Textures
+  private pixiCreatureFront34: Map<string, Texture> = new Map();
   private pixiCreatureFront: Map<string, Texture> = new Map();
   private pixiCreatureBack: Map<string, Texture> = new Map();
+  private pixiCreatureBack34: Map<string, Texture> = new Map();
   private pixiCreatureSideR: Map<string, Texture> = new Map();
   private pixiCreatureSideL: Map<string, Texture> = new Map();
   private pixiCreatureIcon: Map<string, Texture> = new Map();
@@ -80,14 +83,21 @@ export class AssetRegistry {
       this.creatureSprites.set(species.id, spriteSet);
 
       // Pixi Textures (nearest, no mipmaps)
-      this.pixiCreatureFront.set(species.id, this.createCrispPixiTexture(spriteSet.front));
-      this.pixiCreatureBack.set(species.id, this.createCrispPixiTexture(spriteSet.back));
-      this.pixiCreatureSideR.set(species.id, this.createCrispPixiTexture(spriteSet.side_r));
-      this.pixiCreatureSideL.set(species.id, this.createCrispPixiTexture(spriteSet.side_l));
+      const texFront34 = this.createCrispPixiTexture(spriteSet.view_front34 || spriteSet.side_r);
+      const texFront = this.createCrispPixiTexture(spriteSet.view_front || spriteSet.front);
+      const texBack = this.createCrispPixiTexture(spriteSet.view_back || spriteSet.back);
+      const texBack34 = this.createCrispPixiTexture(spriteSet.view_back34 || spriteSet.side_l);
+
+      this.pixiCreatureFront34.set(species.id, texFront34);
+      this.pixiCreatureFront.set(species.id, texFront);
+      this.pixiCreatureBack.set(species.id, texBack);
+      this.pixiCreatureBack34.set(species.id, texBack34);
+      this.pixiCreatureSideR.set(species.id, texFront34);
+      this.pixiCreatureSideL.set(species.id, texBack34);
       this.pixiCreatureIcon.set(species.id, this.createCrispPixiTexture(spriteSet.icon));
 
       // Three Texture for Billboard Overworld
-      const threeTex = new THREE.CanvasTexture(spriteSet.front);
+      const threeTex = new THREE.CanvasTexture(spriteSet.view_front34 || spriteSet.front);
       threeTex.magFilter = THREE.NearestFilter;
       threeTex.minFilter = THREE.NearestFilter;
       threeTex.generateMipmaps = false;
@@ -137,21 +147,14 @@ export class AssetRegistry {
       });
     });
 
-    // 3. Generate all Tiles
+    // 3. Register all Tiles via GlobalTileRegistry (Bloque 44)
     ALL_TILE_TYPES.forEach((type) => {
-      const canvas = TileFactory.generateTile(type);
+      const canvas = GlobalTileRegistry.getTileCanvas(type);
       this.tileCanvases.set(type, canvas);
 
       this.pixiTiles.set(type, this.createCrispPixiTexture(canvas));
 
-      const threeTex = new THREE.CanvasTexture(canvas);
-      threeTex.magFilter = THREE.NearestFilter;
-      threeTex.minFilter = THREE.NearestFilter;
-      threeTex.generateMipmaps = false;
-      threeTex.colorSpace = THREE.SRGBColorSpace;
-      threeTex.wrapS = THREE.RepeatWrapping;
-      threeTex.wrapT = THREE.RepeatWrapping;
-      threeTex.needsUpdate = true;
+      const threeTex = GlobalTileRegistry.getTileThree(type);
       this.threeTiles.set(type, threeTex);
     });
 
@@ -161,17 +164,55 @@ export class AssetRegistry {
     );
   }
 
+  public initAll(): void {
+    this.init();
+  }
+
+  public verifyReady(): {
+    ready: boolean;
+    creaturesCount: number;
+    charactersCount: number;
+    tilesCount: number;
+  } {
+    if (!this.isInitialized) {
+      this.init();
+    }
+    return {
+      ready:
+        this.isInitialized &&
+        this.creatureSprites.size > 0 &&
+        this.characterSheets.size > 0 &&
+        this.tileCanvases.size > 0,
+      creaturesCount: this.creatureSprites.size,
+      charactersCount: this.characterSheets.size,
+      tilesCount: this.tileCanvases.size,
+    };
+  }
+
   // --- Creature Getters ---
-  public getCreatureSpritePixi(speciesId: string, view: SpriteView = 'front'): Texture {
-    if (view === 'back') return this.getCreatureBackPixi(speciesId);
-    if (view === 'side_r') return this.getCreatureSideRPixi(speciesId);
-    if (view === 'side_l') return this.getCreatureSideLPixi(speciesId);
+  public getCreatureSpritePixi(speciesId: string, view: SpriteView = 'view_front34'): Texture {
+    if (view === 'view_front34' || view === 'side_r') {
+      return this.pixiCreatureFront34.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
+    }
+    if (view === 'view_front' || view === 'front') {
+      return this.pixiCreatureFront.get(speciesId) || this.pixiCreatureFront34.get(speciesId) || Texture.EMPTY;
+    }
+    if (view === 'view_back34' || view === 'side_l') {
+      return this.pixiCreatureBack34.get(speciesId) || this.pixiCreatureBack.get(speciesId) || Texture.EMPTY;
+    }
+    if (view === 'view_back' || view === 'back') {
+      return this.pixiCreatureBack.get(speciesId) || this.pixiCreatureBack34.get(speciesId) || Texture.EMPTY;
+    }
     if (view === 'icon') return this.getCreatureIconPixi(speciesId);
-    return this.getCreatureFrontPixi(speciesId);
+    return this.pixiCreatureFront34.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
   }
 
   public hasRealCreatureView(speciesId: string, view: SpriteView): boolean {
     return SoulDollSpriteFactory.hasRealView(speciesId, view);
+  }
+
+  public getCreatureFrameMeta(speciesId: string, view: SpriteView) {
+    return SoulDollSpriteFactory.getFrameMeta(speciesId, view);
   }
 
   public getCreatureSpriteSet(speciesId: string): CreatureSpriteSet | undefined {
@@ -179,19 +220,19 @@ export class AssetRegistry {
   }
 
   public getCreatureFrontPixi(speciesId: string): Texture {
-    return this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
+    return this.pixiCreatureFront34.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
   }
 
   public getCreatureBackPixi(speciesId: string): Texture {
-    return this.pixiCreatureBack.get(speciesId) || Texture.EMPTY;
+    return this.pixiCreatureBack34.get(speciesId) || this.pixiCreatureBack.get(speciesId) || Texture.EMPTY;
   }
 
   public getCreatureSideRPixi(speciesId: string): Texture {
-    return this.pixiCreatureSideR.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
+    return this.pixiCreatureFront34.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
   }
 
   public getCreatureSideLPixi(speciesId: string): Texture {
-    return this.pixiCreatureSideL.get(speciesId) || this.pixiCreatureSideR.get(speciesId) || Texture.EMPTY;
+    return this.pixiCreatureBack34.get(speciesId) || this.pixiCreatureBack.get(speciesId) || Texture.EMPTY;
   }
 
   public getCreatureIconPixi(speciesId: string): Texture {

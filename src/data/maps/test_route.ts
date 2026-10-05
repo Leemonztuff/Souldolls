@@ -1,5 +1,5 @@
 import { MapData } from '../../types/maps';
-import { TileType } from '../../render/procedural/TileFactory';
+import { TileType } from '../../types/tilesets';
 
 const W = 20;
 const H = 20;

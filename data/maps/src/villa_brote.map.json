@@ -1,0 +1,520 @@
+{
+  "id": "villa_brote",
+  "name": "Aldea Marioneta",
+  "category": "town",
+  "seed": 45011,
+  "width": 30,
+  "height": 24,
+  "baseGround": "grass",
+  "skyColor": 3718648,
+  "sunlightColor": 16773322,
+  "ambientMusic": "town",
+  "borders": {
+    "style": "forest_belt",
+    "depth": 2,
+    "primaryDecor": "tree",
+    "gaps": [
+      {
+        "side": "north",
+        "start": 13,
+        "end": 16
+      },
+      {
+        "side": "west",
+        "start": 10,
+        "end": 13
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "central_meadow_warmth",
+      "biome": "meadow",
+      "shape": "circle",
+      "center": [
+        15,
+        12
+      ],
+      "radius": [
+        11,
+        8
+      ],
+      "groundTile": "grass",
+      "noiseAmplitude": 0.25,
+      "noiseFrequency": 0.3
+    }
+  ],
+  "paths": [
+    {
+      "id": "main_north_avenue",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          19
+        ]
+      ],
+      "wobble": 0.2
+    },
+    {
+      "id": "west_coastal_road",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          0,
+          11
+        ],
+        [
+          12,
+          11
+        ]
+      ],
+      "wobble": 0.15
+    },
+    {
+      "id": "north_district_lane",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          6,
+          7
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          22,
+          9
+        ],
+        [
+          22,
+          8
+        ]
+      ],
+      "wobble": 0
+    },
+    {
+      "id": "south_artisan_loop",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          7,
+          17
+        ],
+        [
+          7,
+          18
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          22,
+          18
+        ],
+        [
+          22,
+          17
+        ]
+      ],
+      "wobble": 0
+    },
+    {
+      "id": "east_garden_shortcut_loop",
+      "kind": "trail",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [
+          22,
+          9
+        ],
+        [
+          26,
+          11
+        ],
+        [
+          26,
+          16
+        ],
+        [
+          22,
+          18
+        ]
+      ],
+      "wobble": 0.2
+    }
+  ],
+  "patches": [
+    {
+      "id": "west_orchard_flowers",
+      "kind": "flowers",
+      "center": [
+        10,
+        5
+      ],
+      "radiusX": 2.4,
+      "radiusY": 1.8,
+      "noise": 0.25,
+      "minTiles": 6,
+      "groundTile": "flowers"
+    },
+    {
+      "id": "south_plaza_wildflowers",
+      "kind": "flowers",
+      "center": [
+        15,
+        21
+      ],
+      "radiusX": 3,
+      "radiusY": 1.4,
+      "noise": 0.3,
+      "minTiles": 6,
+      "groundTile": "flowers"
+    }
+  ],
+  "stamps": [
+    {
+      "id": "stamp_fountain_plaza",
+      "prefab": "fountain_plaza",
+      "x": 12,
+      "y": 10,
+      "width": 6,
+      "height": 5,
+      "label": "Fuente de Resonancia Central"
+    },
+    {
+      "id": "stamp_player_house",
+      "prefab": "house_small",
+      "x": 4,
+      "y": 3,
+      "width": 5,
+      "height": 4,
+      "doorOffset": [
+        2,
+        3
+      ],
+      "label": "Refugio del Protagonista"
+    },
+    {
+      "id": "stamp_resonance_lab",
+      "prefab": "resonance_lab",
+      "x": 19,
+      "y": 3,
+      "width": 6,
+      "height": 5,
+      "doorOffset": [
+        3,
+        4
+      ],
+      "label": "Estudio del Maestro Artífice"
+    },
+    {
+      "id": "stamp_workshop_center",
+      "prefab": "workshop_landmark",
+      "x": 4,
+      "y": 13,
+      "width": 6,
+      "height": 4,
+      "doorOffset": [
+        3,
+        3
+      ],
+      "label": "Taller de Artífices"
+    },
+    {
+      "id": "stamp_market_shop",
+      "prefab": "market_landmark",
+      "x": 19,
+      "y": 13,
+      "width": 6,
+      "height": 4,
+      "doorOffset": [
+        3,
+        3
+      ],
+      "label": "Mercado de Artífices"
+    }
+  ],
+  "scatter": [
+    {
+      "id": "village_border_groves",
+      "decorType": "tree",
+      "clusterSizes": [
+        3,
+        5
+      ],
+      "density": 0.35,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 6,
+      "preferNearBorders": true,
+      "allowedGround": [
+        "grass"
+      ]
+    },
+    {
+      "id": "village_accent_rocks",
+      "decorType": "rock",
+      "clusterSizes": [
+        3
+      ],
+      "density": 0.18,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 8,
+      "preferNearBorders": true,
+      "allowedGround": [
+        "grass"
+      ]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_central_fountain",
+      "name": "Fuente de Ki de la Plaza",
+      "role": "focus",
+      "x": 14,
+      "y": 12,
+      "radius": 4
+    },
+    {
+      "id": "lm_workshop_plaza",
+      "name": "Pórtico del Taller de Artífices",
+      "role": "rest",
+      "x": 7,
+      "y": 18,
+      "radius": 3
+    },
+    {
+      "id": "lm_market_terrace",
+      "name": "Terraza del Mercado de Artífices",
+      "role": "focus",
+      "x": 22,
+      "y": 18,
+      "radius": 3
+    },
+    {
+      "id": "lm_ancient_well_secret",
+      "name": "Rincón del Huerto del Artífice",
+      "role": "secret",
+      "x": 26,
+      "y": 13,
+      "radius": 2,
+      "loreProp": {
+        "type": "sparkle_hidden",
+        "offsetX": 0,
+        "offsetY": 1,
+        "reward": "elixir_ki"
+      }
+    },
+    {
+      "id": "lm_north_gate",
+      "name": "Arco Norte hacia Ruta Claro",
+      "role": "focus",
+      "x": 14,
+      "y": 3,
+      "radius": 3
+    }
+  ],
+  "signs": [
+    {
+      "x": 8,
+      "y": 8,
+      "interactLabel": "Leer",
+      "text": "REFUGIO DEL ALMA\n\"Un lugar para el descanso del Soultrainer.\""
+    },
+    {
+      "x": 24,
+      "y": 9,
+      "interactLabel": "Leer",
+      "text": "ESTUDIO DE RESONANCIA\n\"Investigación sobre el ki y la forma de las almas.\""
+    },
+    {
+      "x": 9,
+      "y": 18,
+      "interactLabel": "Leer",
+      "text": "TALLER DE ARTÍFICES\n\"Forja de cuerpos y purga de ki corrupto.\""
+    },
+    {
+      "x": 24,
+      "y": 18,
+      "interactLabel": "Leer",
+      "text": "MERCADO DE ARTÍFICES\n\"Soul Bottles, Elixires y suministros de contención.\""
+    },
+    {
+      "x": 16,
+      "y": 2,
+      "interactLabel": "Leer",
+      "text": "NORTE: SENDEROS SALVAJES\n\"El ki salvaje acecha más allá de los límites.\""
+    }
+  ],
+  "warps": [
+    {
+      "x": 0,
+      "y": 11,
+      "targetMapId": "pueblo_costero",
+      "targetX": 30,
+      "targetY": 11,
+      "targetDirection": "left",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 0,
+      "y": 12,
+      "targetMapId": "pueblo_costero",
+      "targetX": 30,
+      "targetY": 12,
+      "targetDirection": "left",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "targetMapId": "ruta_claro",
+      "targetX": 20,
+      "targetY": 28,
+      "targetDirection": "up",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "targetMapId": "ruta_claro",
+      "targetX": 21,
+      "targetY": 28,
+      "targetDirection": "up",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "targetMapId": "interior_house",
+      "targetX": 4,
+      "targetY": 6,
+      "targetDirection": "up",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 22,
+      "y": 7,
+      "targetMapId": "interior_lab",
+      "targetX": 7,
+      "targetY": 10,
+      "targetDirection": "up",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 7,
+      "y": 16,
+      "targetMapId": "interior_center",
+      "targetX": 6,
+      "targetY": 10,
+      "targetDirection": "up",
+      "interactLabel": "Entrar"
+    },
+    {
+      "x": 22,
+      "y": 16,
+      "targetMapId": "interior_shop",
+      "targetX": 5,
+      "targetY": 8,
+      "targetDirection": "up",
+      "interactLabel": "Entrar"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_guide_leo",
+      "name": "Guía Leo",
+      "paletteId": "hiker",
+      "x": 13,
+      "y": 4,
+      "direction": "down",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "¡Bienvenido a Aldea Marioneta!",
+        "Al norte está Ruta Claro, donde las almas salvajes habitan entre la hierba alta.",
+        "Usa una Soul Bottle cuando debilites un alma para sellarla y vincularla a un Cuerpo en el Taller."
+      ]
+    },
+    {
+      "id": "npc_girl_mia",
+      "name": "Joven Mía",
+      "paletteId": "lass",
+      "x": 11,
+      "y": 13,
+      "direction": "right",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "Me encanta escuchar el murmullo del agua en la fuente de la plaza.",
+        "Dicen que los Cristales de Maná restauran la energía de las Souldolls en pleno combate."
+      ]
+    },
+    {
+      "id": "npc_prof_roble",
+      "name": "Maestro Artífice",
+      "paletteId": "professor",
+      "x": 21,
+      "y": 9,
+      "direction": "down",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "¡Ah, joven Soultrainer! Tu ki sin afinidad fija puede resonar con cualquier alma.",
+        "Investiga el aumento de almas salvajes que emergen desde la Cueva del Eco."
+      ]
+    }
+  ],
+  "spawnPoints": {
+    "default": {
+      "x": 6,
+      "y": 8,
+      "direction": "down"
+    },
+    "from_route": {
+      "x": 14,
+      "y": 1,
+      "direction": "down"
+    },
+    "from_house": {
+      "x": 6,
+      "y": 8,
+      "direction": "down"
+    },
+    "from_lab": {
+      "x": 22,
+      "y": 9,
+      "direction": "down"
+    },
+    "from_center": {
+      "x": 7,
+      "y": 18,
+      "direction": "down"
+    },
+    "from_shop": {
+      "x": 22,
+      "y": 18,
+      "direction": "down"
+    }
+  }
+}

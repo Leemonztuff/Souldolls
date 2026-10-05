@@ -1,0 +1,25 @@
+{
+  "tilePx": 48,
+  "allowedTilePx": [16, 32, 48],
+  "maxAtlasSize": 2048,
+  "extrudePx": 1,
+  "activePackId": "anima_core",
+  "assets": {
+    "preferWebp": false,
+    "releaseBitmapAfterUpload": true
+  },
+  "migrationFlags": {
+    "ground": true,
+    "water": true,
+    "vegetation_rocks": true,
+    "facades": true,
+    "interiors": true
+  },
+  "biomeTints": {
+    "town": { "color": "#fff8eb", "strength": 0.08 },
+    "route": { "color": "#f4ffe8", "strength": 0.06 },
+    "forest": { "color": "#d8c8ff", "strength": 0.14 },
+    "cave": { "color": "#a5b4fc", "strength": 0.18 },
+    "interior": { "color": "#fff1d6", "strength": 0.08 }
+  }
+}

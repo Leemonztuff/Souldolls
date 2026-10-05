@@ -1,0 +1,292 @@
+{
+  "id": "ciudad_gimnasio",
+  "name": "Ciudad Cumbre",
+  "category": "town",
+  "seed": 45055,
+  "width": 36,
+  "height": 28,
+  "baseGround": "grass",
+  "skyColor": 9684477,
+  "sunlightColor": 16777215,
+  "ambientMusic": "town",
+  "borders": {
+    "style": "citadel_wall",
+    "depth": 2,
+    "primaryDecor": "tree",
+    "gaps": [
+      { "side": "north", "start": 16, "end": 19 },
+      { "side": "south", "start": 16, "end": 19 }
+    ]
+  },
+  "regions": [],
+  "paths": [
+    {
+      "id": "grand_central_boulevard",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [17, 27],
+        [17, 20],
+        [17, 8]
+      ],
+      "wobble": 0
+    },
+    {
+      "id": "northern_mountain_pass_avenue",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [17, 14],
+        [11, 14],
+        [11, 2],
+        [17, 2],
+        [17, 0]
+      ],
+      "wobble": 0
+    },
+    {
+      "id": "midtown_cross_avenue",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [7, 14],
+        [17, 14],
+        [28, 14]
+      ],
+      "wobble": 0
+    },
+    {
+      "id": "south_ring_shortcut",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [7, 14],
+        [7, 21],
+        [17, 21],
+        [28, 21],
+        [28, 14]
+      ],
+      "wobble": 0.15
+    }
+  ],
+  "patches": [
+    {
+      "id": "west_garden_flowers",
+      "kind": "flowers",
+      "center": [11, 18],
+      "radiusX": 2.4,
+      "radiusY": 1.8,
+      "noise": 0.25,
+      "minTiles": 6,
+      "groundTile": "flowers"
+    },
+    {
+      "id": "east_garden_flowers",
+      "kind": "flowers",
+      "center": [24, 18],
+      "radiusX": 2.4,
+      "radiusY": 1.8,
+      "noise": 0.25,
+      "minTiles": 6,
+      "groundTile": "flowers"
+    }
+  ],
+  "stamps": [
+    {
+      "id": "stamp_cumbre_fountain",
+      "prefab": "fountain_plaza",
+      "x": 15,
+      "y": 15,
+      "width": 6,
+      "height": 5,
+      "label": "Fuente Imperial de Ciudad Cumbre"
+    },
+    {
+      "id": "stamp_cumbre_gym",
+      "prefab": "gym_sanctuary",
+      "x": 14,
+      "y": 3,
+      "width": 7,
+      "height": 5,
+      "doorOffset": [3, 4],
+      "label": "Bastión del Gremio de Ciudad Cumbre"
+    },
+    {
+      "id": "stamp_west_residence",
+      "prefab": "house_small",
+      "x": 5,
+      "y": 9,
+      "width": 5,
+      "height": 4,
+      "doorOffset": [2, 3],
+      "label": "Posada de los Artífices"
+    },
+    {
+      "id": "stamp_east_residence",
+      "prefab": "house_small",
+      "x": 26,
+      "y": 9,
+      "width": 5,
+      "height": 4,
+      "doorOffset": [2, 3],
+      "label": "Cámara de Suministros de Altura"
+    }
+  ],
+  "scatter": [
+    {
+      "id": "citadel_cypress_clusters",
+      "decorType": "tree",
+      "clusterSizes": [3, 5],
+      "density": 0.35,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 6,
+      "preferNearBorders": true,
+      "allowedGround": ["grass"]
+    },
+    {
+      "id": "alpine_boulders",
+      "decorType": "rock",
+      "clusterSizes": [3],
+      "density": 0.2,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 8,
+      "preferNearBorders": true,
+      "allowedGround": ["grass"]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_cumbre_gym_Bastion",
+      "name": "Pórtico del Gremio de las Alturas",
+      "role": "focus",
+      "x": 17,
+      "y": 9,
+      "radius": 4
+    },
+    {
+      "id": "lm_cumbre_fountain_square",
+      "name": "Glorieta de la Cumbre",
+      "role": "rest",
+      "x": 17,
+      "y": 17,
+      "radius": 4
+    },
+    {
+      "id": "lm_east_courtyard_relic",
+      "name": "Jardín del Reloj de Sol",
+      "role": "secret",
+      "x": 31,
+      "y": 18,
+      "radius": 2,
+      "loreProp": {
+        "type": "sparkle_hidden",
+        "offsetX": -1,
+        "offsetY": 0,
+        "reward": "elixir_ki"
+      }
+    }
+  ],
+  "signs": [
+    {
+      "x": 20,
+      "y": 14,
+      "text": "CIUDAD CUMBRE\n\"La ciudadela de los Artífices en la base de la cordillera sagrada.\""
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "text": "GREMIO DE CIUDAD CUMBRE\nMaestro Ciro — Guardián del Sello de la Cúspide."
+    },
+    {
+      "x": 15,
+      "y": 2,
+      "text": "PASO DE MONTAÑA\nRuta Escarpada hacia las cumbres heladas."
+    }
+  ],
+  "warps": [
+    {
+      "x": 17,
+      "y": 27,
+      "targetMapId": "ruta_claro",
+      "targetX": 20,
+      "targetY": 1,
+      "targetDirection": "down"
+    },
+    {
+      "x": 18,
+      "y": 27,
+      "targetMapId": "ruta_claro",
+      "targetX": 21,
+      "targetY": 1,
+      "targetDirection": "down"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "targetMapId": "ruta_montana",
+      "targetX": 19,
+      "targetY": 26,
+      "targetDirection": "up"
+    },
+    {
+      "x": 18,
+      "y": 0,
+      "targetMapId": "ruta_montana",
+      "targetX": 20,
+      "targetY": 26,
+      "targetDirection": "up"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_leader_ciro",
+      "name": "Maestro Ciro",
+      "paletteId": "professor",
+      "x": 17,
+      "y": 9,
+      "direction": "down",
+      "dialogueLines": [
+        "¡Bienvenido al Gremio de Ciudad Cumbre!",
+        "Las corrientes de ki de esta cordillera exigen sincronía y determinación indomable."
+      ],
+      "isTrainer": true,
+      "trainerData": {
+        "trainerClass": "Maestro de Gremio",
+        "creatureSpeciesId": "maestro_trueno",
+        "creatureLevel": 28
+      }
+    },
+    {
+      "id": "npc_guard_mountain",
+      "name": "Guardia del Paso",
+      "paletteId": "hiker",
+      "x": 16,
+      "y": 2,
+      "direction": "right",
+      "dialogueLines": [
+        "Más allá de este arco asciende la Ruta Escarpada hacia el Santuario de la Cumbre.",
+        "Asegúrate de reparar los Cuerpos de tus Souldolls en el Taller antes de subir."
+      ]
+    },
+    {
+      "id": "npc_citizen_vera",
+      "name": "Artífice Vera",
+      "paletteId": "lass",
+      "x": 23,
+      "y": 15,
+      "direction": "left",
+      "dialogueLines": [
+        "Las avenidas circulares de Ciudad Cumbre conectan directamente con la ruta de regreso al Taller."
+      ]
+    }
+  ],
+  "spawnPoints": {
+    "default": { "x": 17, "y": 25, "direction": "up" },
+    "from_south": { "x": 17, "y": 25, "direction": "up" },
+    "from_north": { "x": 17, "y": 2, "direction": "down" }
+  }
+}

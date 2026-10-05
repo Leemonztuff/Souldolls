@@ -162,7 +162,7 @@ export class DialogueSystem {
       });
       GlobalAudioService.playSfx('confirm');
       GlobalEventBus.emit('toast:message', {
-        text: '💖 ¡El ki de tus Souldolls y todos sus chasis han sido restaurados al 100%!',
+        text: '¡El ki de tus Souldolls y todos sus cuerpos han sido restaurados al 100%!',
         duration: 2500,
       });
     }
@@ -182,17 +182,20 @@ export class DialogueSystem {
       GlobalQuestSystem.completeQuest(eff.completeQuest);
     }
 
-    // 7. Open Integrated Scenes (Shop, Workshop, StorageBox)
+    // 7. Open Integrated Scenes (Shop, Workshop, StorageBox) via EventBus from NPC dialogue (Bloque 43 Req. 6)
     if (eff.openShop) {
       GlobalAudioService.playSfx('select');
+      GlobalEventBus.emit('OpenShop', { mode: eff.shopMode || 'buy', source: 'npc_dialogue' });
       GlobalSceneManager.pushScene('Shop', { mode: eff.shopMode || 'buy' });
     }
     if (eff.openWorkshop) {
       GlobalAudioService.playSfx('select');
+      GlobalEventBus.emit('OpenWorkshop', { source: 'npc_dialogue' });
       GlobalSceneManager.pushScene('Workshop');
     }
     if (eff.openStorageBox) {
       GlobalAudioService.playSfx('select');
+      GlobalEventBus.emit('OpenStorage', { source: 'npc_dialogue' });
       GlobalSceneManager.pushScene('StorageBox');
     }
 

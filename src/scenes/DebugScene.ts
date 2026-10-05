@@ -5,14 +5,42 @@ import { GlobalSceneManager } from '../core/SceneManager';
 import { GlobalAssetRegistry } from '../render/procedural/AssetRegistry';
 import { CREATURES_DATA } from '../data/creatures/creatures';
 import { CHARACTER_PALETTES } from '../render/procedural/CharacterFactory';
-import { ALL_TILE_TYPES } from '../render/procedural/TileFactory';
+import { ALL_TILE_TYPES } from '../types/tilesets';
 import { GlobalInput } from '../core/Input';
 import { GlobalAudioService } from '../services/AudioService';
 import { StatCalculator } from '../systems/battle/StatCalculator';
-import { Direction } from '../types';
+import { Direction, BustAnimationMode } from '../types';
 import { SoulDollSpriteFactory, ChassisMaterial, SpriteView } from '../render/procedural/SoulDollSpriteFactory';
+import { BattleIdleMesh } from '../render/battle/BattleIdleMesh';
+import { GlobalSaveService } from '../services/SaveService';
+import {
+  ScreenFrame,
+  KitCard,
+  KitButton,
+  KitTabBar,
+  KitListRow,
+  KitStepper,
+  KitToggle,
+  KitSlider,
+  KitDropdown,
+  KitTextInput,
+  KitStatBox,
+  KitBar,
+  KitBadge,
+  KitStars,
+  KitHearts,
+  KitPartsSilhouette,
+  KitItemSlot,
+  KitCurrencyChip,
+  KitModal,
+  KitModalType,
+  IconRegistry,
+  UIKitLinter,
+} from '../ui/kit';
+import { COLOR_NUM, COLOR_HEX, FONTS } from '../ui/styles';
+import esText from '../data/text/es.json';
 
-type DebugTab = 'creatures' | 'characters' | 'tiles' | 'lab' | 'battle_test';
+type DebugTab = 'creatures' | 'characters' | 'tiles' | 'lab' | 'battle_test' | 'uikit_gallery';
 
 export class DebugScene implements IScene {
   public name = 'Debug';
@@ -33,23 +61,41 @@ export class DebugScene implements IScene {
   private labSpeciesId = 'maga';
   private labChassisMat: ChassisMaterial = 'wood';
   private labWeaponId = 'baculo_fuego';
-  private labView: SpriteView = 'side_r';
+  private labView: SpriteView = 'view_front34';
   private labFrame = 0;
   private labBrokenParts = { head: 15, torso: 40, arms: 20, legs: 25 };
 
-  // Battle Test State (Bloque 37 Req 7)
-  private btFlipOverride = false;
+  // Battle Test State (Bloque 37, 38 & 39)
+  private btAllyView: SpriteView = 'view_back34';
+  private btEnemyView: SpriteView = 'view_front34';
+  private btAllyFlipX = true;
+  private btEnemyFlipX = true;
   private btIntegerScale = true;
   private btShowBoundingBoxes = true;
   private btShowAnchorsAndGrid = true;
+  private btShowHotspots = true;
   private btNativeSize = false;
+  private btSlowMotion = false;
   private btFps = 60;
   private btFpsFrames = 0;
   private btFpsAccum = 0;
   private btFpsText?: Text;
+  private btAllyMesh?: BattleIdleMesh;
+  private btEnemyMesh?: BattleIdleMesh;
+
+  // Bloque 41: UI Kit Gallery State
+  private galleryPortraitMode = false;
+  private galleryTextScale: 1.0 | 1.15 = 1.0;
+  private galleryActiveTab = 'souls';
+  private galleryStepperVal = 3;
+  private galleryToggleVal = true;
+  private gallerySliderVal = 0.75;
+  private galleryDropdownIdx = 0;
+  private galleryNickname = 'Maga';
+  private galleryActiveModal: KitModal | null = null;
+  private galleryScreenFrame: ScreenFrame | null = null;
 
   public async enter(): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
     this.container = new Container();
     this.container.zIndex = 1000;
     GlobalPixiRenderer.menuLayer.addChild(this.container);
@@ -99,17 +145,18 @@ export class DebugScene implements IScene {
       { id: 'tiles', label: '3. TILES' },
       { id: 'lab', label: '4. VISOR CAPAS' },
       { id: 'battle_test', label: '5. COMBATE TEST' },
+      { id: 'uikit_gallery', label: '6. UI KIT (B41)' },
     ];
 
     tabs.forEach((tab, index) => {
       const tabBtn = new Container();
-      tabBtn.position.set(220 + index * 145, 10);
+      tabBtn.position.set(205 + index * 124, 10);
       tabBtn.eventMode = 'static';
       tabBtn.cursor = 'pointer';
 
       const isActive = tab.id === this.activeTab;
       const tabBg = new Graphics();
-      tabBg.roundRect(0, 0, 140, 48, 8);
+      tabBg.roundRect(0, 0, 118, 48, 8);
       tabBg.fill({ color: isActive ? 0x0284c7 : 0x1e293b });
       tabBg.stroke({ color: isActive ? 0xffffff : 0x334155, width: 2 });
       tabBtn.addChild(tabBg);
@@ -117,14 +164,14 @@ export class DebugScene implements IScene {
       const tabLabel = new Text({
         text: tab.label,
         style: new TextStyle({
-          fontFamily: 'monospace, system-ui',
-          fontSize: 13,
-          fontWeight: '900',
+          fontFamily: FONTS.hud,
+          fontSize: 12,
+          fontWeight: 'bold',
           fill: isActive ? '#ffffff' : '#94a3b8',
         }),
       });
       tabLabel.anchor.set(0.5);
-      tabLabel.position.set(70, 24);
+      tabLabel.position.set(59, 24);
       tabBtn.addChild(tabLabel);
 
       tabBtn.on('pointerdown', () => {
@@ -168,6 +215,31 @@ export class DebugScene implements IScene {
       this.close();
     });
 
+    // Bloque 43 Req. 6: Excepción de depuración: con DEBUG activo, el panel debug puede abrir cualquier servicio
+    const makeDebugServiceBtn = (label: string, x: number, onClick: () => void) => {
+      const btn = new KitButton({
+        width: 96,
+        height: 36,
+        label,
+        variant: 'secondary',
+        fontSize: 10,
+        onClick,
+      });
+      btn.position.set(x, 16);
+      header.addChild(btn);
+    };
+    if (width >= 1120) {
+      makeDebugServiceBtn('MERCADO', width - 460, () => {
+        GlobalSceneManager.pushScene('Shop', { mode: 'buy' });
+      });
+      makeDebugServiceBtn('TALLER', width - 358, () => {
+        GlobalSceneManager.pushScene('Workshop');
+      });
+      makeDebugServiceBtn('ALMACÉN', width - 256, () => {
+        GlobalSceneManager.pushScene('StorageBox');
+      });
+    }
+
     this.container.addChild(header);
 
     // Content container with scroll mask
@@ -206,6 +278,8 @@ export class DebugScene implements IScene {
       this.renderLabTab();
     } else if (this.activeTab === 'battle_test') {
       this.renderBattleTestTab();
+    } else if (this.activeTab === 'uikit_gallery') {
+      this.renderUIKitGalleryTab();
     }
   }
 
@@ -331,22 +405,22 @@ export class DebugScene implements IScene {
         evoBtn.cursor = 'pointer';
 
         const evoBg = new Graphics();
-        evoBg.roundRect(0, 0, 140, 28, 6);
+        evoBg.roundRect(0, 0, 74, 28, 6);
         evoBg.fill({ color: 0x0284c7 });
         evoBg.stroke({ color: 0xffffff, width: 1.5 });
         evoBtn.addChild(evoBg);
 
         const evoTxt = new Text({
-          text: '⚡ EVOLUCIONAR',
+          text: '⚡ ASCENSO',
           style: new TextStyle({
             fontFamily: 'system-ui, sans-serif',
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: '900',
             fill: '#ffffff',
           }),
         });
         evoTxt.anchor.set(0.5);
-        evoTxt.position.set(70, 14);
+        evoTxt.position.set(37, 14);
         evoBtn.addChild(evoTxt);
 
         evoBtn.on('pointerdown', () => {
@@ -362,10 +436,117 @@ export class DebugScene implements IScene {
         card.addChild(evoBtn);
       }
 
+      // Botón Debug: Abrir Ficha de Souldoll (Bloque 40 Req 6) con presets de estados
+      const sheetBtn = new Container();
+      sheetBtn.position.set(sp.evolution ? 306 : 228, 95);
+      sheetBtn.eventMode = 'static';
+      sheetBtn.cursor = 'pointer';
+
+      const sheetW = sp.evolution ? 68 : 140;
+      const sheetBg = new Graphics();
+      sheetBg.roundRect(0, 0, sheetW, 28, 6);
+      sheetBg.fill({ color: 0xd9a441 });
+      sheetBg.stroke({ color: 0xffffff, width: 1.5 });
+      sheetBtn.addChild(sheetBg);
+
+      const sheetTxt = new Text({
+        text: '📋 FICHA',
+        style: new TextStyle({
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 10,
+          fontWeight: '900',
+          fill: '#14101c',
+        }),
+      });
+      sheetTxt.anchor.set(0.5);
+      sheetTxt.position.set(sheetW / 2, 14);
+      sheetBtn.addChild(sheetTxt);
+
+      sheetBtn.on('pointerdown', () => {
+        GlobalAudioService.playSfx('confirm');
+        this.openDebugSheetShowroom(sp.id);
+      });
+      card.addChild(sheetBtn);
+
       this.contentContainer.addChild(card);
     });
 
     this.maxScrollY = Math.max(0, Math.ceil(speciesList.length / cols) * (cardHeight + padding) - 580);
+  }
+
+  /**
+   * Bloque 40 Req 6: Abre la Ficha de Souldoll desde el Debug (F2) con una lista de variantes
+   * para previsualizar en un clic:
+   * 1) Óptima (Tier 3, Nv.18, Sincronía 180)
+   * 2) Partes Dañadas / Brazos y Piernas Rotos (penalización -50% ATK/VEL y bloqueo de arma)
+   * 3) Alma Sellada (sin cuerpo, 0 estrellas, partes en gris)
+   * 4) KO (Cabeza/Torso a 0 PS, stats atenuados)
+   * 5) Maestra Ascendida (Tier 5, Nv.50, Sincronía 255)
+   */
+  private openDebugSheetShowroom(speciesId: string): void {
+    const saveState = GlobalSaveService.getCurrentState();
+    if (!saveState.bodies) saveState.bodies = {};
+
+    const ensureBody = (chassisId: string, keySuffix: string) => {
+      const id = `debug_body_${keySuffix}`;
+      if (!saveState.bodies[id]) {
+        const b = StatCalculator.createBodyInstance(chassisId, `Chasis ${keySuffix.toUpperCase()}`);
+        b.instanceId = id;
+        saveState.bodies[id] = b;
+      }
+      return id;
+    };
+
+    const bodyT3 = ensureBody('chassis_piedra_t3', 't3');
+    const bodyT2 = ensureBody('chassis_hierro_t2', 't2');
+    const bodyT5 = ensureBody('chassis_arcano_t5', 't5');
+
+    // 1. Intact Tier 3
+    const dOptima = StatCalculator.createSouldoll(speciesId, 18, 'chassis_piedra_t3');
+    dOptima.uid = `dbg_${speciesId}_optima`;
+    dOptima.bodyInstanceId = bodyT3;
+    dOptima.sync = 180;
+    dOptima.equipped.relic = 'reliquia_eco';
+
+    // 2. Broken Arms & Damaged Legs (Tier 2)
+    const dBroken = StatCalculator.createSouldoll(speciesId, 14, 'chassis_hierro_t2');
+    dBroken.uid = `dbg_${speciesId}_broken`;
+    dBroken.nickname = `${dBroken.nickname} (Brazos Rotos)`;
+    dBroken.bodyInstanceId = bodyT2;
+    dBroken.sync = 95;
+    dBroken.partHP.arms = 0;
+    dBroken.partHP.legs = Math.max(1, Math.floor(dBroken.maxPartHP.legs * 0.3));
+    dBroken.currentHp =
+      dBroken.partHP.head + dBroken.partHP.torso + dBroken.partHP.arms + dBroken.partHP.legs;
+
+    // 3. Sealed Soul (No Body)
+    const dSealed = StatCalculator.createSouldoll(speciesId, 10, null);
+    dSealed.uid = `dbg_${speciesId}_sealed`;
+    dSealed.nickname = `${dSealed.nickname} (Sellada)`;
+    dSealed.bodyInstanceId = null;
+    dSealed.sync = 50;
+
+    // 4. KO State
+    const dKO = StatCalculator.createSouldoll(speciesId, 20, 'chassis_piedra_t3');
+    dKO.uid = `dbg_${speciesId}_ko`;
+    dKO.nickname = `${dKO.nickname} (KO)`;
+    dKO.bodyInstanceId = bodyT3;
+    dKO.currentHp = 0;
+    dKO.partHP = { head: 0, torso: 0, arms: 0, legs: 0 };
+
+    // 5. Tier 5 Max Sync
+    const dMaster = StatCalculator.createSouldoll(speciesId, 50, 'chassis_arcano_t5');
+    dMaster.uid = `dbg_${speciesId}_master`;
+    dMaster.nickname = `${dMaster.nickname} (T5 Arcano)`;
+    dMaster.bodyInstanceId = bodyT5;
+    dMaster.sync = 255;
+    dMaster.equipped.relic = 'reliquia_cristal';
+    dMaster.equipped.accessory = 'cristal_mana_vigor';
+
+    GlobalSceneManager.pushScene('CreatureDetail', {
+      index: 0,
+      list: [dOptima, dBroken, dSealed, dKO, dMaster],
+    });
   }
 
   private renderCharactersGrid(): void {
@@ -511,6 +692,19 @@ export class DebugScene implements IScene {
       }
     }
 
+    if (this.btAllyMesh && !this.btAllyMesh.destroyed) {
+      this.btAllyMesh.update(dt);
+    }
+    if (this.btEnemyMesh && !this.btEnemyMesh.destroyed) {
+      this.btEnemyMesh.update(dt);
+    }
+    if (this.galleryScreenFrame && !this.galleryScreenFrame.destroyed) {
+      this.galleryScreenFrame.updateInertia();
+    }
+    if (this.galleryActiveModal && !this.galleryActiveModal.destroyed) {
+      this.galleryActiveModal.updateTween(dt);
+    }
+
     // 1. Animate character walk cycles
     this.animTimer += dt * 4;
     const frame = Math.floor(this.animTimer) % 3;
@@ -567,57 +761,80 @@ export class DebugScene implements IScene {
     ctrlPanel.addChild(ctrlBg);
 
     const title = new Text({
-      text: '⚔️ PRUEBA DE COMBATE (BLOQUE 37)',
+      text: '⚔️ PRUEBA DE COMBATE (BLOQUE 39)',
       style: new TextStyle({ fontFamily: 'monospace', fontSize: 13, fontWeight: '900', fill: '#38bdf8' }),
     });
-    title.position.set(16, 14);
+    title.position.set(16, 12);
     ctrlPanel.addChild(title);
 
     this.btFpsText = new Text({
       text: `FPS: ${this.btFps}`,
       style: new TextStyle({ fontFamily: 'monospace', fontSize: 14, fontWeight: '900', fill: '#10b981' }),
     });
-    this.btFpsText.position.set(260, 14);
+    this.btFpsText.position.set(260, 12);
     ctrlPanel.addChild(this.btFpsText);
+
+    const viewCycle: SpriteView[] = ['view_back34', 'view_back', 'view_front34', 'view_front'];
 
     const toggles = [
       {
-        label: `1. Orientación (Flip): ${this.btFlipOverride ? 'INVERTIDO' : 'NORMAL'}`,
-        active: this.btFlipOverride,
+        label: `1. Vista Aliada: ${this.btAllyView}`,
+        active: true,
         onClick: () => {
-          this.btFlipOverride = !this.btFlipOverride;
+          const idx = viewCycle.indexOf(this.btAllyView);
+          this.btAllyView = viewCycle[(idx + 1) % viewCycle.length];
           this.renderActiveTab();
         },
       },
       {
-        label: `2. Escala Entera: ${this.btIntegerScale ? 'ON (Floor)' : 'OFF (Float)'}`,
-        active: this.btIntegerScale,
+        label: `2. FlipX Aliada: ${this.btAllyFlipX ? 'ON (scale.x < 0)' : 'OFF (scale.x > 0)'}`,
+        active: this.btAllyFlipX,
         onClick: () => {
-          this.btIntegerScale = !this.btIntegerScale;
+          this.btAllyFlipX = !this.btAllyFlipX;
           this.renderActiveTab();
         },
       },
       {
-        label: `3. Bounding Boxes: ${this.btShowBoundingBoxes ? 'ON' : 'OFF'}`,
+        label: `3. Vista Enemiga: ${this.btEnemyView}`,
+        active: true,
+        onClick: () => {
+          const idx = viewCycle.indexOf(this.btEnemyView);
+          this.btEnemyView = viewCycle[(idx + 1) % viewCycle.length];
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `4. FlipX Enemiga: ${this.btEnemyFlipX ? 'ON (scale.x < 0)' : 'OFF (scale.x > 0)'}`,
+        active: this.btEnemyFlipX,
+        onClick: () => {
+          this.btEnemyFlipX = !this.btEnemyFlipX;
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `5. Vel Idle: ${this.btSlowMotion ? '0.25x LENTA' : '1.0x NORMAL'} | Golpe (Impulso)`,
+        active: !this.btSlowMotion,
+        onClick: () => {
+          this.btSlowMotion = !this.btSlowMotion;
+          if (this.btAllyMesh) {
+            this.btAllyMesh.timeScale = this.btSlowMotion ? 0.25 : 1.0;
+            this.btAllyMesh.applyImpulse(28);
+          }
+          if (this.btEnemyMesh) {
+            this.btEnemyMesh.timeScale = this.btSlowMotion ? 0.25 : 1.0;
+            this.btEnemyMesh.applyImpulse(28);
+          }
+          this.renderActiveTab();
+        },
+      },
+      {
+        label: `6. Franjas Idle / Pies / Hotspots: ${this.btShowBoundingBoxes ? 'ON' : 'OFF'}`,
         active: this.btShowBoundingBoxes,
         onClick: () => {
-          this.btShowBoundingBoxes = !this.btShowBoundingBoxes;
-          this.renderActiveTab();
-        },
-      },
-      {
-        label: `4. Anclas y Grid Píxel: ${this.btShowAnchorsAndGrid ? 'ON' : 'OFF'}`,
-        active: this.btShowAnchorsAndGrid,
-        onClick: () => {
-          this.btShowAnchorsAndGrid = !this.btShowAnchorsAndGrid;
-          this.renderActiveTab();
-        },
-      },
-      {
-        label: `5. Tamaño: ${this.btNativeSize ? 'NATIVO (1x)' : 'ESCALADO'}`,
-        active: this.btNativeSize,
-        onClick: () => {
-          this.btNativeSize = !this.btNativeSize;
+          const next = !this.btShowBoundingBoxes;
+          this.btShowBoundingBoxes = next;
+          this.btShowAnchorsAndGrid = next;
+          this.btShowHotspots = next;
           this.renderActiveTab();
         },
       },
@@ -625,21 +842,21 @@ export class DebugScene implements IScene {
 
     toggles.forEach((t, idx) => {
       const btn = new Container();
-      btn.position.set(16, 48 + idx * 44);
+      btn.position.set(16, 38 + idx * 40);
       btn.eventMode = 'static';
       btn.cursor = 'pointer';
 
       const bBg = new Graphics();
-      bBg.roundRect(0, 0, 318, 36, 6);
+      bBg.roundRect(0, 0, 318, 34, 6);
       bBg.fill({ color: t.active ? 0x0284c7 : 0x1e293b });
       bBg.stroke({ color: t.active ? 0xffffff : 0x475569, width: 1.5 });
       btn.addChild(bBg);
 
       const bTxt = new Text({
         text: t.label,
-        style: new TextStyle({ fontFamily: 'monospace', fontSize: 12, fontWeight: 'bold', fill: '#ffffff' }),
+        style: new TextStyle({ fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold', fill: '#ffffff' }),
       });
-      bTxt.position.set(12, 10);
+      bTxt.position.set(12, 9);
       btn.addChild(bTxt);
 
       btn.on('pointerdown', () => {
@@ -650,9 +867,24 @@ export class DebugScene implements IScene {
       ctrlPanel.addChild(btn);
     });
 
+    // Aviso de mirrorSafe: false + pies anclados
+    const mirrorNote = new Text({
+      text:
+        '✓ Pies anclados (0px debajo de waist). Línea verde = suelo.\n⚠ mirrorSafe: false (el guantelete cambia de lado al espejar).',
+      style: new TextStyle({
+        fontFamily: 'monospace',
+        fontSize: 10,
+        fill: '#4ade80',
+        wordWrap: true,
+        wordWrapWidth: 318,
+      }),
+    });
+    mirrorNote.position.set(16, 284);
+    ctrlPanel.addChild(mirrorNote);
+
     // Launch full interactive BattleScene button
     const launchBtn = new Container();
-    launchBtn.position.set(16, 285);
+    launchBtn.position.set(16, 330);
     launchBtn.eventMode = 'static';
     launchBtn.cursor = 'pointer';
 
@@ -719,9 +951,15 @@ export class DebugScene implements IScene {
     platG.fill({ color: 0x000000, alpha: 0.35 });
     arena.addChild(platG);
 
-    // Sprites: side_r for ally (facing right), side_r with negative scale.x for enemy (facing left)
-    const texSideR = GlobalAssetRegistry.getCreatureSpritePixi('maga', 'side_r');
-    const nativeH = Math.max(1, texSideR.height || 162);
+    // Sprites: Bloque 38 & 39 (BattleIdleMesh con deformación por filas y pies anclados)
+    const texAlly = GlobalAssetRegistry.getCreatureSpritePixi('maga', this.btAllyView);
+    const texEnemy = GlobalAssetRegistry.getCreatureSpritePixi('maga', this.btEnemyView);
+    const allyIdleMeta = GlobalAssetRegistry.getCreatureFrameMeta('maga', this.btAllyView).idle;
+    const enemyIdleMeta = GlobalAssetRegistry.getCreatureFrameMeta('maga', this.btEnemyView).idle;
+    const bustMode: BustAnimationMode = GlobalSaveService.getCurrentState()?.settings?.bustAnimation || 'subtle';
+
+    const allyNativeH = Math.max(1, texAlly.height || 162);
+    const enemyNativeH = Math.max(1, texEnemy.height || 162);
 
     const allyTargetH = arenaH * 0.38;
     const enemyTargetH = arenaH * 0.30;
@@ -729,34 +967,46 @@ export class DebugScene implements IScene {
     const allyScale = this.btNativeSize
       ? 1
       : this.btIntegerScale
-      ? Math.max(1, Math.floor(allyTargetH / nativeH))
-      : Number((allyTargetH / nativeH).toFixed(2));
+      ? Math.max(1, Math.floor(allyTargetH / allyNativeH))
+      : Number((allyTargetH / allyNativeH).toFixed(2));
     const enemyScale = this.btNativeSize
       ? 1
       : this.btIntegerScale
-      ? Math.max(1, Math.floor(enemyTargetH / nativeH))
-      : Number((enemyTargetH / nativeH).toFixed(2));
+      ? Math.max(1, Math.floor(enemyTargetH / enemyNativeH))
+      : Number((enemyTargetH / enemyNativeH).toFixed(2));
 
-    const allySign = this.btFlipOverride ? -1 : 1;
-    const enemySign = this.btFlipOverride ? 1 : -1;
+    const allySign = this.btAllyFlipX ? -1 : 1;
+    const enemySign = this.btEnemyFlipX ? -1 : 1;
 
-    const opSpr = new Sprite(texSideR);
-    opSpr.anchor.set(0.5, 1.0);
-    opSpr.roundPixels = true;
+    const opSpr = new BattleIdleMesh({
+      texture: texEnemy,
+      idleMeta: enemyIdleMeta,
+      bustMode,
+      phaseOffsetSec: 1.4,
+      cycleJitterFactor: 1.07,
+    });
+    opSpr.timeScale = this.btSlowMotion ? 0.25 : 1.0;
     opSpr.scale.set(enemySign * enemyScale, enemyScale);
     opSpr.position.set(enemyCx, enemyCy);
     arena.addChild(opSpr);
+    this.btEnemyMesh = opSpr;
 
-    const plSpr = new Sprite(texSideR);
-    plSpr.anchor.set(0.5, 1.0);
-    plSpr.roundPixels = true;
+    const plSpr = new BattleIdleMesh({
+      texture: texAlly,
+      idleMeta: allyIdleMeta,
+      bustMode,
+      phaseOffsetSec: 0.2,
+      cycleJitterFactor: 0.94,
+    });
+    plSpr.timeScale = this.btSlowMotion ? 0.25 : 1.0;
     plSpr.scale.set(allySign * allyScale, allyScale);
     plSpr.position.set(allyCx, allyCy);
     arena.addChild(plSpr);
+    this.btAllyMesh = plSpr;
 
-    // Debug Overlays (Bounding boxes, anchors, pixel grid)
+    // Debug Overlays (Bounding boxes, neck/waist/bust lines, feet anchor line, reflected hotspots)
     const dbgG = new Graphics();
-    const drawOverlay = (spr: Sprite, sc: number, col: number) => {
+    const drawOverlay = (spr: BattleIdleMesh, sc: number, flipX: boolean, col: number) => {
       const w = Math.round(spr.texture.width * sc);
       const h = Math.round(spr.texture.height * sc);
       const ax = Math.round(spr.position.x);
@@ -774,11 +1024,39 @@ export class DebugScene implements IScene {
           dbgG.moveTo(left, y);
           dbgG.lineTo(left + w, y);
         }
-        dbgG.stroke({ color: 0xffffff, width: 1, alpha: 0.16 });
+        dbgG.stroke({ color: 0xffffff, width: 1, alpha: 0.14 });
       }
       if (this.btShowBoundingBoxes) {
         dbgG.rect(left, top, w, h);
         dbgG.stroke({ color: col, width: 2 });
+
+        // Neck, waist, bust box & feet horizontal anchor line
+        if (spr.idleMeta) {
+          const neckY = Math.round(top + spr.idleMeta.neck * h);
+          const waistY = Math.round(top + spr.idleMeta.waist * h);
+          dbgG.moveTo(left - 6, neckY);
+          dbgG.lineTo(left + w + 6, neckY);
+          dbgG.stroke({ color: 0x38bdf8, width: 2 });
+
+          dbgG.moveTo(left - 6, waistY);
+          dbgG.lineTo(left + w + 6, waistY);
+          dbgG.stroke({ color: 0xf59e0b, width: 2 });
+
+          if (spr.idleMeta.bust) {
+            const bx0 = flipX ? 1 - spr.idleMeta.bust.x1 : spr.idleMeta.bust.x0;
+            const bx1 = flipX ? 1 - spr.idleMeta.bust.x0 : spr.idleMeta.bust.x1;
+            dbgG.rect(
+              Math.round(left + bx0 * w),
+              Math.round(top + spr.idleMeta.bust.y0 * h),
+              Math.round((bx1 - bx0) * w),
+              Math.round((spr.idleMeta.bust.y1 - spr.idleMeta.bust.y0) * h)
+            );
+            dbgG.stroke({ color: 0xec4899, width: 2 });
+          }
+        }
+        dbgG.moveTo(left - 14, ay);
+        dbgG.lineTo(left + w + 14, ay);
+        dbgG.stroke({ color: 0x10b981, width: 3 });
       }
       if (this.btShowAnchorsAndGrid) {
         dbgG.moveTo(ax - 10, ay);
@@ -787,16 +1065,32 @@ export class DebugScene implements IScene {
         dbgG.lineTo(ax, ay + 10);
         dbgG.stroke({ color: 0xfacc15, width: 2 });
       }
+      if (this.btShowHotspots) {
+        const hs = [
+          { dx: 4, dy: -0.78, col: 0xfacc15 },
+          { dx: 2, dy: -0.52, col: 0x38bdf8 },
+          { dx: 22, dy: -0.50, col: 0x22c55e },
+          { dx: 0, dy: -0.20, col: 0xa855f7 },
+          { dx: 26, dy: -0.54, col: 0xf97316 },
+        ];
+        hs.forEach((pt) => {
+          const refDx = (flipX ? -pt.dx : pt.dx) * sc;
+          const hx = Math.round(ax + refDx);
+          const hy = Math.round(ay + pt.dy * h);
+          dbgG.circle(hx, hy, 4);
+          dbgG.fill({ color: pt.col });
+        });
+      }
     };
-    drawOverlay(plSpr, allyScale, 0x38bdf8);
-    drawOverlay(opSpr, enemyScale, 0xf43f5e);
+    drawOverlay(plSpr, allyScale, this.btAllyFlipX, 0x38bdf8);
+    drawOverlay(opSpr, enemyScale, this.btEnemyFlipX, 0xf43f5e);
     arena.addChild(dbgG);
 
     const infoLabel = new Text({
-      text: `Nativo: ${texSideR.width}x${texSideR.height} px (sin verde, 1px pad) | Aliada: scale=(${plSpr.scale.x}, ${plSpr.scale.y}) | Enemiga: scale=(${opSpr.scale.x}, ${opSpr.scale.y})`,
-      style: new TextStyle({ fontFamily: 'monospace', fontSize: 11, fill: '#f8fafc' }),
+      text: `Aliada [${this.btAllyView}]: ${texAlly.width}x${texAlly.height} scale=(${plSpr.scale.x},${plSpr.scale.y}) | Enemiga [${this.btEnemyView}]: ${texEnemy.width}x${texEnemy.height} scale=(${opSpr.scale.x},${opSpr.scale.y})`,
+      style: new TextStyle({ fontFamily: 'monospace', fontSize: 10, fill: '#f8fafc' }),
     });
-    infoLabel.position.set(14, arenaH - 28);
+    infoLabel.position.set(12, arenaH - 26);
     arena.addChild(infoLabel);
 
     box.addChild(arena);
@@ -1012,7 +1306,7 @@ export class DebugScene implements IScene {
     viewTitle.position.set(16, 345);
     leftPanel.addChild(viewTitle);
 
-    const views: SpriteView[] = ['side_r', 'front', 'back', 'icon', 'attack'];
+    const views: SpriteView[] = ['view_front34', 'view_back34', 'view_front', 'view_back', 'icon'];
     views.forEach((v, idx) => {
       const isSel = this.labView === v;
       const btn = new Container();
@@ -1117,6 +1411,420 @@ export class DebugScene implements IScene {
 
     labBox.addChild(rightPanel);
     this.contentContainer.addChild(labBox);
+  }
+
+  /**
+   * BLOQUE 41 Req 8: Galería de componentes ("UI Kit Gallery") con todos los componentes y estados,
+   * modales de ejemplo, conmutador de orientación y de tamaño de texto, y linter en tiempo de ejecución.
+   */
+  private renderUIKitGalleryTab(): void {
+    const t = (esText as any).terms.uikit_gallery;
+    const availW = GlobalPixiRenderer.width - 48;
+    const availH = GlobalPixiRenderer.height - 96;
+
+    const frameW = this.galleryPortraitMode ? Math.min(440, availW) : Math.min(920, availW);
+    const frameH = Math.min(590, availH);
+
+    const galleryRoot = new Container();
+    galleryRoot.roundPixels = true;
+    galleryRoot.position.set(Math.round((availW - frameW) / 2), 0);
+    this.contentContainer.addChild(galleryRoot);
+
+    const screenFrame = new ScreenFrame({
+      width: frameW,
+      height: frameH,
+      title: t.title,
+      currencies: [
+        { iconId: 'coin', value: 3000 },
+        { iconId: 'soul_fragment', value: 14 },
+        { iconId: 'ki_dust', value: 28 },
+      ],
+      secondaryAction: {
+        label: this.galleryPortraitMode ? t.orientation_portrait : t.orientation_landscape,
+        iconId: 'settings_gear',
+        onClick: () => {
+          this.galleryPortraitMode = !this.galleryPortraitMode;
+          this.renderActiveTab();
+        },
+      },
+      primaryAction: {
+        label: `${t.text_scale}: ${Math.round(this.galleryTextScale * 100)}%`,
+        iconId: 'check',
+        onClick: () => {
+          this.galleryTextScale = this.galleryTextScale === 1.0 ? 1.15 : 1.0;
+          this.renderActiveTab();
+        },
+      },
+    });
+    this.galleryScreenFrame = screenFrame;
+    galleryRoot.addChild(screenFrame);
+
+    const cw = screenFrame.contentWidth;
+    const isTwoCol = !this.galleryPortraitMode && cw >= 680;
+    const colW = isTwoCol ? Math.floor((cw - 12) / 2) : cw;
+
+    // 1. Card: Botones, Pestañas e Insignias
+    const card1 = new KitCard({
+      width: colW,
+      height: 210,
+      variant: 'smokedWood',
+      title: t.sec_buttons,
+    });
+    card1.position.set(0, 0);
+    screenFrame.contentRoot.addChild(card1);
+
+    const btnW = Math.floor((colW - 28) / 2);
+    const btnPrimary = new KitButton({
+      label: t.btn_primary,
+      iconId: 'sword',
+      variant: 'primary',
+      width: btnW,
+      onClick: () => {},
+    });
+    btnPrimary.position.set(8, 36);
+    card1.addChild(btnPrimary);
+
+    const btnSec = new KitButton({
+      label: t.btn_secondary,
+      iconId: 'workshop_anvil',
+      variant: 'secondary',
+      width: btnW,
+      onClick: () => {},
+    });
+    btnSec.position.set(16 + btnW, 36);
+    card1.addChild(btnSec);
+
+    const btnDanger = new KitButton({
+      label: t.btn_danger,
+      iconId: 'warning',
+      variant: 'danger',
+      width: btnW,
+      onClick: () => {},
+    });
+    btnDanger.position.set(8, 86);
+    card1.addChild(btnDanger);
+
+    const btnDis = new KitButton({
+      label: t.btn_disabled,
+      iconId: 'close',
+      variant: 'secondary',
+      width: btnW,
+      disabled: true,
+      onClick: () => {},
+    });
+    btnDis.position.set(16 + btnW, 86);
+    card1.addChild(btnDis);
+
+    const tabBar = new KitTabBar(
+      [
+        { id: 'souls', label: 'ALMAS', iconId: 'soul_orb' },
+        { id: 'bodies', label: 'CUERPOS', iconId: 'body_chassis' },
+        { id: 'items', label: 'RELIQUIAS', iconId: 'relic' },
+      ],
+      this.galleryActiveTab,
+      colW - 16,
+      (id) => {
+        this.galleryActiveTab = id;
+        this.renderActiveTab();
+      }
+    );
+    tabBar.position.set(8, 136);
+    card1.addChild(tabBar);
+
+    const badgeFire = new KitBadge('Fuego', 'element', 'fuego');
+    badgeFire.position.set(8, 182);
+    card1.addChild(badgeFire);
+
+    const badgeWater = new KitBadge('Agua', 'element', 'agua');
+    badgeWater.position.set(82, 182);
+    card1.addChild(badgeWater);
+
+    const badgeRarity = new KitBadge('Épica', 'rarity', 'epica');
+    badgeRarity.position.set(156, 182);
+    card1.addChild(badgeRarity);
+
+    const stars = new KitStars(4, 5, 14);
+    stars.position.set(234, 186);
+    card1.addChild(stars);
+
+    // 2. Card: Controles interactivos y ListRow
+    const card2 = new KitCard({
+      width: colW,
+      height: 270,
+      variant: 'smokedWood',
+      title: t.sec_inputs,
+    });
+    card2.position.set(isTwoCol ? colW + 12 : 0, isTwoCol ? 0 : 220);
+    screenFrame.contentRoot.addChild(card2);
+
+    const stepper = new KitStepper(
+      'Tier de Cuerpo',
+      `T${this.galleryStepperVal}`,
+      colW - 16,
+      (dir) => {
+        this.galleryStepperVal = Math.max(1, Math.min(5, this.galleryStepperVal + dir));
+        this.renderActiveTab();
+      }
+    );
+    stepper.position.set(8, 34);
+    card2.addChild(stepper);
+
+    const toggle = new KitToggle(
+      'Sincronía Activa',
+      this.galleryToggleVal,
+      colW - 16,
+      (val) => {
+        this.galleryToggleVal = val;
+        this.renderActiveTab();
+      }
+    );
+    toggle.position.set(8, 82);
+    card2.addChild(toggle);
+
+    const slider = new KitSlider(
+      'Volumen Ki',
+      this.gallerySliderVal,
+      colW - 16,
+      (r) => {
+        this.gallerySliderVal = r;
+        this.renderActiveTab();
+      }
+    );
+    slider.position.set(8, 130);
+    card2.addChild(slider);
+
+    const dropdown = new KitDropdown(
+      'Material',
+      ['Madera', 'Hierro', 'Piedra', 'Cristal', 'Arcano'],
+      this.galleryDropdownIdx,
+      colW - 16,
+      (idx) => {
+        this.galleryDropdownIdx = idx;
+        this.renderActiveTab();
+      }
+    );
+    dropdown.position.set(8, 178);
+    card2.addChild(dropdown);
+
+    const textInput = new KitTextInput(
+      'Apodo',
+      this.galleryNickname,
+      'Escribe apodo...',
+      colW - 16,
+      () => this.openGalleryModal('TextPrompt')
+    );
+    textInput.position.set(8, 222);
+    card2.addChild(textInput);
+
+    // 3. Card: StatBoxes, Barras, Silueta y Ranuras
+    const card3Y = isTwoCol ? 220 : 500;
+    const card3 = new KitCard({
+      width: colW,
+      height: 250,
+      variant: 'parchment',
+      title: t.sec_stats,
+    });
+    card3.position.set(0, card3Y);
+    screenFrame.contentRoot.addChild(card3);
+
+    const statIds: Array<{ id: 'hp' | 'atk' | 'def' | 'spAtk' | 'spDef' | 'speed'; lbl: string; val: number }> = [
+      { id: 'hp', lbl: 'PS', val: 142 },
+      { id: 'atk', lbl: 'ATQ', val: 68 },
+      { id: 'def', lbl: 'DEF', val: 74 },
+      { id: 'spAtk', lbl: 'ATQ.E', val: 115 },
+      { id: 'spDef', lbl: 'DEF.E', val: 92 },
+      { id: 'speed', lbl: 'VEL', val: 88 },
+    ];
+    const sbW = Math.floor((colW - 28) / 3);
+    statIds.forEach((st, idx) => {
+      const sb = new KitStatBox(st.id, st.lbl, st.val, sbW, 46, idx === 3 ? '+15' : undefined);
+      sb.position.set(8 + (idx % 3) * (sbW + 6), 36 + Math.floor(idx / 3) * 52);
+      card3.addChild(sb);
+    });
+
+    const hpBar = new KitBar('hp', 0.78, colW - 92, 18, 4, '110/142');
+    hpBar.position.set(8, 146);
+    card3.addChild(hpBar);
+
+    const expBar = new KitBar('exp', 0.62, colW - 92, 14, 0);
+    expBar.position.set(8, 170);
+    card3.addChild(expBar);
+
+    const hearts = new KitHearts(4, 5, 14);
+    hearts.position.set(8, 192);
+    card3.addChild(hearts);
+
+    const sil = new KitPartsSilhouette();
+    sil.position.set(colW - 64, 144);
+    sil.scale.set(1.2);
+    sil.updateParts(
+      { head: 20, torso: 45, arms: 8, legs: 25 },
+      { head: 20, torso: 45, arms: 20, legs: 25 }
+    );
+    card3.addChild(sil);
+
+    const slot1 = new KitItemSlot('bottle', 10, 'comun');
+    slot1.position.set(100, 192);
+    card3.addChild(slot1);
+
+    const slot2 = new KitItemSlot('relic', 2, 'rara');
+    slot2.position.set(154, 192);
+    card3.addChild(slot2);
+
+    const slot3 = new KitItemSlot('crystal', 1, 'epica');
+    slot3.position.set(208, 192);
+    card3.addChild(slot3);
+
+    // 4. Card: IconRegistry & Modales Estándar
+    const card4Y = isTwoCol ? 280 : 760;
+    const card4 = new KitCard({
+      width: colW,
+      height: 250,
+      variant: 'smokedWood',
+      title: t.sec_icons,
+    });
+    card4.position.set(isTwoCol ? colW + 12 : 0, card4Y);
+    screenFrame.contentRoot.addChild(card4);
+
+    const iconIds = IconRegistry.getAllIds().slice(0, 12);
+    iconIds.forEach((id, idx) => {
+      const ic = IconRegistry.create(id, 20);
+      ic.position.set(12 + idx * 28, 38);
+      card4.addChild(ic);
+    });
+
+    const modalTypes: Array<{ type: KitModalType; label: string }> = [
+      { type: 'Confirm', label: t.modal_confirm },
+      { type: 'Alert', label: t.modal_alert },
+      { type: 'ItemPicker', label: t.modal_picker },
+      { type: 'Quantity', label: t.modal_qty },
+      { type: 'TextPrompt', label: t.modal_prompt },
+      { type: 'Reward', label: t.modal_reward },
+    ];
+
+    const mBtnW = Math.floor((colW - 24) / 2);
+    modalTypes.forEach((m, idx) => {
+      const mb = new KitButton({
+        label: m.label,
+        variant: idx === 0 ? 'primary' : 'secondary',
+        width: mBtnW,
+        height: 44,
+        onClick: () => this.openGalleryModal(m.type),
+      });
+      mb.position.set(8 + (idx % 2) * (mBtnW + 8), 72 + Math.floor(idx / 2) * 50);
+      card4.addChild(mb);
+    });
+
+    // 5. Card: BLOQUE 42 — CHECKPOINT GLOBAL (Grupos A, B, C y D)
+    const card5Y = isTwoCol ? 540 : 1020;
+    const card5W = cw;
+    const card5 = new KitCard({
+      width: card5W,
+      height: 220,
+      variant: 'smokedWood',
+      title: '5. CHECKPOINT BLOQUE 42 — PANTALLAS UNIFICADAS (A/B/C/D)',
+    });
+    card5.position.set(0, card5Y);
+    screenFrame.contentRoot.addChild(card5);
+
+    const groupAScreens: Array<{ label: string; scene: string }> = [
+      { label: 'TÍTULO / OPCIONES / SLOTS', scene: 'Title' },
+      { label: 'EQUIPO (PARTY)', scene: 'Party' },
+      { label: 'FICHA UNIDAD (B40)', scene: 'CreatureDetail' },
+      { label: 'MOCHILA (BAG)', scene: 'Bag' },
+      { label: 'CÓDICE DE ALMAS', scene: 'Pokedex' },
+      { label: 'MISIONES (QUESTS)', scene: 'QuestLog' },
+      { label: 'TALLER ARTÍFICES', scene: 'Workshop' },
+      { label: 'MERCADO ARTÍFICES', scene: 'Shop' },
+      { label: 'ALMACÉN ALMAS/CUERPOS', scene: 'StorageBox' },
+      { label: 'VINCULAR ALMA', scene: 'SoulBinding' },
+      { label: 'FIN DE DEMO (CREDITS)', scene: 'Credits' },
+      { label: 'MENÚ PAUSA (OVERWORLD)', scene: 'Overworld' },
+    ];
+
+    const gCols = isTwoCol ? 4 : 2;
+    const gBtnW = Math.floor((card5W - 16 - (gCols - 1) * 6) / gCols);
+    groupAScreens.forEach((sc, idx) => {
+      const col = idx % gCols;
+      const row = Math.floor(idx / gCols);
+      const sb = new KitButton({
+        label: sc.label,
+        variant: idx === 1 ? 'primary' : 'secondary',
+        width: gBtnW,
+        height: 44,
+        onClick: () => {
+          if (sc.scene === 'Title' || sc.scene === 'Overworld') {
+            GlobalSceneManager.changeScene(sc.scene);
+          } else {
+            GlobalSceneManager.pushScene(sc.scene);
+          }
+        },
+      });
+      sb.position.set(8 + col * (gBtnW + 6), 36 + row * 50);
+      card5.addChild(sb);
+    });
+
+    // Ejecutar Linter en Tiempo de Ejecución sobre el árbol del Kit (Bloque 41 Req 8 & Bloque 42)
+    const lintIssues = UIKitLinter.inspectTree(screenFrame, 'SouldollsUIKitGallery_Unified');
+    const lintBanner = new KitBadge(
+      lintIssues.length === 0 ? t.linter_ok : `${t.linter_warn} (${lintIssues.length})`,
+      lintIssues.length === 0 ? 'tier' : 'element',
+      lintIssues.length === 0 ? 'tier' : 'fuego'
+    );
+    lintBanner.position.set(8, 222);
+    card4.addChild(lintBanner);
+
+    const totalH = isTwoCol ? 780 : 1310;
+    screenFrame.setContentTotalHeight(totalH);
+    this.maxScrollY = 0;
+  }
+
+  private openGalleryModal(type: KitModalType): void {
+    if (this.galleryActiveModal) {
+      this.galleryActiveModal.destroy({ children: true });
+      this.galleryActiveModal = null;
+    }
+
+    const w = GlobalPixiRenderer.width;
+    const h = GlobalPixiRenderer.height;
+
+    const modal = new KitModal(w, h, {
+      type,
+      title: `DEMO MODAL: ${type.toUpperCase()}`,
+      bodyText:
+        type === 'Reward'
+          ? 'Has obtenido: Cuerpo de Hierro Forjado (T2) y 2x Soul Bottle Plata.'
+          : 'Patrón único de modal del Souldolls UI Kit con foco atrapado y animación de 180 ms.',
+      confirmLabel: 'ACEPTAR',
+      cancelLabel: type === 'Alert' ? undefined : 'CANCELAR',
+      items: [
+        { id: 'baculo_fuego', title: 'Báculo de Fuego', subtitle: '+12 ATQ.E', value: 'Arma', iconId: 'sword' },
+        { id: 'reliquia_eco', title: 'Reliquia del Eco', subtitle: 'Regenera Ki', value: 'Reliquia', iconId: 'relic' },
+        { id: 'cristal_mana', title: 'Cristal de Maná', subtitle: '+Velocidad', value: 'Cristal', iconId: 'crystal' },
+      ],
+      initialQuantity: 3,
+      maxQuantity: 20,
+      initialText: this.galleryNickname,
+      onConfirm: (res) => {
+        if (type === 'TextPrompt' && typeof res === 'string') {
+          this.galleryNickname = res;
+        }
+        if (this.galleryActiveModal) {
+          this.galleryActiveModal.destroy({ children: true });
+          this.galleryActiveModal = null;
+        }
+        this.renderActiveTab();
+      },
+      onCancel: () => {
+        if (this.galleryActiveModal) {
+          this.galleryActiveModal.destroy({ children: true });
+          this.galleryActiveModal = null;
+        }
+      },
+    });
+
+    this.galleryActiveModal = modal;
+    this.container.addChild(modal);
   }
 
   public render(): void {}

@@ -99,6 +99,33 @@ export class StatCalculator {
   }
 
   /**
+   * Convenience method to calculate all combat stats directly from a Souldoll instance
+   */
+  public static calculateStats(souldoll: Souldoll): {
+    hp: number;
+    atk: number;
+    def: number;
+    spAtk: number;
+    spDef: number;
+    speed: number;
+  } {
+    this.ensurePartHp(souldoll);
+    const species = SOUL_SPECIES_DATA[souldoll.speciesId || souldoll.soulSpeciesId] || SOUL_SPECIES_DATA['maga'];
+    const calc = this.calculateAllStats(
+      species,
+      souldoll.level || 1,
+      souldoll.ivs,
+      souldoll.evs,
+      souldoll.nature,
+      souldoll.equipped
+    );
+    return {
+      ...calc,
+      hp: souldoll.maxHp || calc.hp,
+    };
+  }
+
+  /**
    * Calculates per-part maximum HP according to chassis partShare, part IVs and part EVs
    * Formula: partMax[p] = max(1, floor(poolHP * chassis.partShare[p])) + floor(iv[p] / 4) + floor(ev[p] / 16)
    */
@@ -304,20 +331,25 @@ export class StatCalculator {
   /**
    * Generates a new BodyInstance with seedable or random IVs
    */
-  public static createBodyInstance(chassisId = 'chassis_madera_t1', nickname?: string): BodyInstance {
+  public static createBodyInstance(
+    chassisId = 'chassis_madera_t1',
+    nickname?: string,
+    rng?: Rng
+  ): BodyInstance {
     const chassis = BODY_CHASSIS_DATA[chassisId] || BODY_CHASSIS_DATA['chassis_madera_t1'];
     const minIv = chassis.ivRange?.min || 0;
     const maxIv = chassis.ivRange?.max || 31;
     const diff = maxIv - minIv + 1;
+    const rollIv = () => (rng ? rng.rangeInt(minIv, maxIv) : minIv + Math.floor(Math.random() * diff));
 
     return {
       instanceId: `body_${chassisId}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       chassisId: chassis.id,
       ivs: {
-        head: minIv + Math.floor(Math.random() * diff),
-        torso: minIv + Math.floor(Math.random() * diff),
-        arms: minIv + Math.floor(Math.random() * diff),
-        legs: minIv + Math.floor(Math.random() * diff),
+        head: rollIv(),
+        torso: rollIv(),
+        arms: rollIv(),
+        legs: rollIv(),
       },
       evs: { head: 0, torso: 0, arms: 0, legs: 0 },
       partDurability: { head: 100, torso: 100, arms: 100, legs: 100 },

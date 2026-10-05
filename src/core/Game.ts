@@ -7,7 +7,6 @@ import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalAssetRegistry } from '../render/procedural/AssetRegistry';
 import { BootScene } from '../scenes/BootScene';
 import { TitleScene } from '../scenes/TitleScene';
-import { DebugScene } from '../scenes/DebugScene';
 import { OverworldScene } from '../scenes/OverworldScene';
 import { QuestLogScene } from '../scenes/QuestLogScene';
 import { BattleScene } from '../scenes/BattleScene';
@@ -17,9 +16,18 @@ import { ShopScene } from '../scenes/ShopScene';
 import { StorageBoxScene } from '../scenes/StorageBoxScene';
 import { CreditsScene } from '../scenes/CreditsScene';
 import { CreatureDetailScene } from '../scenes/CreatureDetailScene';
+import { PartyScene } from '../scenes/PartyScene';
+import { BagScene } from '../scenes/BagScene';
 import { WorkshopScene } from '../scenes/WorkshopScene';
 import { SoulBindingScene } from '../scenes/SoulBindingScene';
+import { OptionsScene } from '../ui/hud/OptionsScene';
 import { DataValidator } from '../data/validation/DataValidator';
+import { SoulCodexSystem } from '../systems/SoulCodexSystem';
+import { GachaService, GachaTestRunner } from '../systems/gacha';
+import { Bloque43HudTestRunner } from '../ui/hud/Bloque43HudTestRunner';
+import { Bloque44TilesetTestRunner } from '../render/overworld/Bloque44TilesetTestRunner';
+import { Bloque45MapgenTestRunner } from '../render/overworld/Bloque45MapgenTestRunner';
+import { isDebugEnabled } from './DebugGate';
 
 export class Game {
   private static instance: Game;
@@ -47,6 +55,12 @@ export class Game {
 
     // 0. Validate Data Layer Integrity (failing fast if schema or links are invalid)
     DataValidator.validateAll();
+    SoulCodexSystem.initEventListeners();
+    (window as any).GachaService = GachaService;
+    (window as any).GachaTestRunner = GachaTestRunner;
+    (window as any).Bloque43HudTestRunner = Bloque43HudTestRunner;
+    (window as any).Bloque44TilesetTestRunner = Bloque44TilesetTestRunner;
+    (window as any).Bloque45MapgenTestRunner = Bloque45MapgenTestRunner;
 
     // 1. Locate DOM containers
     this.gameContainer = document.getElementById('game-container') as HTMLElement;
@@ -70,13 +84,24 @@ export class Game {
     // 4. Generate & Cache all procedural Pixel Art Assets
     GlobalAssetRegistry.init();
 
+    // Run automated test suites now that renderers and registries are ready
+    setTimeout(() => {
+      try {
+        GachaTestRunner.runAllTests();
+        Bloque43HudTestRunner.runAllTests();
+        Bloque44TilesetTestRunner.runAllTests();
+        Bloque45MapgenTestRunner.runAllTests();
+      } catch (err) {
+        console.error('[GachaTestRunner] Error in automated suite:', err);
+      }
+    }, 50);
+
     // 5. Initialize Touch Controls Overlay
     GlobalInput.mountTouchControls(this.gameContainer);
 
     // 6. Register Scenes
     GlobalSceneManager.registerScene('Boot', () => new BootScene());
     GlobalSceneManager.registerScene('Title', () => new TitleScene());
-    GlobalSceneManager.registerScene('Debug', () => new DebugScene());
     GlobalSceneManager.registerScene('Overworld', () => new OverworldScene());
     GlobalSceneManager.registerScene('QuestLog', () => new QuestLogScene());
     GlobalSceneManager.registerScene('Battle', () => new BattleScene());
@@ -84,13 +109,17 @@ export class Game {
     GlobalSceneManager.registerScene('Pokedex', () => new PokedexScene());
     GlobalSceneManager.registerScene('Shop', () => new ShopScene());
     GlobalSceneManager.registerScene('StorageBox', () => new StorageBoxScene());
+    GlobalSceneManager.registerScene('Party', () => new PartyScene());
+    GlobalSceneManager.registerScene('Bag', () => new BagScene());
     GlobalSceneManager.registerScene('CreatureDetail', () => new CreatureDetailScene());
     GlobalSceneManager.registerScene('Workshop', () => new WorkshopScene());
     GlobalSceneManager.registerScene('SoulBinding', () => new SoulBindingScene());
+    GlobalSceneManager.registerScene('Options', () => new OptionsScene());
     GlobalSceneManager.registerScene('Credits', () => new CreditsScene());
 
-    // 7. Debug Toggle Shortcut Handler
-    GlobalEventBus.on('debug:toggle', () => {
+    // 7. Debug Toggle Shortcut Handler (Bloque 43 Req. 2: Dynamic import only when DEBUG is active)
+    GlobalEventBus.on('debug:toggle', async () => {
+      if (!isDebugEnabled()) return;
       const current = GlobalSceneManager.getCurrentScene() as any;
       if (current && current.name === 'Battle' && typeof current.toggleDebugOverlay === 'function') {
         current.toggleDebugOverlay();
@@ -99,13 +128,19 @@ export class Game {
       if (current && current.name === 'Debug') {
         GlobalSceneManager.popScene();
       } else {
+        const mod = await import('../scenes/DebugScene');
+        GlobalSceneManager.registerScene('Debug', () => new mod.DebugScene());
         GlobalSceneManager.pushScene('Debug');
       }
     });
 
-    // 8. Handle Responsive Letterboxing
+    // 8. Handle Responsive Viewport with shared ResizeObserver (Bloque 43 Req. 7)
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => this.handleResize());
+      ro.observe(this.gameContainer);
+    }
 
     // 9. Setup Central Loop
     this.gameLoop = new GameLoop(
@@ -143,7 +178,7 @@ export class Game {
    */
   private handleResize(): void {
     const w = Math.max(320, Math.round(this.gameContainer?.clientWidth || window.innerWidth || this.targetWidth));
-    const h = Math.max(480, Math.round(this.gameContainer?.clientHeight || window.innerHeight || this.targetHeight));
+    const h = Math.max(240, Math.round(this.gameContainer?.clientHeight || window.innerHeight || this.targetHeight));
     this.targetWidth = w;
     this.targetHeight = h;
     GlobalThreeRenderer.resize(w, h);

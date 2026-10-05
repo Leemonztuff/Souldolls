@@ -94,6 +94,10 @@ export class EvolutionSystem {
     return { targetSpeciesId: result.targetSpeciesId, requiredLevel: result.requiredLevel };
   }
 
+  public executeEvolution(souldoll: Souldoll, targetSpeciesId: string): AscensionResult {
+    return this.ascendSoul(souldoll, targetSpeciesId);
+  }
+
   /**
    * Performs soul ascension while recalculating stats, part HP, and learning new class moves
    */

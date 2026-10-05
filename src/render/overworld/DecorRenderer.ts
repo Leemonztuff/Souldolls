@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MapData } from '../../types/maps';
-import { TileType } from '../procedural/TileFactory';
+import { TileType } from '../../types/tilesets';
 import { GlobalSaveService } from '../../services/SaveService';
 
 export interface DecorAtlasFrame {
@@ -93,80 +93,80 @@ export interface InteractiveDecorEntry {
 export const DEFAULT_OVERWORLD_DECOR_ATLAS: DecorAtlasData = {
   image: 'overworld_decor_atlas.png',
   size: [1024, 1024],
-  ppu: 76,
+  ppu: 150,
   frames: {
-    flower_daisy_a: { x: 46, y: 56, w: 52, h: 78, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 1.0, ppu: 80 },
-    flower_daisy_b: { x: 153, y: 51, w: 68, h: 82, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 1.0, ppu: 80 },
-    flower_daisy_cluster: { x: 261, y: 30, w: 113, h: 104, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 0.9, ppu: 80 },
-    flower_white_wild: { x: 414, y: 46, w: 78, h: 88, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 1.1, ppu: 80 },
-    flower_blue_a: { x: 522, y: 46, w: 77, h: 88, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.1, ppu: 80 },
-    mushroom_red_a: { x: 655, y: 46, w: 72, h: 88, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 85 },
-    mushroom_brown_a: { x: 768, y: 46, w: 87, h: 88, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 85 },
-    mushroom_purple_a: { x: 896, y: 46, w: 77, h: 88, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 85 },
+    flower_daisy_a: { x: 46, y: 56, w: 52, h: 78, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 1.0, ppu: 185 },
+    flower_daisy_b: { x: 153, y: 51, w: 68, h: 82, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 1.0, ppu: 185 },
+    flower_daisy_cluster: { x: 261, y: 30, w: 113, h: 104, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 0.9, ppu: 185 },
+    flower_white_wild: { x: 414, y: 46, w: 78, h: 88, pivot: [0.5, 1.0], group: 'flower_daisy', sway: 1.1, ppu: 185 },
+    flower_blue_a: { x: 522, y: 46, w: 77, h: 88, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.1, ppu: 185 },
+    mushroom_red_a: { x: 655, y: 46, w: 72, h: 88, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 170 },
+    mushroom_brown_a: { x: 768, y: 46, w: 87, h: 88, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 170 },
+    mushroom_purple_a: { x: 896, y: 46, w: 77, h: 88, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 170 },
 
-    flower_pink_a: { x: 46, y: 184, w: 52, h: 72, pivot: [0.5, 1.0], group: 'flower_pink', sway: 1.0, ppu: 80 },
-    flower_pink_b: { x: 143, y: 174, w: 88, h: 82, pivot: [0.5, 1.0], group: 'flower_pink', sway: 1.0, ppu: 80 },
-    flower_pink_cluster: { x: 261, y: 158, w: 113, h: 98, pivot: [0.5, 1.0], group: 'flower_pink', sway: 0.9, ppu: 80 },
-    mushroom_red_b: { x: 418, y: 160, w: 69, h: 96, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 85 },
-    mushroom_red_cluster: { x: 522, y: 160, w: 83, h: 96, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 85 },
-    mushroom_brown_b: { x: 655, y: 174, w: 72, h: 82, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 85 },
-    mushroom_ki_cyan: { x: 764, y: 158, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#5FE3D2', sway: 0.3, ppu: 80 },
-    mushroom_ki_violet: { x: 886, y: 160, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#9B6BFF', sway: 0.3, ppu: 80 },
+    flower_pink_a: { x: 46, y: 184, w: 52, h: 72, pivot: [0.5, 1.0], group: 'flower_pink', sway: 1.0, ppu: 185 },
+    flower_pink_b: { x: 143, y: 174, w: 88, h: 82, pivot: [0.5, 1.0], group: 'flower_pink', sway: 1.0, ppu: 185 },
+    flower_pink_cluster: { x: 261, y: 158, w: 113, h: 98, pivot: [0.5, 1.0], group: 'flower_pink', sway: 0.9, ppu: 185 },
+    mushroom_red_b: { x: 418, y: 160, w: 69, h: 96, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 170 },
+    mushroom_red_cluster: { x: 522, y: 160, w: 83, h: 96, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 170 },
+    mushroom_brown_b: { x: 655, y: 174, w: 72, h: 82, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 170 },
+    mushroom_ki_cyan: { x: 764, y: 158, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#5FE3D2', sway: 0.3, ppu: 160 },
+    mushroom_ki_violet: { x: 886, y: 160, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#9B6BFF', sway: 0.3, ppu: 160 },
 
-    flower_yellow_a: { x: 46, y: 296, w: 57, h: 83, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.0, ppu: 80 },
-    flower_yellow_b: { x: 148, y: 302, w: 83, h: 82, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.0, ppu: 80 },
-    flower_yellow_cluster: { x: 261, y: 274, w: 113, h: 106, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 0.9, ppu: 80 },
-    flower_yellow_c: { x: 419, y: 290, w: 63, h: 90, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.1, ppu: 80 },
-    flower_yellow_d: { x: 527, y: 288, w: 72, h: 92, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.1, ppu: 80 },
-    grass_ki_glow: { x: 654, y: 278, w: 76, h: 102, pivot: [0.5, 1.0], group: 'grass_ki', glow: '#5FE3D2', sway: 1.2, ppu: 76 },
-    grass_tuft_a: { x: 768, y: 294, w: 87, h: 86, pivot: [0.5, 1.0], group: 'grass', sway: 1.2, ppu: 76 },
-    grass_tuft_b: { x: 885, y: 280, w: 104, h: 104, pivot: [0.5, 1.0], group: 'grass', sway: 1.3, ppu: 76 },
+    flower_yellow_a: { x: 46, y: 296, w: 57, h: 83, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.0, ppu: 185 },
+    flower_yellow_b: { x: 148, y: 302, w: 83, h: 82, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.0, ppu: 185 },
+    flower_yellow_cluster: { x: 261, y: 274, w: 113, h: 106, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 0.9, ppu: 185 },
+    flower_yellow_c: { x: 419, y: 290, w: 63, h: 90, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.1, ppu: 185 },
+    flower_yellow_d: { x: 527, y: 288, w: 72, h: 92, pivot: [0.5, 1.0], group: 'flower_yellow', sway: 1.1, ppu: 185 },
+    grass_ki_glow: { x: 654, y: 278, w: 76, h: 102, pivot: [0.5, 1.0], group: 'grass_ki', glow: '#5FE3D2', sway: 1.2, ppu: 145 },
+    grass_tuft_a: { x: 768, y: 294, w: 87, h: 86, pivot: [0.5, 1.0], group: 'grass', sway: 1.2, ppu: 150 },
+    grass_tuft_b: { x: 885, y: 280, w: 104, h: 104, pivot: [0.5, 1.0], group: 'grass', sway: 1.3, ppu: 145 },
 
-    flower_blue_b: { x: 30, y: 409, w: 83, h: 93, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.0, ppu: 80 },
-    flower_blue_c: { x: 148, y: 428, w: 83, h: 74, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.0, ppu: 80 },
-    flower_blue_cluster: { x: 261, y: 399, w: 113, h: 103, pivot: [0.5, 1.0], group: 'flower_blue', sway: 0.9, ppu: 80 },
-    flower_blue_d: { x: 409, y: 409, w: 83, h: 93, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.1, ppu: 80 },
-    flower_blue_e: { x: 522, y: 409, w: 83, h: 93, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.1, ppu: 80 },
-    flower_poppy_a: { x: 650, y: 404, w: 83, h: 98, pivot: [0.5, 1.0], group: 'flower_poppy', sway: 1.1, ppu: 80 },
-    flower_poppy_b: { x: 768, y: 404, w: 88, h: 98, pivot: [0.5, 1.0], group: 'flower_poppy', sway: 1.1, ppu: 80 },
-    flower_poppy_cluster: { x: 880, y: 399, w: 114, h: 103, pivot: [0.5, 1.0], group: 'flower_poppy', sway: 1.0, ppu: 80 },
+    flower_blue_b: { x: 30, y: 409, w: 83, h: 93, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.0, ppu: 185 },
+    flower_blue_c: { x: 148, y: 428, w: 83, h: 74, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.0, ppu: 185 },
+    flower_blue_cluster: { x: 261, y: 399, w: 113, h: 103, pivot: [0.5, 1.0], group: 'flower_blue', sway: 0.9, ppu: 185 },
+    flower_blue_d: { x: 409, y: 409, w: 83, h: 93, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.1, ppu: 185 },
+    flower_blue_e: { x: 522, y: 409, w: 83, h: 93, pivot: [0.5, 1.0], group: 'flower_blue', sway: 1.1, ppu: 185 },
+    flower_poppy_a: { x: 650, y: 404, w: 83, h: 98, pivot: [0.5, 1.0], group: 'flower_poppy', sway: 1.1, ppu: 185 },
+    flower_poppy_b: { x: 768, y: 404, w: 88, h: 98, pivot: [0.5, 1.0], group: 'flower_poppy', sway: 1.1, ppu: 185 },
+    flower_poppy_cluster: { x: 880, y: 399, w: 114, h: 103, pivot: [0.5, 1.0], group: 'flower_poppy', sway: 1.0, ppu: 185 },
 
-    mushroom_red_large: { x: 36, y: 536, w: 77, h: 84, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 80 },
-    mushroom_brown_large: { x: 148, y: 537, w: 83, h: 83, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 80 },
-    mushroom_ki_cyan_cluster: { x: 272, y: 522, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#5FE3D2', sway: 0.3, ppu: 76 },
-    mushroom_ki_violet_cluster: { x: 400, y: 522, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#9B6BFF', sway: 0.3, ppu: 76 },
-    moss_glow: { x: 540, y: 544, w: 52, h: 64, pivot: [0.5, 1.0], group: 'moss_ki', glow: '#5FE3D2', sway: 0.4, ppu: 76 },
-    sprout: { x: 624, y: 552, w: 47, h: 52, pivot: [0.5, 1.0], group: 'grass', sway: 0.8, ppu: 76 },
-    sprout_b: { x: 691, y: 558, w: 47, h: 54, pivot: [0.5, 1.0], group: 'grass', sway: 0.8, ppu: 76 },
-    clover_patch: { x: 762, y: 544, w: 104, h: 81, pivot: [0.5, 1.0], group: 'grass', sway: 0.7, ppu: 76 },
-    bush_clover: { x: 885, y: 528, w: 105, h: 98, pivot: [0.5, 1.0], group: 'grass', sway: 0.9, ppu: 72 },
+    mushroom_red_large: { x: 36, y: 536, w: 77, h: 84, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 160 },
+    mushroom_brown_large: { x: 148, y: 537, w: 83, h: 83, pivot: [0.5, 1.0], group: 'mushroom', sway: 0.2, ppu: 160 },
+    mushroom_ki_cyan_cluster: { x: 272, y: 522, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#5FE3D2', sway: 0.3, ppu: 150 },
+    mushroom_ki_violet_cluster: { x: 400, y: 522, w: 96, h: 108, pivot: [0.5, 1.0], group: 'mushroom_ki', glow: '#9B6BFF', sway: 0.3, ppu: 150 },
+    moss_glow: { x: 540, y: 544, w: 52, h: 64, pivot: [0.5, 1.0], group: 'moss_ki', glow: '#5FE3D2', sway: 0.4, ppu: 150 },
+    sprout: { x: 624, y: 552, w: 47, h: 52, pivot: [0.5, 1.0], group: 'grass', sway: 0.8, ppu: 160 },
+    sprout_b: { x: 691, y: 558, w: 47, h: 54, pivot: [0.5, 1.0], group: 'grass', sway: 0.8, ppu: 160 },
+    clover_patch: { x: 762, y: 544, w: 104, h: 81, pivot: [0.5, 1.0], group: 'grass', sway: 0.7, ppu: 155 },
+    bush_clover: { x: 885, y: 528, w: 105, h: 98, pivot: [0.5, 1.0], group: 'grass', sway: 0.9, ppu: 140 },
 
-    reed_a: { x: 30, y: 655, w: 94, h: 145, pivot: [0.5, 1.0], group: 'reed', sway: 1.4, ppu: 80 },
-    reed_b: { x: 143, y: 650, w: 103, h: 144, pivot: [0.5, 1.0], group: 'reed', sway: 1.4, ppu: 80 },
-    lilypad_a: { x: 271, y: 701, w: 98, h: 98, pivot: [0.5, 0.5], group: 'water_deco', flat: true, sway: 0.2, ppu: 96 },
-    lilypad_flower_a: { x: 394, y: 701, w: 103, h: 99, pivot: [0.5, 0.5], group: 'water_deco', flat: true, sway: 0.2, ppu: 96 },
-    lilypad_flower_b: { x: 517, y: 716, w: 98, h: 78, pivot: [0.5, 0.5], group: 'water_deco', flat: true, sway: 0.2, ppu: 96 },
-    fern_bush: { x: 634, y: 681, w: 109, h: 115, pivot: [0.5, 1.0], group: 'forest_floor', sway: 1.1, ppu: 76 },
-    moss_patch: { x: 762, y: 704, w: 104, h: 92, pivot: [0.5, 1.0], group: 'forest_floor', sway: 0.5, ppu: 80 },
-    tall_grass_blade_a: { x: 890, y: 688, w: 47, h: 111, pivot: [0.5, 1.0], group: 'tall_grass', sway: 1.5, ppu: 72 },
-    tall_grass_blade_b: { x: 942, y: 720, w: 47, h: 69, pivot: [0.5, 1.0], group: 'grass', sway: 1.2, ppu: 76 },
+    reed_a: { x: 30, y: 655, w: 94, h: 145, pivot: [0.5, 1.0], group: 'reed', sway: 1.4, ppu: 140 },
+    reed_b: { x: 143, y: 650, w: 103, h: 144, pivot: [0.5, 1.0], group: 'reed', sway: 1.4, ppu: 140 },
+    lilypad_a: { x: 271, y: 701, w: 98, h: 98, pivot: [0.5, 0.5], group: 'water_deco', flat: true, sway: 0.2, ppu: 160 },
+    lilypad_flower_a: { x: 394, y: 701, w: 103, h: 99, pivot: [0.5, 0.5], group: 'water_deco', flat: true, sway: 0.2, ppu: 160 },
+    lilypad_flower_b: { x: 517, y: 716, w: 98, h: 78, pivot: [0.5, 0.5], group: 'water_deco', flat: true, sway: 0.2, ppu: 160 },
+    fern_bush: { x: 634, y: 681, w: 109, h: 115, pivot: [0.5, 1.0], group: 'forest_floor', sway: 1.1, ppu: 140 },
+    moss_patch: { x: 762, y: 704, w: 104, h: 92, pivot: [0.5, 1.0], group: 'forest_floor', sway: 0.5, ppu: 155 },
+    tall_grass_blade_a: { x: 890, y: 688, w: 47, h: 111, pivot: [0.5, 1.0], group: 'tall_grass', sway: 1.5, ppu: 135 },
+    tall_grass_blade_b: { x: 942, y: 720, w: 47, h: 69, pivot: [0.5, 1.0], group: 'grass', sway: 1.2, ppu: 150 },
 
-    twig_a: { x: 40, y: 834, w: 78, h: 57, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 85 },
-    twig_b: { x: 40, y: 916, w: 73, h: 57, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 85 },
-    stick_a: { x: 143, y: 829, w: 67, h: 67, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 85 },
-    stick_b: { x: 143, y: 911, w: 73, h: 67, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 85 },
-    leaves_a: { x: 240, y: 829, w: 58, h: 62, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.1, ppu: 85 },
-    leaves_b: { x: 240, y: 916, w: 64, h: 57, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.1, ppu: 85 },
-    pebbles_a: { x: 327, y: 829, w: 68, h: 67, pivot: [0.5, 1.0], group: 'cave_debris', sway: 0.0, ppu: 85 },
-    pebbles_b: { x: 327, y: 911, w: 68, h: 67, pivot: [0.5, 1.0], group: 'cave_debris', sway: 0.0, ppu: 85 },
-    bones: { x: 414, y: 829, w: 68, h: 67, pivot: [0.5, 1.0], group: 'bones', interact: 'bones', sway: 0.0, ppu: 80 },
-    bones_b: { x: 414, y: 906, w: 74, h: 72, pivot: [0.5, 1.0], group: 'bones', interact: 'bones', sway: 0.0, ppu: 80 },
-    doll_arm_buried: { x: 522, y: 890, w: 103, h: 88, pivot: [0.5, 1.0], group: 'interactive', interact: 'doll_arm_buried', sway: 0.0, ppu: 76 },
-    firefly_1: { x: 756, y: 862, w: 40, h: 38, pivot: [0.5, 0.5], group: 'firefly', glow: '#FFE875', anim: true, sway: 0.0, ppu: 96 },
-    firefly_2: { x: 794, y: 874, w: 42, h: 42, pivot: [0.5, 0.5], group: 'firefly', glow: '#FFE875', anim: true, sway: 0.0, ppu: 96 },
-    firefly_3: { x: 726, y: 906, w: 34, h: 32, pivot: [0.5, 0.5], group: 'firefly', glow: '#5FE3D2', anim: true, sway: 0.0, ppu: 96 },
-    sparkle_hidden: { x: 754, y: 932, w: 80, h: 44, pivot: [0.5, 0.5], group: 'interactive', interact: 'sparkle_hidden', glow: '#FFF3A1', anim: true, sway: 0.0, ppu: 80 },
-    mana_berry_plant: { x: 890, y: 840, w: 99, h: 138, pivot: [0.5, 1.0], group: 'interactive', interact: 'mana_berry_plant', glow: '#5FE3D2', sway: 0.6, ppu: 76 },
+    twig_a: { x: 40, y: 834, w: 78, h: 57, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 170 },
+    twig_b: { x: 40, y: 916, w: 73, h: 57, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 170 },
+    stick_a: { x: 143, y: 829, w: 67, h: 67, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 170 },
+    stick_b: { x: 143, y: 911, w: 73, h: 67, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.0, ppu: 170 },
+    leaves_a: { x: 240, y: 829, w: 58, h: 62, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.1, ppu: 170 },
+    leaves_b: { x: 240, y: 916, w: 64, h: 57, pivot: [0.5, 1.0], group: 'forest_debris', sway: 0.1, ppu: 170 },
+    pebbles_a: { x: 327, y: 829, w: 68, h: 67, pivot: [0.5, 1.0], group: 'cave_debris', sway: 0.0, ppu: 170 },
+    pebbles_b: { x: 327, y: 911, w: 68, h: 67, pivot: [0.5, 1.0], group: 'cave_debris', sway: 0.0, ppu: 170 },
+    bones: { x: 414, y: 829, w: 68, h: 67, pivot: [0.5, 1.0], group: 'bones', interact: 'bones', sway: 0.0, ppu: 130 },
+    bones_b: { x: 414, y: 906, w: 74, h: 72, pivot: [0.5, 1.0], group: 'bones', interact: 'bones', sway: 0.0, ppu: 130 },
+    doll_arm_buried: { x: 522, y: 890, w: 103, h: 88, pivot: [0.5, 1.0], group: 'interactive', interact: 'doll_arm_buried', sway: 0.0, ppu: 120 },
+    firefly_1: { x: 756, y: 862, w: 40, h: 38, pivot: [0.5, 0.5], group: 'firefly', glow: '#FFE875', anim: true, sway: 0.0, ppu: 160 },
+    firefly_2: { x: 794, y: 874, w: 42, h: 42, pivot: [0.5, 0.5], group: 'firefly', glow: '#FFE875', anim: true, sway: 0.0, ppu: 160 },
+    firefly_3: { x: 726, y: 906, w: 34, h: 32, pivot: [0.5, 0.5], group: 'firefly', glow: '#5FE3D2', anim: true, sway: 0.0, ppu: 160 },
+    sparkle_hidden: { x: 754, y: 932, w: 80, h: 44, pivot: [0.5, 0.5], group: 'interactive', interact: 'sparkle_hidden', glow: '#FFF3A1', anim: true, sway: 0.0, ppu: 120 },
+    mana_berry_plant: { x: 890, y: 840, w: 99, h: 138, pivot: [0.5, 1.0], group: 'interactive', interact: 'mana_berry_plant', glow: '#5FE3D2', sway: 0.6, ppu: 120 },
   },
 };
 
@@ -182,56 +182,56 @@ export const DEFAULT_BIOMES_DATA: BiomesDataFile = {
           id: 'village_grass',
           layer: 'grass',
           group: 'grass',
-          density: 1.4,
+          density: 0.9,
           tileTypes: ['grass'],
           avoidTypes: ['path', 'water', 'sand', ' wall' as TileType, 'interior_floor'],
-          scaleRange: [0.85, 1.08],
+          scaleRange: [0.68, 0.88],
         },
         {
           id: 'village_flowerbeds',
           layer: 'flowers',
           frames: ['flower_pink_cluster', 'flower_daisy_cluster', 'flower_pink_b', 'flower_daisy_b', 'flower_yellow_b'],
-          density: 3.0,
+          density: 1.5,
           tileTypes: ['flowers'],
           avoidTypes: ['path', 'water'],
-          scaleRange: [0.92, 1.15],
+          scaleRange: [0.65, 0.85],
         },
         {
           id: 'village_daisies',
           layer: 'flowers',
           group: 'flower_daisy',
-          density: 1.8,
+          density: 0.9,
           tileTypes: ['grass'],
           avoidTypes: ['path', 'water'],
-          cluster: { noiseScale: 0.28, threshold: 0.52 },
-          scaleRange: [0.88, 1.12],
+          cluster: { noiseScale: 0.28, threshold: 0.56 },
+          scaleRange: [0.62, 0.82],
         },
         {
           id: 'village_pink_flowers',
           layer: 'flowers',
           group: 'flower_pink',
-          density: 1.6,
+          density: 0.85,
           tileTypes: ['grass'],
           avoidTypes: ['path', 'water'],
-          cluster: { noiseScale: 0.30, threshold: 0.56 },
-          scaleRange: [0.88, 1.10],
+          cluster: { noiseScale: 0.30, threshold: 0.58 },
+          scaleRange: [0.62, 0.82],
         },
         {
           id: 'village_reeds',
           layer: 'grass',
           group: 'reed',
-          density: 1.5,
+          density: 1.1,
           tileTypes: ['grass', 'sand'],
           shoreOnly: true,
-          scaleRange: [0.85, 1.10],
+          scaleRange: [0.75, 0.95],
         },
         {
           id: 'village_lilypads',
           layer: 'flowers',
           group: 'water_deco',
-          density: 0.85,
+          density: 0.7,
           tileTypes: ['water'],
-          scaleRange: [0.85, 1.15],
+          scaleRange: [0.72, 0.95],
         },
       ],
     },
@@ -245,20 +245,20 @@ export const DEFAULT_BIOMES_DATA: BiomesDataFile = {
           id: 'meadow_grass_normal',
           layer: 'grass',
           group: 'grass',
-          density: 1.6,
+          density: 1.1,
           tileTypes: ['grass'],
           avoidTypes: ['path', 'water', 'sand'],
           excludeEncounterTiles: true,
-          scaleRange: [0.90, 1.10],
+          scaleRange: [0.70, 0.90],
         },
         {
           id: 'meadow_tall_grass_encounter',
           layer: 'grass',
           frames: ['grass_tuft_b', 'bush_clover', 'tall_grass_blade_a', 'grass_tuft_a', 'clover_patch'],
-          density: 4.2,
+          density: 2.8,
           tileTypes: ['grass'],
           encounterOnly: true,
-          scaleRange: [1.08, 1.32],
+          scaleRange: [0.92, 1.12],
           tint: '#3B8E3E',
           swayMultiplier: 1.45,
         },
@@ -266,62 +266,62 @@ export const DEFAULT_BIOMES_DATA: BiomesDataFile = {
           id: 'meadow_daisies',
           layer: 'flowers',
           group: 'flower_daisy',
-          density: 2.2,
+          density: 1.1,
           tileTypes: ['grass', 'flowers'],
           avoidTypes: ['path', 'water'],
           excludeEncounterTiles: true,
-          cluster: { noiseScale: 0.24, threshold: 0.46 },
-          scaleRange: [0.90, 1.15],
+          cluster: { noiseScale: 0.24, threshold: 0.52 },
+          scaleRange: [0.64, 0.84],
         },
         {
           id: 'meadow_yellow_flowers',
           layer: 'flowers',
           group: 'flower_yellow',
-          density: 2.4,
+          density: 1.2,
           tileTypes: ['grass', 'flowers'],
           avoidTypes: ['path', 'water'],
           excludeEncounterTiles: true,
-          cluster: { noiseScale: 0.22, threshold: 0.45 },
-          scaleRange: [0.90, 1.15],
+          cluster: { noiseScale: 0.22, threshold: 0.50 },
+          scaleRange: [0.64, 0.84],
         },
         {
           id: 'meadow_poppies',
           layer: 'flowers',
           group: 'flower_poppy',
-          density: 2.0,
+          density: 1.0,
           tileTypes: ['grass', 'flowers'],
           avoidTypes: ['path', 'water'],
           excludeEncounterTiles: true,
-          cluster: { noiseScale: 0.26, threshold: 0.50 },
-          scaleRange: [0.92, 1.16],
+          cluster: { noiseScale: 0.26, threshold: 0.54 },
+          scaleRange: [0.65, 0.85],
         },
         {
           id: 'meadow_blue_flowers',
           layer: 'flowers',
           group: 'flower_blue',
-          density: 2.0,
+          density: 1.0,
           tileTypes: ['grass', 'flowers'],
           avoidTypes: ['path', 'water'],
           excludeEncounterTiles: true,
-          cluster: { noiseScale: 0.25, threshold: 0.48 },
-          scaleRange: [0.90, 1.14],
+          cluster: { noiseScale: 0.25, threshold: 0.52 },
+          scaleRange: [0.64, 0.84],
         },
         {
           id: 'meadow_reeds',
           layer: 'grass',
           group: 'reed',
-          density: 1.8,
+          density: 1.3,
           tileTypes: ['grass', 'sand'],
           shoreOnly: true,
-          scaleRange: [0.90, 1.18],
+          scaleRange: [0.78, 0.98],
         },
         {
           id: 'meadow_lilypads',
           layer: 'flowers',
           group: 'water_deco',
-          density: 0.9,
+          density: 0.75,
           tileTypes: ['water'],
-          scaleRange: [0.88, 1.15],
+          scaleRange: [0.75, 0.95],
         },
       ],
     },
@@ -646,18 +646,22 @@ export class OverworldDecorManager {
   private initTexture(): void {
     const rawImg = this.atlasData.image || 'overworld_decor_atlas.png';
     const imagePath = rawImg.startsWith('/') ? rawImg : `/Assets/${rawImg}`;
-    const loader = new THREE.TextureLoader();
+    if (typeof document !== 'undefined') {
+      const loader = new THREE.TextureLoader();
 
-    this.sharedTexture = loader.load(imagePath, (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.magFilter = THREE.NearestFilter;
-      tex.minFilter = THREE.NearestFilter;
-      tex.generateMipmaps = false;
-      tex.premultiplyAlpha = false;
-      tex.wrapS = THREE.ClampToEdgeWrapping;
-      tex.wrapT = THREE.ClampToEdgeWrapping;
-      tex.needsUpdate = true;
-    });
+      this.sharedTexture = loader.load(imagePath, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        tex.generateMipmaps = false;
+        tex.premultiplyAlpha = false;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.needsUpdate = true;
+      });
+    } else {
+      this.sharedTexture = new THREE.Texture();
+    }
 
     this.sharedTexture.colorSpace = THREE.SRGBColorSpace;
     this.sharedTexture.magFilter = THREE.NearestFilter;
@@ -1077,7 +1081,16 @@ export class OverworldDecorManager {
           const rng = new SeededRng(tileSeed);
 
           const ruleMult = this.ruleDensityMultipliers[rule.id] ?? 1.0;
-          const effectiveDensity = rule.density * ruleMult;
+          // Bloque 45 Req. 3: Densidad concentrada junto a bordes, árboles, agua y edificios; ~0 en carriles de paso
+          const nearStructureBoost =
+            rule.encounterOnly || groundType === 'flowers'
+              ? 1.0
+              : this.isNearEdgeOrStructure(map, x, z)
+              ? 1.25
+              : this.isAdjacentToPath(map, x, z)
+              ? 0.25
+              : 0.45;
+          const effectiveDensity = rule.density * ruleMult * nearStructureBoost;
           const baseCount = Math.floor(effectiveDensity);
           const frac = effectiveDensity - baseCount;
           const spawnCount = baseCount + (rng.next() < frac ? 1 : 0);
@@ -1088,10 +1101,10 @@ export class OverworldDecorManager {
             const frameName = candidateFrames[Math.floor(rng.next() * candidateFrames.length)];
             const region = this.AtlasRegion(frameName);
 
-            // Offset within tile (-0.42 .. +0.42) so tufts spread naturally across the tile
-            const ox = rng.range(-0.42, 0.42);
-            const oz = rng.range(-0.42, 0.42);
-            const scale = rng.range(rule.scaleRange[0], rule.scaleRange[1]);
+            // Offset within tile (-0.38 .. +0.38) so tufts never spill onto adjacent path lanes
+            const ox = rng.range(-0.38, 0.38);
+            const oz = rng.range(-0.38, 0.38);
+            const scale = Math.min(0.7, rng.range(rule.scaleRange[0], rule.scaleRange[1]));
 
             const wx = x + ox;
             const wz = z + oz;
@@ -1244,73 +1257,100 @@ export class OverworldDecorManager {
     }
   }
 
-  /**
-   * Req. 6: INTERACTIVOS (doll_arm_buried, sparkle_hidden, mana_berry_plant, bones)
-   */
-  private buildInteractiveDecor(map: MapData, parentGroup: THREE.Group, mapHash: number): void {
-    const rng = new SeededRng((mapHash ^ 0x517cc1b7) >>> 0);
-    const saveState = GlobalSaveService.getCurrentState();
-
-    const candidates: Array<{
-      type: 'doll_arm_buried' | 'sparkle_hidden' | 'mana_berry_plant' | 'bones';
-      frameName: string;
-      reward?: string;
-    }> = [
-      { type: 'mana_berry_plant', frameName: 'mana_berry_plant', reward: 'cristal_fuego' },
-      { type: 'mana_berry_plant', frameName: 'mana_berry_plant', reward: 'cristal_agua' },
-      { type: 'sparkle_hidden', frameName: 'sparkle_hidden', reward: 'elixir_ki' },
-      { type: 'sparkle_hidden', frameName: 'sparkle_hidden', reward: 'soul_bottle_plata' },
-      { type: 'doll_arm_buried', frameName: 'doll_arm_buried' },
-      { type: 'bones', frameName: 'bones' },
-    ];
-
-    let placed = 0;
-    for (let attempt = 0; attempt < 120 && placed < candidates.length; attempt++) {
-      const tx = Math.floor(rng.range(3, map.width - 3));
-      const tz = Math.floor(rng.range(3, map.height - 3));
-
-      if (this.isBlockedOrReservedTile(map, tx, tz, false)) continue;
-      const gType = map.ground[tz][tx];
-      if (gType !== 'grass' && gType !== 'cave_floor' && gType !== 'flowers') continue;
-      if (this.interactiveEntries.some((e) => Math.abs(e.x - tx) + Math.abs(e.z - tz) < 4)) continue;
-
-      const spec = candidates[placed];
-      const flagId = `decor_${spec.type}_${map.id}_${tx}_${tz}`;
-
-      // If sparkle_hidden was already collected in SaveState, skip showing it
-      const isCollected = spec.type === 'sparkle_hidden' && !!saveState.flags?.[flagId];
-
-      const region = this.AtlasRegion(spec.frameName);
-      const { geometry, worldH } = this.getFrameGeometry(spec.frameName);
-      const mat = this.getBillboardMaterial(region?.sway || 0.2, worldH, false);
-
-      const mesh = new THREE.Mesh(geometry, mat);
-      mesh.position.set(tx, 0.02, tz);
-      mesh.visible = !isCollected;
-      parentGroup.add(mesh);
-
-      let glowMesh: THREE.Mesh | undefined;
-      if (region?.glow) {
-        const glowMat = this.getBillboardMaterial(region.sway || 0.2, worldH, false, undefined, true, region.glow);
-        glowMesh = new THREE.Mesh(geometry, glowMat);
-        glowMesh.position.set(tx, 0.02, tz);
-        glowMesh.scale.set(1.15, 1.15, 1.15);
-        glowMesh.visible = !isCollected && this.layerVisibility.glow;
-        parentGroup.add(glowMesh);
+  private isNearEdgeOrStructure(map: MapData, x: number, z: number): boolean {
+    if (x <= 2 || x >= map.width - 3 || z <= 2 || z >= map.height - 3) return true;
+    for (let dz = -2; dz <= 2; dz++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        if (dx === 0 && dz === 0) continue;
+        const nx = x + dx;
+        const nz = z + dz;
+        if (nx < 0 || nx >= map.width || nz < 0 || nz >= map.height) continue;
+        const g = map.ground[nz]?.[nx];
+        const d = map.decor?.[nz]?.[nx];
+        if (g === 'water' || d === 'tree' || d === 'rock' || d === 'building_wall' || d === 'roof' || d === 'wall') {
+          return true;
+        }
       }
+    }
+    return false;
+  }
 
-      this.interactiveEntries.push({
-        x: tx,
-        z: tz,
-        type: spec.type,
-        frameName: spec.frameName,
-        flagId,
-        mesh,
-        glowMesh,
-        itemReward: spec.reward,
-      });
+  private isAdjacentToPath(map: MapData, x: number, z: number): boolean {
+    const dirs = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ];
+    for (const [dx, dz] of dirs) {
+      const nx = x + dx;
+      const nz = z + dz;
+      if (nx >= 0 && nx < map.width && nz >= 0 && nz < map.height) {
+        const g = map.ground[nz][nx];
+        if (g === 'path' || g === 'cobble' || g === 'plaza') return true;
+      }
+    }
+    return false;
+  }
 
-      placed++;
+  /**
+   * Req. 6 & Bloque 45 Req. 2: INTERACTIVOS (doll_arm_buried, sparkle_hidden, mana_berry_plant, bones)
+   * Se colocan exclusivamente en las coordenadas de puntos de interés (landmarks) horneadas en `map.decor`,
+   * nunca sueltos al azar en mitad de un prado.
+   */
+  private buildInteractiveDecor(map: MapData, parentGroup: THREE.Group, _mapHash: number): void {
+    const saveState = GlobalSaveService.getCurrentState();
+    const loreSpecs: Record<
+      string,
+      { type: 'doll_arm_buried' | 'sparkle_hidden' | 'mana_berry_plant' | 'bones'; frameName: string; reward?: string }
+    > = {
+      doll_arm_buried: { type: 'doll_arm_buried', frameName: 'doll_arm_buried' },
+      sparkle_hidden: { type: 'sparkle_hidden', frameName: 'sparkle_hidden', reward: 'elixir_ki' },
+      mana_berry_plant: { type: 'mana_berry_plant', frameName: 'mana_berry_plant', reward: 'cristal_fuego' },
+      bones: { type: 'bones', frameName: 'bones' },
+    };
+
+    if (!map.decor) return;
+
+    for (let tz = 0; tz < map.height; tz++) {
+      for (let tx = 0; tx < map.width; tx++) {
+        const cellDecor = map.decor[tz]?.[tx];
+        if (!cellDecor || !loreSpecs[cellDecor]) continue;
+
+        const spec = loreSpecs[cellDecor];
+        const flagId = `decor_${spec.type}_${map.id}_${tx}_${tz}`;
+        const isCollected = spec.type === 'sparkle_hidden' && !!saveState.flags?.[flagId];
+
+        const region = this.AtlasRegion(spec.frameName);
+        const { geometry, worldH } = this.getFrameGeometry(spec.frameName);
+        const mat = this.getBillboardMaterial(region?.sway || 0.2, worldH, false);
+
+        const mesh = new THREE.Mesh(geometry, mat);
+        mesh.position.set(tx, 0.02, tz);
+        mesh.visible = !isCollected;
+        parentGroup.add(mesh);
+
+        let glowMesh: THREE.Mesh | undefined;
+        if (region?.glow) {
+          const glowMat = this.getBillboardMaterial(region.sway || 0.2, worldH, false, undefined, true, region.glow);
+          glowMesh = new THREE.Mesh(geometry, glowMat);
+          glowMesh.position.set(tx, 0.02, tz);
+          glowMesh.scale.set(1.15, 1.15, 1.15);
+          glowMesh.visible = !isCollected && this.layerVisibility.glow;
+          parentGroup.add(glowMesh);
+        }
+
+        this.interactiveEntries.push({
+          x: tx,
+          z: tz,
+          type: spec.type,
+          frameName: spec.frameName,
+          flagId,
+          mesh,
+          glowMesh,
+          itemReward: spec.reward,
+        });
+      }
     }
   }
 

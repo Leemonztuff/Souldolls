@@ -27,8 +27,8 @@ export class OverworldCamera {
   private followLerp = 10.0;
   private rotLerp = 8.0;
 
-  constructor(camera: THREE.PerspectiveCamera) {
-    this.camera = camera;
+  constructor(camera?: THREE.PerspectiveCamera) {
+    this.camera = camera || new THREE.PerspectiveCamera(38, 16 / 9, 0.1, 200);
     this.camera.fov = 38;
     this.camera.updateProjectionMatrix();
   }

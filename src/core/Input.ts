@@ -1,5 +1,7 @@
 import { InputAction, Vector2D } from '../types';
 import { GlobalEventBus } from './EventBus';
+import { isDebugEnabled } from './DebugGate';
+import { GlobalSaveService } from '../services/SaveService';
 
 export class Input {
   private static instance: Input;
@@ -13,35 +15,56 @@ export class Input {
 
   // Inactivity tracking
   private lastActivityTime = Date.now();
-  private hudVisible = true;
-  private readonly inactivityLimit = 8000; // 8 seconds of absolute inactivity
-
   private runPressStartTime = 0;
+  private runToggleState = false;
 
-  private recordActivity(): void {
+  public getLastActivityTime(): number {
+    return this.lastActivityTime;
+  }
+
+  public recordActivity(): void {
     this.lastActivityTime = Date.now();
+  }
+
+  private isToggleRunMode(): boolean {
+    try {
+      if (GlobalSaveService.hasActiveState()) {
+        return GlobalSaveService.getCurrentState().settings?.runMode === 'toggle';
+      }
+    } catch (_) {}
+    return false;
   }
 
   private updateRunPressTracker(action: InputAction, pressed: boolean): void {
     if (action === 'RUN') {
-      if (pressed) {
-        if (this.runPressStartTime === 0) {
-          this.runPressStartTime = Date.now();
+      if (this.isToggleRunMode()) {
+        if (pressed) {
+          this.runToggleState = !this.runToggleState;
+          this.runPressStartTime = this.runToggleState ? Date.now() - 1000 : 0;
         }
       } else {
-        this.runPressStartTime = 0;
+        if (pressed) {
+          if (this.runPressStartTime === 0) {
+            this.runPressStartTime = Date.now();
+          }
+        } else {
+          this.runPressStartTime = 0;
+        }
       }
     }
   }
 
   public isSprintActive(): boolean {
+    if (this.isToggleRunMode()) {
+      return this.runToggleState;
+    }
     if (!this.isDown('RUN') || this.runPressStartTime === 0) {
       return false;
     }
-    return Date.now() - this.runPressStartTime >= 600; // 600ms threshold for sprint/long-press
+    return Date.now() - this.runPressStartTime >= 180; // Holding B / Shift accelerates step immediately/smoothly
   }
 
-  // Keyboard mapping
+  // Keyboard mapping (Bloque 43: Shift or X runs; Esc or Enter opens Menu)
   private keyMap: Record<string, InputAction[]> = {
     // Arrows
     ArrowUp: ['UP'],
@@ -59,26 +82,22 @@ export class Input {
     a: ['LEFT'],
     d: ['RIGHT'],
 
-    // Action keys
+    // Action keys (A)
     KeyZ: ['CONFIRM'],
     KeyC: ['CONFIRM'],
     Enter: ['CONFIRM', 'MENU'],
     Space: ['CONFIRM'],
 
-    // Cancel / Back keys
-    KeyX: ['CANCEL'],
+    // Cancel / Back / Run keys (B = X or Shift)
+    KeyX: ['CANCEL', 'RUN'],
+    x: ['CANCEL', 'RUN'],
+    X: ['CANCEL', 'RUN'],
     KeyK: ['CANCEL'],
     Escape: ['CANCEL', 'MENU'],
     Backspace: ['CANCEL'],
 
-    // Menu / Journal / Select
+    // Menu
     KeyM: ['MENU'],
-    KeyJ: ['SELECT'],
-    Tab: ['SELECT'],
-
-    // Camera Rotation
-    KeyQ: ['UP'],
-    KeyE: ['DOWN'],
 
     // Run / Modifier
     ShiftLeft: ['RUN'],
@@ -92,20 +111,22 @@ export class Input {
     this.boundKeyDown = (e: KeyboardEvent) => this.onKeyDown(e);
     this.boundKeyUp = (e: KeyboardEvent) => this.onKeyUp(e);
 
-    window.addEventListener('keydown', this.boundKeyDown);
-    window.addEventListener('keyup', this.boundKeyUp);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', this.boundKeyDown);
+      window.addEventListener('keyup', this.boundKeyUp);
 
-    // Track touch, click and movement interactions across screen to wake up HUD
-    const onWindowInteraction = () => this.recordActivity();
-    window.addEventListener('pointerdown', onWindowInteraction, { passive: true });
-    window.addEventListener('pointermove', onWindowInteraction, { passive: true });
-    window.addEventListener('touchstart', onWindowInteraction, { passive: true });
-    window.addEventListener('keydown', onWindowInteraction, { passive: true });
+      // Track touch, click and movement interactions across screen to wake up HUD
+      const onWindowInteraction = () => this.recordActivity();
+      window.addEventListener('pointerdown', onWindowInteraction, { passive: true });
+      window.addEventListener('pointermove', onWindowInteraction, { passive: true });
+      window.addEventListener('touchstart', onWindowInteraction, { passive: true });
+      window.addEventListener('keydown', onWindowInteraction, { passive: true });
 
-    // Auto-mount physical GameBoy controls if present in DOM
-    setTimeout(() => {
-      this.mountTouchControls();
-    }, 100);
+      // Auto-mount physical GameBoy controls if present in DOM
+      setTimeout(() => {
+        this.mountTouchControls();
+      }, 100);
+    }
   }
 
   public static getInstance(): Input {
@@ -131,8 +152,10 @@ export class Input {
     if (e.repeat) return;
 
     if (e.code === 'F2') {
-      e.preventDefault();
-      GlobalEventBus.emit('debug:toggle', undefined as any);
+      if (isDebugEnabled()) {
+        e.preventDefault();
+        GlobalEventBus.emit('debug:toggle', undefined as any);
+      }
       return;
     }
 
@@ -185,6 +208,17 @@ export class Input {
       this.justReleasedStates.set(action, true);
       this.updateRunPressTracker(action, false);
       GlobalEventBus.emit('input:action', { action, pressed: false });
+    }
+  }
+
+  /**
+   * Bloque 43 Req. 3: Updates virtual touch controls state.
+   * Holding B ('CANCEL') also drives 'RUN' so holding B accelerates walking speed.
+   */
+  public setVirtualState(action: InputAction, pressed: boolean): void {
+    this.setVirtualAction(action, pressed);
+    if (action === 'CANCEL') {
+      this.setVirtualAction('RUN', pressed);
     }
   }
 
@@ -436,6 +470,9 @@ export class Input {
   }
 
   public isDown(action: InputAction): boolean {
+    if (action === 'RUN' && this.isToggleRunMode()) {
+      return this.runToggleState;
+    }
     return !!this.downStates.get(action);
   }
 
@@ -461,37 +498,15 @@ export class Input {
     this.pollGamepad();
     this.justPressedStates.clear();
     this.justReleasedStates.clear();
+  }
 
-    // Check inactivity to fade out the touch controls HUD
-    const now = Date.now();
-    if (now - this.lastActivityTime > this.inactivityLimit) {
-      if (this.hudVisible) {
-        this.hudVisible = false;
-        const hud = document.getElementById('touch-controls-hud');
-        if (hud) {
-          hud.style.transition = 'opacity 0.6s ease-in-out';
-          hud.style.opacity = '0';
-          // Temporarily block touch control buttons when invisible to prevent accidental triggers
-          const interactiveElements = hud.querySelectorAll('.pointer-events-auto, button');
-          interactiveElements.forEach((el) => {
-            (el as HTMLElement).style.pointerEvents = 'none';
-          });
-        }
-      }
-    } else {
-      if (!this.hudVisible) {
-        this.hudVisible = true;
-        const hud = document.getElementById('touch-controls-hud');
-        if (hud) {
-          hud.style.opacity = '1';
-          // Restore button interaction
-          const interactiveElements = hud.querySelectorAll('.pointer-events-auto, button');
-          interactiveElements.forEach((el) => {
-            (el as HTMLElement).style.pointerEvents = '';
-          });
-        }
-      }
-    }
+  public clearTransientStates(): void {
+    this.justPressedStates.clear();
+    this.justReleasedStates.clear();
+    this.virtualStates.forEach((_, act) => {
+      this.virtualStates.set(act, false);
+      this.downStates.set(act, false);
+    });
   }
 
   public destroy(): void {

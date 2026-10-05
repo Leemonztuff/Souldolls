@@ -17,7 +17,7 @@ export const BODY_CHASSIS_DATA: Record<string, BodyChassis> = {
     slots: { relic: true, weapon: true, accessory: false },
     tags: ['basico', 'ligero'],
     price: 500,
-    description: 'Chasis de entrenamiento tallado en roble común. Barato y fácil de reparar, ideal para almas novatas.',
+    description: 'Cuerpo de entrenamiento tallado en roble común. Barato y fácil de reparar, ideal para almas novatas.',
   },
   chassis_madera_reforzada_t2: {
     id: 'chassis_madera_reforzada_t2',
@@ -53,11 +53,11 @@ export const BODY_CHASSIS_DATA: Record<string, BodyChassis> = {
     slots: { relic: true, weapon: true, accessory: false },
     tags: ['tanque', 'pesado', 'defensivo'],
     price: 2200,
-    description: 'Chasis robusto con coraza de hierro fundido en el torso. Protege eficazmente el núcleo de ki del alma.',
+    description: 'Cuerpo robusto con coraza de hierro fundido en el torso. Protege eficazmente el núcleo de ki del alma.',
   },
   chassis_berserker_t3: {
     id: 'chassis_berserker_t3',
-    name: 'Chasis Berserker',
+    name: 'Cuerpo Berserker',
     material: 'hierro',
     tier: 3,
     partShare: {
@@ -75,7 +75,7 @@ export const BODY_CHASSIS_DATA: Record<string, BodyChassis> = {
   },
   chassis_acrobata_t3: {
     id: 'chassis_acrobata_t3',
-    name: 'Chasis Acróbata',
+    name: 'Cuerpo Acróbata',
     material: 'madera',
     tier: 3,
     partShare: {
@@ -111,7 +111,7 @@ export const BODY_CHASSIS_DATA: Record<string, BodyChassis> = {
   },
   chassis_cristalino_t4: {
     id: 'chassis_cristalino_t4',
-    name: 'Chasis Cristalino',
+    name: 'Cuerpo Cristalino',
     material: 'cristal',
     tier: 4,
     partShare: {
@@ -125,11 +125,11 @@ export const BODY_CHASSIS_DATA: Record<string, BodyChassis> = {
     slots: { relic: true, weapon: true, accessory: true },
     tags: ['magico', 'resonancia', 'espiritual'],
     price: 8000,
-    description: 'Chasis tallado en cuarzo y gemas de maná. Conduce la energía de almas evolucionadas con una resonancia perfecta.',
+    description: 'Cuerpo tallado en cuarzo y gemas de maná. Conduce la energía de almas evolucionadas con una resonancia perfecta.',
   },
   chassis_arcano_t5: {
     id: 'chassis_arcano_t5',
-    name: 'Chasis Arcano',
+    name: 'Cuerpo Arcano',
     material: 'arcano',
     tier: 5,
     partShare: {

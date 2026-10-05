@@ -21,8 +21,33 @@ export class SaveService {
     return SaveService.instance;
   }
 
+  public static isMobileBuild(): boolean {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.innerWidth <= 768 ||
+      (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0 && window.innerWidth <= 920)
+    );
+  }
+
+  public static getDefaultBustAnimation(
+    outfitStyle: 'clasico' | 'atrevido' = 'clasico'
+  ): 'off' | 'subtle' | 'normal' {
+    if (outfitStyle === 'clasico' && this.isMobileBuild()) {
+      return 'off';
+    }
+    return 'subtle';
+  }
+
   public getActiveSlot(): number {
     return this.activeSlot;
+  }
+
+  public hasActiveState(): boolean {
+    return this.currentState !== null;
+  }
+
+  public init(): GameState {
+    return this.getCurrentState();
   }
 
   public createInitialState(playerName = 'Soultrainer'): GameState {
@@ -53,11 +78,27 @@ export class SaveService {
         soul_bottle_comun: 10,
         elixir_ki: 5,
         purga_ki: 2,
+        soul_fragment: 5,
+        soul_fragment_brilliant: 1,
+        scroll_orbe_flamigero: 1,
         // Compatibility aliases
         pokeball: 10,
         potion: 5,
         antidote: 2,
       },
+      saveId: `save_${Math.floor(100000 + Math.random() * 900000)}`,
+      rngSeed: 133742,
+      bodyPieces: {
+        chassis_madera_t1: 2,
+      },
+      kiDust: 0,
+      scanLedger: [],
+      gachaPity: {},
+      gachaDailyRedeems: {
+        dateKey: new Date().toISOString().slice(0, 10),
+        count: 0,
+      },
+      gachaDiscoveries: [],
       flags: {
         intro_completed: false,
         received_starter: true,
@@ -82,6 +123,13 @@ export class SaveService {
         textSpeed: 'mid',
         showTouchControls: true,
         outfitStyle: 'clasico',
+        bustAnimation: SaveService.getDefaultBustAnimation('clasico'),
+        runMode: 'hold',
+        showCameraButton: true,
+        showObjectiveHint: true,
+        touchScale: 1,
+        touchPosition: 'normal',
+        separateControlPanel: false,
       },
     };
   }
@@ -243,7 +291,7 @@ export class SaveService {
       // Keep existing body or create new
       let bodyId = item.bodyInstanceId;
       if (!bodyId || !state.bodies[bodyId]) {
-        const body = StatCalculator.createBodyInstance('chassis_madera_t1', `Chasis de ${souldoll.nickname}`);
+        const body = StatCalculator.createBodyInstance('chassis_madera_t1', `Cuerpo de ${souldoll.nickname}`);
         state.bodies[body.instanceId] = body;
         bodyId = body.instanceId;
       }
@@ -284,6 +332,36 @@ export class SaveService {
     if (state.inventory.antidote && !state.inventory.purga_ki) {
       state.inventory.purga_ki = state.inventory.antidote;
     }
+    if (state.inventory.soul_fragment === undefined) {
+      state.inventory.soul_fragment = 5;
+    }
+    if (!state.saveId) {
+      state.saveId = `save_${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+    if (state.rngSeed === undefined) {
+      state.rngSeed = 133742;
+    }
+    if (!state.bodyPieces) {
+      state.bodyPieces = {};
+    }
+    if (state.kiDust === undefined) {
+      state.kiDust = 0;
+    }
+    if (!state.scanLedger) {
+      state.scanLedger = [];
+    }
+    if (!state.gachaPity) {
+      state.gachaPity = {};
+    }
+    if (!state.gachaDailyRedeems) {
+      state.gachaDailyRedeems = {
+        dateKey: new Date().toISOString().slice(0, 10),
+        count: 0,
+      };
+    }
+    if (!state.gachaDiscoveries) {
+      state.gachaDiscoveries = [];
+    }
 
     if (!state.settings) {
       state.settings = {
@@ -292,10 +370,40 @@ export class SaveService {
         bgmVolume: 0.4,
         textSpeed: 'mid',
         showTouchControls: true,
-        outfitStyle: 'clasico'
+        outfitStyle: 'clasico',
+        bustAnimation: SaveService.getDefaultBustAnimation('clasico'),
+        runMode: 'hold',
+        showCameraButton: true,
+        showObjectiveHint: true,
+        touchScale: 1,
+        touchPosition: 'normal',
+        separateControlPanel: false,
       };
-    } else if (!state.settings.outfitStyle) {
-      state.settings.outfitStyle = 'clasico';
+    } else {
+      if (!state.settings.outfitStyle) {
+        state.settings.outfitStyle = 'clasico';
+      }
+      if (!state.settings.bustAnimation) {
+        state.settings.bustAnimation = SaveService.getDefaultBustAnimation(state.settings.outfitStyle);
+      }
+      if (!state.settings.runMode) {
+        state.settings.runMode = 'hold';
+      }
+      if (state.settings.showCameraButton === undefined) {
+        state.settings.showCameraButton = true;
+      }
+      if (state.settings.showObjectiveHint === undefined) {
+        state.settings.showObjectiveHint = true;
+      }
+      if (state.settings.touchScale === undefined) {
+        state.settings.touchScale = 1;
+      }
+      if (!state.settings.touchPosition) {
+        state.settings.touchPosition = 'normal';
+      }
+      if (state.settings.separateControlPanel === undefined) {
+        state.settings.separateControlPanel = false;
+      }
     }
 
     state.version = CURRENT_SAVE_VERSION;

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GlobalTallerAtlas, AtlasFrame } from './TallerAtlas';
 import { GlobalMercadoAtlas, MercadoAtlasFrame } from './MercadoAtlas';
 import { GlobalOverworldDecor, DecorAtlasFrame, QualityProfile } from './DecorRenderer';
+import { GlobalTileRenderer } from './TileRenderer';
 import { GlobalThreeRenderer } from '../ThreeRenderer';
 import { MapData } from '../../types/maps';
 
@@ -317,6 +318,74 @@ export class AtlasDebugOverlay {
     };
     seedRow.appendChild(seedBtn);
     panel.appendChild(seedRow);
+
+    // Bloque 44 Req. 5: Modo "plano clásico" (debug): dibuja todo plano sobre el suelo como en RPG Maker
+    const flatModeBtn = document.createElement('button');
+    const isFlat = GlobalTileRenderer.isClassicFlatMode();
+    flatModeBtn.innerText = `📐 Modo Plano Clásico (B44): ${isFlat ? 'ACTIVO' : 'OFF'}`;
+    flatModeBtn.style.padding = '7px 10px';
+    flatModeBtn.style.background = isFlat ? '#e8b84a' : '#334155';
+    flatModeBtn.style.color = isFlat ? '#000' : '#fff';
+    flatModeBtn.style.fontWeight = 'bold';
+    flatModeBtn.style.border = 'none';
+    flatModeBtn.style.borderRadius = '4px';
+    flatModeBtn.style.cursor = 'pointer';
+    flatModeBtn.onclick = () => {
+      const nextFlat = GlobalTileRenderer.toggleClassicFlatMode();
+      flatModeBtn.innerText = `📐 Modo Plano Clásico (B44): ${nextFlat ? 'ACTIVO' : 'OFF'}`;
+      flatModeBtn.style.background = nextFlat ? '#e8b84a' : '#334155';
+      flatModeBtn.style.color = nextFlat ? '#000' : '#fff';
+      if ((window as any).__activeMapRenderer) {
+        (window as any).__activeMapRenderer.rebuildCurrentMap();
+      }
+    };
+    panel.appendChild(flatModeBtn);
+
+    // Bloque 45 Req. 1: Flujo obligatorio de autoría por mapa en 6 etapas (con vista y captura en F2)
+    const b45Title = document.createElement('div');
+    b45Title.innerHTML = '<strong>🗺 FLUJO DE AUTORÍA EN 6 ETAPAS (B45)</strong>';
+    b45Title.style.color = '#e8b84a';
+    b45Title.style.fontSize = '12px';
+    panel.appendChild(b45Title);
+
+    const stageLabels: Array<{ stage: 0 | 1 | 2 | 3 | 4 | 5 | 6; label: string }> = [
+      { stage: 0, label: '✨ Completo' },
+      { stage: 1, label: '1. Blockout Gris' },
+      { stage: 2, label: '2. Caminos/Hitos' },
+      { stage: 3, label: '3. Edificios/Stamps' },
+      { stage: 4, label: '4. Terreno/Grupos' },
+      { stage: 5, label: '5. Decorado' },
+      { stage: 6, label: '6. Iluminación' },
+    ];
+
+    const stageGrid = document.createElement('div');
+    stageGrid.style.display = 'grid';
+    stageGrid.style.gridTemplateColumns = '1fr 1fr';
+    stageGrid.style.gap = '5px';
+
+    stageLabels.forEach(({ stage, label }) => {
+      const sBtn = document.createElement('button');
+      const isCur = GlobalTileRenderer.getAuthoringStage() === stage;
+      sBtn.innerText = label;
+      sBtn.style.padding = '5px 6px';
+      sBtn.style.fontSize = '11px';
+      sBtn.style.fontWeight = 'bold';
+      sBtn.style.border = 'none';
+      sBtn.style.borderRadius = '4px';
+      sBtn.style.cursor = 'pointer';
+      sBtn.style.background = isCur ? '#38bdf8' : '#1e293b';
+      sBtn.style.color = isCur ? '#000' : '#e2e8f0';
+      sBtn.onclick = () => {
+        GlobalTileRenderer.setAuthoringStage(stage);
+        if ((window as any).__activeMapRenderer) {
+          (window as any).__activeMapRenderer.rebuildCurrentMap();
+        }
+        this.unmount();
+        this.mount();
+      };
+      stageGrid.appendChild(sBtn);
+    });
+    panel.appendChild(stageGrid);
 
     // Quality Profile Selector (Bajo / Medio / Alto)
     const qualityRow = document.createElement('div');

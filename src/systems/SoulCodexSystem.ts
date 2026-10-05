@@ -5,6 +5,49 @@ import { SOUL_SPECIES_DATA } from '../data/souldolls/souls';
 export type CodexStatus = 'unknown' | 'seen' | 'caught';
 
 export class SoulCodexSystem {
+  private static listenersInitialized = false;
+
+  public static initEventListeners(): void {
+    if (this.listenersInitialized) return;
+    this.listenersInitialized = true;
+
+    GlobalEventBus.on('GachaRolled', ({ result }) => {
+      if (!GlobalSaveService.hasActiveState()) return;
+      if (result.ok && result.newDiscoveries.length > 0) {
+        const state = GlobalSaveService.getCurrentState();
+        if (!state.gachaDiscoveries) state.gachaDiscoveries = [];
+        result.newDiscoveries.forEach((disc) => {
+          if (!state.gachaDiscoveries!.includes(disc)) {
+            state.gachaDiscoveries!.push(disc);
+          }
+        });
+        GlobalSaveService.save();
+      }
+    });
+
+    GlobalEventBus.on('BodyAssembled', ({ chassisId }) => {
+      if (!GlobalSaveService.hasActiveState()) return;
+      const state = GlobalSaveService.getCurrentState();
+      if (!state.gachaDiscoveries) state.gachaDiscoveries = [];
+      const key = `assembled:${chassisId}`;
+      if (!state.gachaDiscoveries.includes(key)) {
+        state.gachaDiscoveries.push(key);
+        GlobalSaveService.save();
+      }
+    });
+
+    GlobalEventBus.on('TechniqueLearned', ({ moveId }) => {
+      if (!GlobalSaveService.hasActiveState()) return;
+      const state = GlobalSaveService.getCurrentState();
+      if (!state.gachaDiscoveries) state.gachaDiscoveries = [];
+      const key = `technique:${moveId}`;
+      if (!state.gachaDiscoveries.includes(key)) {
+        state.gachaDiscoveries.push(key);
+        GlobalSaveService.save();
+      }
+    });
+  }
+
   public static getStatus(speciesId: string): CodexStatus {
     const state = GlobalSaveService.getCurrentState();
     const codex = state.soulCodex || state.pokedex || {};

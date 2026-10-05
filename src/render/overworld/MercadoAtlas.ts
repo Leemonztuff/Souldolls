@@ -131,18 +131,22 @@ export class MercadoAtlasManager {
 
   private initTexture(): void {
     const imagePath = this.resolveImagePath();
-    const loader = new THREE.TextureLoader();
+    if (typeof document !== 'undefined') {
+      const loader = new THREE.TextureLoader();
 
-    this.sharedTexture = loader.load(imagePath, (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.magFilter = THREE.NearestFilter;
-      tex.minFilter = THREE.NearestFilter;
-      tex.generateMipmaps = false;
-      tex.premultiplyAlpha = false;
-      tex.wrapS = THREE.ClampToEdgeWrapping;
-      tex.wrapT = THREE.ClampToEdgeWrapping;
-      tex.needsUpdate = true;
-    });
+      this.sharedTexture = loader.load(imagePath, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        tex.generateMipmaps = false;
+        tex.premultiplyAlpha = false;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.needsUpdate = true;
+      });
+    } else {
+      this.sharedTexture = new THREE.Texture();
+    }
 
     this.sharedTexture.colorSpace = THREE.SRGBColorSpace;
     this.sharedTexture.magFilter = THREE.NearestFilter;
@@ -152,8 +156,10 @@ export class MercadoAtlasManager {
     this.sharedTexture.wrapS = THREE.ClampToEdgeWrapping;
     this.sharedTexture.wrapT = THREE.ClampToEdgeWrapping;
 
-    this.atlasImage = new Image();
-    this.atlasImage.src = imagePath;
+    if (typeof Image !== 'undefined') {
+      this.atlasImage = new Image();
+      this.atlasImage.src = imagePath;
+    }
 
     this.sharedMaterial = new THREE.MeshBasicMaterial({
       map: this.sharedTexture,

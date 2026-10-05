@@ -1,0 +1,97 @@
+{
+  "piecesRequired": 5,
+  "useSaveSalt": true,
+  "redeemPolicy": "once_forever",
+  "cooldownHours": 24,
+  "dailyRedeemLimit": 10,
+  "duplicateScrollPolicy": "convert_ki_dust",
+  "duplicateScrollKiDustYield": {
+    "common": 15,
+    "uncommon": 30,
+    "rare": 60,
+    "epic": 120
+  },
+  "defaultTableId": "standard_resonance",
+  "brilliantTableId": "brilliant_resonance",
+  "tables": {
+    "standard_resonance": {
+      "id": "standard_resonance",
+      "name": "Resonancia Estándar de Fragmento",
+      "fragmentItemId": "soul_fragment",
+      "pity": {
+        "threshold": 10,
+        "guaranteedRarity": "rare"
+      },
+      "rarityRates": {
+        "common": 0.55,
+        "uncommon": 0.28,
+        "rare": 0.13,
+        "epic": 0.04
+      },
+      "entries": [
+        { "kind": "item", "id": "elixir_ki", "weight": 35, "rarity": "common", "quantity": 2 },
+        { "kind": "item", "id": "soul_bottle_comun", "weight": 35, "rarity": "common", "quantity": 2 },
+        { "kind": "item", "id": "purga_ki", "weight": 20, "rarity": "common", "quantity": 2 },
+        { "kind": "bodyPiece", "id": "piece_madera_t1", "weight": 40, "rarity": "common", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_chispa_ignea", "weight": 20, "rarity": "common", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_latigazo_ki", "weight": 20, "rarity": "common", "quantity": 1 },
+
+        { "kind": "item", "id": "elixir_ki_mayor", "weight": 25, "rarity": "uncommon", "quantity": 2 },
+        { "kind": "item", "id": "soul_bottle_plata", "weight": 25, "rarity": "uncommon", "quantity": 2 },
+        { "kind": "item", "id": "kit_reparacion", "weight": 20, "rarity": "uncommon", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_madera_reforzada_t2", "weight": 30, "rarity": "uncommon", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_hierro_forjado_t2", "weight": 30, "rarity": "uncommon", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_orbe_flamigero", "weight": 20, "rarity": "uncommon", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_pulso_arrecife", "weight": 20, "rarity": "uncommon", "quantity": 1 },
+
+        { "kind": "item", "id": "soul_bottle_oro", "weight": 20, "rarity": "rare", "quantity": 1 },
+        { "kind": "item", "id": "reencarnacion", "weight": 20, "rarity": "rare", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_berserker_t3", "weight": 25, "rarity": "rare", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_acrobata_t3", "weight": 25, "rarity": "rare", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_guardian_piedra_t3", "weight": 25, "rarity": "rare", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_llamarada_arcana", "weight": 20, "rarity": "rare", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_impacto_telurico", "weight": 20, "rarity": "rare", "quantity": 1 },
+
+        { "kind": "item", "id": "nucleo_resonancia", "weight": 20, "rarity": "epic", "quantity": 1 },
+        { "kind": "item", "id": "soul_bottle_cristal", "weight": 15, "rarity": "epic", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_cristalino_t4", "weight": 30, "rarity": "epic", "quantity": 1 },
+        { "kind": "bodyPiece", "id": "piece_arcano_t5", "weight": 20, "rarity": "epic", "quantity": 1, "minPlayerProgress": 1 },
+        { "kind": "scroll", "id": "scroll_meteorito_ki", "weight": 25, "rarity": "epic", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_juicio_sagrado", "weight": 25, "rarity": "epic", "quantity": 1 }
+      ]
+    },
+    "brilliant_resonance": {
+      "id": "brilliant_resonance",
+      "name": "Resonancia Brillante de Fragmento",
+      "fragmentItemId": "soul_fragment_brilliant",
+      "pity": {
+        "threshold": 5,
+        "guaranteedRarity": "epic"
+      },
+      "rarityRates": {
+        "common": 0.20,
+        "uncommon": 0.35,
+        "rare": 0.30,
+        "epic": 0.15
+      },
+      "entries": [
+        { "kind": "bodyPiece", "id": "piece_madera_t1", "weight": 30, "rarity": "common", "quantity": 2 },
+        { "kind": "item", "id": "elixir_ki_mayor", "weight": 30, "rarity": "common", "quantity": 2 },
+
+        { "kind": "bodyPiece", "id": "piece_madera_reforzada_t2", "weight": 35, "rarity": "uncommon", "quantity": 2 },
+        { "kind": "bodyPiece", "id": "piece_hierro_forjado_t2", "weight": 35, "rarity": "uncommon", "quantity": 2 },
+        { "kind": "scroll", "id": "scroll_orbe_flamigero", "weight": 25, "rarity": "uncommon", "quantity": 1 },
+
+        { "kind": "bodyPiece", "id": "piece_berserker_t3", "weight": 30, "rarity": "rare", "quantity": 2 },
+        { "kind": "bodyPiece", "id": "piece_acrobata_t3", "weight": 30, "rarity": "rare", "quantity": 2 },
+        { "kind": "bodyPiece", "id": "piece_guardian_piedra_t3", "weight": 30, "rarity": "rare", "quantity": 2 },
+        { "kind": "scroll", "id": "scroll_llamarada_arcana", "weight": 25, "rarity": "rare", "quantity": 1 },
+
+        { "kind": "bodyPiece", "id": "piece_cristalino_t4", "weight": 35, "rarity": "epic", "quantity": 2 },
+        { "kind": "bodyPiece", "id": "piece_arcano_t5", "weight": 25, "rarity": "epic", "quantity": 2 },
+        { "kind": "scroll", "id": "scroll_meteorito_ki", "weight": 30, "rarity": "epic", "quantity": 1 },
+        { "kind": "scroll", "id": "scroll_juicio_sagrado", "weight": 30, "rarity": "epic", "quantity": 1 }
+      ]
+    }
+  }
+}

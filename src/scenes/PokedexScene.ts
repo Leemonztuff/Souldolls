@@ -1,533 +1,540 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
 import { GlobalAudioService } from '../services/AudioService';
-import { CREATURES_DATA } from '../data/creatures/creatures';
-import { BODY_CHASSIS_DATA } from '../data/bodies/chassis';
-import { BodyChassis } from '../types/bodies';
 import { GlobalSaveService } from '../services/SaveService';
-import { PokedexSystem, PokedexStatus } from '../systems/PokedexSystem';
-import { COLOR_NUM, COLOR_HEX, FONTS, COLOR_SEMANTIC } from '../ui/styles';
+import { GlobalInput } from '../core/Input';
+import { StatCalculator } from '../systems/battle/StatCalculator';
+import {
+  ScreenFrame,
+  KitCard,
+  KitTabBar,
+  KitListRow,
+  KitStatBox,
+  KitBadge,
+  KitStars,
+  KitHearts,
+  KitDivider,
+  FocusManager,
+  UIKitLinter,
+} from '../ui/kit';
+import { buildCodexVM, CodexSoulEntryVM, CodexBodyEntryVM } from '../ui/viewmodels/GroupAViewModels';
+import { COLOR_HEX, FONTS } from '../ui/styles';
+import esText from '../data/text/es.json';
 
+/**
+ * BLOQUE 42 (GRUPO A): Códice de Almas y Cuerpos ("PokedexScene")
+ * Construido 100% con /ui/kit (ScreenFrame, KitCard, KitTabBar, KitListRow, KitStatBox, KitBadge, KitStars, KitHearts, FocusManager).
+ * Cero colores, fuentes o emojis hardcodeados.
+ */
 export class PokedexScene implements IScene {
   public name = 'Pokedex';
+  public isTransparentOverlay = true;
+
   private container: Container = new Container();
+  private screenFrame: ScreenFrame | null = null;
+  private focusManager: FocusManager = new FocusManager();
+
   private activeTab: 'souls' | 'bodies' = 'souls';
-  private selectedIndex = 0;
   private currentFilter: 'all' | 'caught' | 'seen' | 'unknown' = 'all';
-  private currentSort: 'number' | 'type' = 'number';
+  private selectedIndex = 0;
 
-  private contentContainer: Container = new Container();
-  private detailsContainer: Container = new Container();
-  private filterContainer: Container = new Container();
+  public async enter(): Promise<void> {
+    this.container = new Container();
+    this.container.roundPixels = true;
+    this.container.zIndex = 1000;
+    GlobalPixiRenderer.menuLayer.addChild(this.container);
 
-  public async enter(params?: any): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
+    this.selectedIndex = 0;
+    this.buildUI();
+    GlobalAudioService.playSfx('confirm');
+  }
+
+  public pause(): void {
+    if (this.container && !this.container.destroyed) {
+      this.container.visible = false;
+    }
+  }
+
+  public async resume(): Promise<void> {
+    if (!this.container || this.container.destroyed) {
+      this.container = new Container();
+      this.container.roundPixels = true;
+      this.container.zIndex = 1000;
+    }
+    this.container.visible = true;
+    if (this.container.parent !== GlobalPixiRenderer.menuLayer) {
+      GlobalPixiRenderer.menuLayer.addChild(this.container);
+    }
+    this.buildUI();
+  }
+
+  private buildUI(): void {
+    this.container.removeChildren();
+    this.focusManager.clear();
+
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
+    const state = GlobalSaveService.getCurrentState();
+    const vm = buildCodexVM(state, this.activeTab, this.currentFilter);
+    const t = (esText as any).terms.group_a.codex;
 
-    this.container = new Container();
-    this.container.position.set(0, 0);
-
-    // 1. Background
-    const bg = new Graphics();
-    bg.rect(0, 0, width, height);
-    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.99 });
-    this.container.addChild(bg);
-
-    // 2. Header Bar
-    const headerBg = new Graphics();
-    headerBg.rect(0, 0, width, 75);
-    headerBg.fill({ color: COLOR_NUM.smokedWood });
-    headerBg.stroke({ color: COLOR_NUM.gold, width: 2 });
-    this.container.addChild(headerBg);
-
-    const titleText = new Text({
-      text: '📖 CÓDICE DE ALMAS Y CUERPOS',
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 20,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-        letterSpacing: 1.5,
-      }),
-    });
-    titleText.position.set(24, 22);
-    this.container.addChild(titleText);
-
-    // Tab Buttons
-    const soulsTabBtn = this.createButton(
-      '🔮 ALMAS',
-      320,
-      18,
-      120,
-      38,
-      this.activeTab === 'souls' ? COLOR_NUM.gold : COLOR_NUM.bronze,
-      () => {
-        this.activeTab = 'souls';
-        this.selectedIndex = 0;
-        GlobalAudioService.playSfx('select');
-        this.enter();
-      }
-    );
-    this.container.addChild(soulsTabBtn);
-
-    const bodiesTabBtn = this.createButton(
-      '🤖 CUERPOS CONOCIDOS',
-      450,
-      18,
-      180,
-      38,
-      this.activeTab === 'bodies' ? COLOR_NUM.cyan : COLOR_NUM.bronze,
-      () => {
-        this.activeTab = 'bodies';
-        this.selectedIndex = 0;
-        GlobalAudioService.playSfx('select');
-        this.enter();
-      }
-    );
-    this.container.addChild(bodiesTabBtn);
-
-    // Close button
-    const closeBtn = this.createButton('✕ CERRAR', width - 140, 18, 120, 38, COLOR_NUM.rift, () => {
-      GlobalAudioService.playSfx('select');
-      GlobalSceneManager.popScene();
-    });
-    this.container.addChild(closeBtn);
-
-    if (this.activeTab === 'souls') {
-      // 3. Filters Bar
-      this.buildFilterBar();
+    const listLen = this.activeTab === 'souls' ? vm.souls.length : vm.bodies.length;
+    if (this.selectedIndex >= listLen) {
+      this.selectedIndex = Math.max(0, listLen - 1);
     }
 
-    // 4. Main Layout Containers
-    this.container.addChild(this.contentContainer);
-    this.container.addChild(this.detailsContainer);
+    const selectedSoul = this.activeTab === 'souls' ? vm.souls[this.selectedIndex] : undefined;
+    const canOpenSheet = Boolean(selectedSoul && selectedSoul.status !== 'unknown');
 
-    this.refreshView();
-
-    GlobalPixiRenderer.hudLayer.addChild(this.container);
-  }
-
-  private createButton(
-    label: string,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    color: number,
-    onClick: () => void
-  ): Container {
-    const btn = new Container();
-    btn.position.set(x, y);
-    btn.eventMode = 'static';
-    btn.cursor = 'pointer';
-
-    const bg = new Graphics();
-    bg.roundRect(0, 0, w, h, 8);
-    bg.fill({ color: COLOR_NUM.inkCrypt });
-    bg.stroke({ color, width: 2 });
-    btn.addChild(bg);
-
-    // Inner highlight
-    bg.roundRect(2, 2, w - 4, h - 4, 6);
-    bg.stroke({ color: COLOR_NUM.white, width: 0.5, alpha: 0.15 });
-
-    const txt = new Text({
-      text: label,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 12,
-        fontWeight: '900',
-        fill: COLOR_HEX.parchment,
-      }),
+    const frame = new ScreenFrame({
+      width,
+      height,
+      title: vm.title,
+      currencies: [{ iconId: 'soul_orb', value: `${vm.caughtCount}/${vm.totalCount}` }],
+      onClose: () => this.close(),
+      secondaryAction: {
+        label: t.btn_back,
+        iconId: 'chevron_left',
+        onClick: () => this.close(),
+      },
+      primaryAction: canOpenSheet
+        ? {
+            label: t.btn_sheet,
+            iconId: 'codex_book',
+            onClick: () => this.openUnitSheet(selectedSoul!),
+          }
+        : undefined,
     });
-    txt.anchor.set(0.5);
-    txt.position.set(w / 2, h / 2);
-    btn.addChild(txt);
+    this.screenFrame = frame;
+    this.container.addChild(frame);
 
-    btn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      onClick();
+    const cw = frame.contentWidth;
+    const isTwoCol = frame.isTwoColumn;
+
+    // 1. Top Controls Card (Tabs + Filters)
+    const headerCardH = this.activeTab === 'souls' ? 112 : 60;
+    const headerCard = new KitCard({
+      width: cw,
+      height: headerCardH,
+      variant: 'smokedWood',
+      showCorners: false,
     });
+    headerCard.position.set(0, 0);
+    frame.contentRoot.addChild(headerCard);
 
-    return btn;
-  }
+    const mainTabs = new KitTabBar(
+      [
+        { id: 'souls', label: t.tab_souls, iconId: 'soul_orb' },
+        { id: 'bodies', label: t.tab_bodies, iconId: 'body_chassis' },
+      ],
+      this.activeTab,
+      cw - 16,
+      (id) => {
+        this.activeTab = id as 'souls' | 'bodies';
+        this.selectedIndex = 0;
+        this.buildUI();
+      }
+    );
+    mainTabs.position.set(8, 8);
+    headerCard.addChild(mainTabs);
 
-  private buildFilterBar(): void {
-    this.filterContainer.removeChildren();
-    this.filterContainer.position.set(24, 85);
-
-    const filters: { id: 'all' | 'caught' | 'seen' | 'unknown'; label: string }[] = [
-      { id: 'all', label: 'TODAS' },
-      { id: 'caught', label: '🔮 LIGADAS' },
-      { id: 'seen', label: '👁️ AVISTADAS' },
-      { id: 'unknown', label: '🔒 INCÓGNITAS' },
-    ];
-
-    let startX = 0;
-    filters.forEach((f) => {
-      const active = this.currentFilter === f.id;
-      const btn = this.createButton(
-        f.label,
-        startX,
-        0,
-        120,
-        32,
-        active ? COLOR_NUM.gold : COLOR_NUM.bronze,
-        () => {
-          GlobalAudioService.playSfx('select');
-          this.currentFilter = f.id;
+    if (this.activeTab === 'souls') {
+      const filterTabs = new KitTabBar(
+        [
+          { id: 'all', label: t.filter_all },
+          { id: 'caught', label: t.filter_caught },
+          { id: 'seen', label: t.filter_seen },
+          { id: 'unknown', label: t.filter_unknown },
+        ],
+        this.currentFilter,
+        cw - 16,
+        (fid) => {
+          this.currentFilter = fid as any;
           this.selectedIndex = 0;
-          this.buildFilterBar();
-          this.refreshView();
+          this.buildUI();
         }
       );
-      this.filterContainer.addChild(btn);
-      startX += 130;
-    });
-
-    this.container.addChild(this.filterContainer);
-  }
-
-  private getFilteredCreatures() {
-    let creatures = Object.values(CREATURES_DATA);
-
-    // Filter
-    creatures = creatures.filter((c) => {
-      const status: PokedexStatus = PokedexSystem.getStatus(c.id);
-      if (this.currentFilter === 'caught') return status === 'caught';
-      if (this.currentFilter === 'seen') return status === 'seen';
-      if (this.currentFilter === 'unknown') return status === 'unknown';
-      return true;
-    });
-
-    // Sort
-    if (this.currentSort === 'number') {
-      creatures.sort((a, b) => a.dexNumber - b.dexNumber);
-    } else {
-      creatures.sort((a, b) => a.types[0].localeCompare(b.types[0]));
+      filterTabs.position.set(8, 58);
+      headerCard.addChild(filterTabs);
     }
 
-    return creatures;
-  }
+    const startY = headerCardH + 10;
+    const colW = isTwoCol ? Math.floor((cw - 12) / 2) : cw;
 
-  private refreshView(): void {
     if (this.activeTab === 'souls') {
-      this.buildList();
-      this.buildDetails();
+      this.renderSoulsContent(frame, vm.souls, startY, colW, isTwoCol);
     } else {
-      this.buildBodiesList();
-      this.buildBodiesDetails();
-    }
-  }
-
-  private buildList(): void {
-    this.contentContainer.removeChildren();
-    const creatures = this.getFilteredCreatures();
-
-    let startY = 130;
-    creatures.forEach((c, idx) => {
-      const status: PokedexStatus = PokedexSystem.getStatus(c.id);
-      const isSelected = this.selectedIndex === idx;
-
-      const itemBg = new Graphics();
-      itemBg.roundRect(24, startY, 340, 52, 8);
-      itemBg.fill({ color: isSelected ? COLOR_NUM.smokedWood : COLOR_NUM.inkCrypt, alpha: 0.95 });
-      itemBg.stroke({
-        color: isSelected ? COLOR_NUM.gold : COLOR_NUM.bronze,
-        width: isSelected ? 2 : 1,
-      });
-
-      const itemContainer = new Container();
-      itemContainer.eventMode = 'static';
-      itemContainer.cursor = 'pointer';
-      itemContainer.addChild(itemBg);
-
-      const numStr = `#${String(c.dexNumber).padStart(3, '0')}`;
-      const nameStr = status === 'unknown' ? '???' : c.name;
-      const statusIcon = status === 'caught' ? '🔮' : status === 'seen' ? '👁️' : '🔒';
-
-      const infoText = new Text({
-        text: `${numStr}  ${nameStr}`,
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 14,
-          fontWeight: '700',
-          fill: status === 'unknown' ? COLOR_HEX.smoke : COLOR_HEX.parchment,
-        }),
-      });
-      infoText.position.set(40, startY + 16);
-      itemContainer.addChild(infoText);
-
-      const iconText = new Text({
-        text: statusIcon,
-        style: new TextStyle({ fontSize: 16 }),
-      });
-      iconText.position.set(325, startY + 16);
-      itemContainer.addChild(iconText);
-
-      itemContainer.on('pointerdown', (e) => {
-        e.stopPropagation();
-        GlobalAudioService.playSfx('select');
-        this.selectedIndex = idx;
-        this.refreshView();
-      });
-
-      this.contentContainer.addChild(itemContainer);
-      startY += 60;
-    });
-  }
-
-  private buildBodiesList(): void {
-    this.contentContainer.removeChildren();
-    const chassisList = Object.values(BODY_CHASSIS_DATA);
-
-    let startY = 90;
-    chassisList.forEach((chassis, idx) => {
-      const isSelected = this.selectedIndex === idx;
-
-      const itemBg = new Graphics();
-      itemBg.roundRect(24, startY, 340, 52, 8);
-      itemBg.fill({ color: isSelected ? COLOR_NUM.smokedWood : COLOR_NUM.inkCrypt, alpha: 0.95 });
-      itemBg.stroke({
-        color: isSelected ? COLOR_NUM.cyan : COLOR_NUM.bronze,
-        width: isSelected ? 2 : 1,
-      });
-
-      const itemContainer = new Container();
-      itemContainer.eventMode = 'static';
-      itemContainer.cursor = 'pointer';
-      itemContainer.addChild(itemBg);
-
-      const infoText = new Text({
-        text: `🤖 ${chassis.name} (T${chassis.tier})`,
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 14,
-          fontWeight: '700',
-          fill: COLOR_HEX.parchment,
-        }),
-      });
-      infoText.position.set(40, startY + 16);
-      itemContainer.addChild(infoText);
-
-      itemContainer.on('pointerdown', (e) => {
-        e.stopPropagation();
-        GlobalAudioService.playSfx('select');
-        this.selectedIndex = idx;
-        this.refreshView();
-      });
-
-      this.contentContainer.addChild(itemContainer);
-      startY += 60;
-    });
-  }
-
-  private buildBodiesDetails(): void {
-    this.detailsContainer.removeChildren();
-    const chassisList = Object.values(BODY_CHASSIS_DATA);
-    const chassis = chassisList[this.selectedIndex];
-
-    const panel = new Graphics();
-    panel.roundRect(390, 85, 550, 560, 12);
-    panel.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.96 });
-    panel.stroke({ color: COLOR_NUM.cyan, width: 2 });
-    
-    // Inner outline
-    panel.roundRect(394, 89, 542, 552, 10);
-    panel.stroke({ color: COLOR_NUM.gold, width: 0.8, alpha: 0.25 });
-    this.detailsContainer.addChild(panel);
-
-    if (!chassis) return;
-
-    const title = new Text({
-      text: `🤖 ${chassis.name.toUpperCase()} (TIER ${chassis.tier})`,
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 20,
-        fontWeight: '900',
-        fill: COLOR_HEX.cyan,
-      }),
-    });
-    title.position.set(420, 110);
-    this.detailsContainer.addChild(title);
-
-    const share = chassis.partShare;
-    const availSlots = Object.entries(chassis.slots)
-      .filter(([_, avail]) => avail)
-      .map(([slot]) => slot.toUpperCase());
-    const lines = [
-      `Material : ${chassis.material.toUpperCase()}`,
-      `Rango / Precio : Tier ${chassis.tier} ($${chassis.price})`,
-      `─────────────────────────────────────`,
-      `Reparto de Vida por Partes:`,
-      `• Cabeza  : ${Math.round(share.head * 100)}% del pool de PS`,
-      `• Torso   : ${Math.round(share.torso * 100)}% del pool de PS`,
-      `• Brazos  : ${Math.round(share.arms * 100)}% del pool de PS`,
-      `• Piernas : ${Math.round(share.legs * 100)}% del pool de PS`,
-      `─────────────────────────────────────`,
-      `Ranuras de Equipo Disponibles:`,
-      `• ${availSlots.join(', ')}`,
-      `─────────────────────────────────────`,
-      `"${chassis.description}"`,
-    ];
-
-    const detailsText = new Text({
-      text: lines.join('\n'),
-      style: new TextStyle({
-        fontFamily: FONTS.body,
-        fontSize: 13,
-        lineHeight: 22,
-        fill: COLOR_HEX.parchment,
-      }),
-    });
-    detailsText.position.set(420, 160);
-    this.detailsContainer.addChild(detailsText);
-  }
-
-  private buildDetails(): void {
-    this.detailsContainer.removeChildren();
-    const creatures = this.getFilteredCreatures();
-    const c = creatures[this.selectedIndex];
-
-    const panel = new Graphics();
-    panel.roundRect(390, 85, 550, 560, 12);
-    panel.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.96 });
-    panel.stroke({ color: COLOR_NUM.bronze, width: 2 });
-
-    // Inner outline
-    panel.roundRect(394, 89, 542, 552, 10);
-    panel.stroke({ color: COLOR_NUM.gold, width: 0.8, alpha: 0.25 });
-    this.detailsContainer.addChild(panel);
-
-    if (!c) {
-      const emptyText = new Text({
-        text: 'No hay almas registradas en este filtro.',
-        style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 16, fill: COLOR_HEX.smoke }),
-      });
-      emptyText.position.set(420, 120);
-      this.detailsContainer.addChild(emptyText);
-      return;
+      this.renderBodiesContent(frame, vm.bodies, startY, colW, isTwoCol);
     }
 
-    const status: PokedexStatus = PokedexSystem.getStatus(c.id);
-    const numStr = `#${String(c.dexNumber).padStart(3, '0')}`;
+    UIKitLinter.inspectTree(frame, 'PokedexScene');
+  }
 
-    const title = new Text({
-      text: `${numStr} - ${status === 'unknown' ? '???' : c.name.toUpperCase()}`,
-      style: new TextStyle({
-        fontFamily: FONTS.title,
-        fontSize: 22,
-        fontWeight: '900',
-        fill: COLOR_HEX.gold,
-      }),
+  private renderSoulsContent(
+    frame: ScreenFrame,
+    souls: CodexSoulEntryVM[],
+    startY: number,
+    colW: number,
+    isTwoCol: boolean
+  ): void {
+    const t = (esText as any).terms.group_a.codex;
+    const rowH = 54;
+    const listCardH = Math.max(160, souls.length * rowH + 44);
+
+    const listCard = new KitCard({
+      width: colW,
+      height: listCardH,
+      variant: 'smokedWood',
+      title: t.tab_souls,
     });
-    title.position.set(420, 110);
-    this.detailsContainer.addChild(title);
+    listCard.position.set(0, startY);
+    frame.contentRoot.addChild(listCard);
 
-    const statusBadge = new Text({
-      text:
-        status === 'caught' ? '🔮 LIGADO AL CHASIS' : status === 'seen' ? '👁️ AVISTADO' : '🔒 INCÓGNITO',
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 13,
-        fontWeight: 'bold',
-        fill:
-          status === 'caught'
-            ? COLOR_HEX.cyan
-            : status === 'seen'
-              ? COLOR_HEX.gold
-              : COLOR_HEX.disabledText,
-      }),
-    });
-    statusBadge.position.set(420, 145);
-    this.detailsContainer.addChild(statusBadge);
-
-    if (status === 'unknown') {
-      const lockedMsg = new Text({
-        text: 'Aún no has avistado ni ligado esta alma en tu aventura.',
+    if (souls.length === 0) {
+      const emptyTxt = new Text({
+        text: t.empty_filter,
         style: new TextStyle({
           fontFamily: FONTS.body,
           fontSize: 14,
           fill: COLOR_HEX.smoke,
         }),
       });
-      lockedMsg.position.set(420, 200);
-      this.detailsContainer.addChild(lockedMsg);
-      return;
+      emptyTxt.roundPixels = true;
+      emptyTxt.position.set(16, 48);
+      listCard.addChild(emptyTxt);
+    } else {
+      souls.forEach((s, idx) => {
+        const iconId =
+          s.status === 'caught' ? 'soul_orb' : s.status === 'seen' ? 'codex_book' : 'warning';
+        const row = new KitListRow({
+          width: colW - 16,
+          height: 48,
+          iconId,
+          title: `${s.numFormatted} ${s.name}`,
+          subtitle: s.status === 'unknown' ? s.statusLabel : `${s.element} • ${s.habitat}`,
+          value: s.status === 'caught' ? `BST ${s.bst}` : '',
+          selected: idx === this.selectedIndex,
+          onClick: () => {
+            if (this.selectedIndex === idx && s.status !== 'unknown') {
+              this.openUnitSheet(s);
+            } else {
+              this.selectedIndex = idx;
+              this.buildUI();
+            }
+          },
+        });
+        row.position.set(8, 36 + idx * rowH);
+        listCard.addChild(row);
+
+        this.focusManager.register({
+          container: row,
+          width: colW - 16,
+          height: 48,
+          onActivate: () => {
+            this.selectedIndex = idx;
+            if (s.status !== 'unknown') {
+              this.openUnitSheet(s);
+            } else {
+              this.buildUI();
+            }
+          },
+        });
+      });
+      this.focusManager.setFocus(this.selectedIndex, false);
     }
 
-    // Details for Seen or Caught
-    const typesStr = `Elemento: ${c.types.join(' / ').toUpperCase()}`;
-    const descStr = c.description;
-    const habitatStr = `Hábitat de Origen: ${(c.habitatMapIds || ['Ruta del Claro']).join(', ')}`;
-
-    const lines: string[] = [typesStr, habitatStr, `─────────────────────────────────────`];
-
-    // Check highest sync for lore unlock
-    const saveState = GlobalSaveService.getCurrentState();
-    const activeDoll = [...(saveState.party || []), ...(saveState.storage || [])].find(
-      (s) => s.speciesId === c.id
-    );
-    const currentSync = activeDoll
-      ? activeDoll.sync !== undefined
-        ? activeDoll.sync
-        : activeDoll.friendship || 0
-      : 0;
-
-    if (status === 'caught') {
-      const bst =
-        c.baseStats.hp +
-        c.baseStats.atk +
-        c.baseStats.def +
-        c.baseStats.spAtk +
-        c.baseStats.spDef +
-        c.baseStats.speed;
-      lines.push(
-        `BST Total: ${bst}  ·  Sincronía del Lazo: ${currentSync}/255`,
-        `• PS Base     : ${c.baseStats.hp}   • Atq. Esp. : ${c.baseStats.spAtk}`,
-        `• Ataque Base : ${c.baseStats.atk}   • Def. Esp. : ${c.baseStats.spDef}`,
-        `• Defensa Base: ${c.baseStats.def}   • Velocidad : ${c.baseStats.speed}`,
-        `─────────────────────────────────────`
-      );
-    }
-
-    lines.push(`"${descStr}"`);
-
-    // Lore Unlocks by Synchrony
-    if (currentSync >= 50) {
-      lines.push(
-        `\n📜 Lore de Origen (Sincronía ≥ 50):\nUn alma antigua que resonaba libre en el mundo de Anima antes de ser guiada al chasis.`
-      );
-    }
-    if (currentSync >= 150) {
-      lines.push(
-        `\n✨ Resonancia Maestra (Sincronía ≥ 150):\nLa perfecta comunión entre el ki del Soultrainer y esta alma le otorga la fuerza para aguantar un golpe fatal en combate.`
-      );
-    }
-
-    const detailsText = new Text({
-      text: lines.join('\n'),
-      style: new TextStyle({
-        fontFamily: FONTS.body,
-        fontSize: 12,
-        lineHeight: 18,
-        fill: COLOR_HEX.parchment,
-      }),
+    // Detail Card
+    const detailCardH = 380;
+    const detailCard = new KitCard({
+      width: colW,
+      height: detailCardH,
+      variant: 'parchment',
+      title: souls[this.selectedIndex]
+        ? `${souls[this.selectedIndex].numFormatted} — ${souls[this.selectedIndex].name}`
+        : t.tab_souls,
     });
-    detailsText.position.set(420, 180);
-    this.detailsContainer.addChild(detailsText);
+    detailCard.position.set(
+      isTwoCol ? colW + 12 : 0,
+      isTwoCol ? startY : startY + listCardH + 12
+    );
+    frame.contentRoot.addChild(detailCard);
+
+    const sel = souls[this.selectedIndex];
+    if (sel) {
+      const statusBadge = new KitBadge(
+        sel.statusLabel,
+        sel.status === 'caught' ? 'tier' : 'rarity',
+        sel.status === 'caught' ? 'tier' : 'comun'
+      );
+      statusBadge.position.set(12, 36);
+      detailCard.addChild(statusBadge);
+
+      if (sel.status !== 'unknown') {
+        const elemBadge = new KitBadge(sel.element, 'element', sel.element);
+        elemBadge.position.set(18 + statusBadge.width, 36);
+        detailCard.addChild(elemBadge);
+
+        const habTxt = new Text({
+          text: `${t.habitat}: ${sel.habitat}`,
+          style: new TextStyle({
+            fontFamily: FONTS.body,
+            fontSize: 14,
+            fontWeight: 'bold',
+            fill: COLOR_HEX.inkCrypt,
+          }),
+        });
+        habTxt.roundPixels = true;
+        habTxt.position.set(12, 68);
+        detailCard.addChild(habTxt);
+
+        const hearts = new KitHearts(Math.min(5, Math.floor(sel.syncValue / 50)), 5, 14);
+        hearts.position.set(colW - 96, 68);
+        detailCard.addChild(hearts);
+
+        // 3x2 StatBoxes
+        const sbW = Math.floor((colW - 36) / 3);
+        const statList: Array<{
+          id: 'hp' | 'atk' | 'def' | 'spAtk' | 'spDef' | 'speed';
+          lbl: string;
+          val: number;
+        }> = [
+          { id: 'hp', lbl: esText.terms.sheet.stat_hp, val: sel.baseStats.hp },
+          { id: 'atk', lbl: esText.terms.sheet.stat_atk, val: sel.baseStats.atk },
+          { id: 'def', lbl: esText.terms.sheet.stat_def, val: sel.baseStats.def },
+          { id: 'spAtk', lbl: esText.terms.sheet.stat_spAtk, val: sel.baseStats.spAtk },
+          { id: 'spDef', lbl: esText.terms.sheet.stat_spDef, val: sel.baseStats.spDef },
+          { id: 'speed', lbl: esText.terms.sheet.stat_speed, val: sel.baseStats.speed },
+        ];
+        statList.forEach((st, idx) => {
+          const box = new KitStatBox(st.id, st.lbl, st.val, sbW, 44);
+          box.position.set(12 + (idx % 3) * (sbW + 6), 94 + Math.floor(idx / 3) * 50);
+          detailCard.addChild(box);
+        });
+      }
+
+      const div = new KitDivider(colW - 24);
+      div.position.set(12, 200);
+      detailCard.addChild(div);
+
+      const loreLines = [sel.description];
+      if (sel.lore50) loreLines.push(sel.lore50);
+      if (sel.lore150) loreLines.push(sel.lore150);
+
+      const descTxt = new Text({
+        text: loreLines.join('\n\n'),
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 14,
+          lineHeight: 19,
+          fill: COLOR_HEX.inkCrypt,
+          wordWrap: true,
+          wordWrapWidth: colW - 24,
+        }),
+      });
+      descTxt.roundPixels = true;
+      descTxt.position.set(12, 214);
+      detailCard.addChild(descTxt);
+    }
+
+    const totalH = isTwoCol
+      ? startY + Math.max(listCardH, detailCardH) + 16
+      : startY + listCardH + detailCardH + 28;
+    frame.setContentTotalHeight(totalH);
   }
 
-  public update(_dt: number): void {}
+  private renderBodiesContent(
+    frame: ScreenFrame,
+    bodies: CodexBodyEntryVM[],
+    startY: number,
+    colW: number,
+    isTwoCol: boolean
+  ): void {
+    const t = (esText as any).terms.group_a.codex;
+    const rowH = 54;
+    const listCardH = Math.max(160, bodies.length * rowH + 44);
+
+    const listCard = new KitCard({
+      width: colW,
+      height: listCardH,
+      variant: 'smokedWood',
+      title: t.tab_bodies,
+    });
+    listCard.position.set(0, startY);
+    frame.contentRoot.addChild(listCard);
+
+    bodies.forEach((b, idx) => {
+      const row = new KitListRow({
+        width: colW - 16,
+        height: 48,
+        iconId: 'body_chassis',
+        title: b.name,
+        subtitle: `${b.material} • Tier ${b.tier}`,
+        value: `${b.price}`,
+        selected: idx === this.selectedIndex,
+        onClick: () => {
+          this.selectedIndex = idx;
+          this.buildUI();
+        },
+      });
+      row.position.set(8, 36 + idx * rowH);
+      listCard.addChild(row);
+
+      this.focusManager.register({
+        container: row,
+        width: colW - 16,
+        height: 48,
+        onActivate: () => {
+          this.selectedIndex = idx;
+          this.buildUI();
+        },
+      });
+    });
+    this.focusManager.setFocus(this.selectedIndex, false);
+
+    const detailCardH = 290;
+    const sel = bodies[this.selectedIndex];
+    const detailCard = new KitCard({
+      width: colW,
+      height: detailCardH,
+      variant: 'parchment',
+      title: sel ? sel.name : t.tab_bodies,
+    });
+    detailCard.position.set(
+      isTwoCol ? colW + 12 : 0,
+      isTwoCol ? startY : startY + listCardH + 12
+    );
+    frame.contentRoot.addChild(detailCard);
+
+    if (sel) {
+      const stars = new KitStars(sel.tier, 5, 14);
+      stars.position.set(12, 38);
+      detailCard.addChild(stars);
+
+      const matBadge = new KitBadge(sel.material, 'tier', 'tier');
+      matBadge.position.set(110, 34);
+      detailCard.addChild(matBadge);
+
+      const shareTitle = new Text({
+        text: `${t.part_share}: ${esText.terms.sheet.part_head} ${sel.partShare.head}% • ${esText.terms.sheet.part_torso} ${sel.partShare.torso}% • ${esText.terms.sheet.part_arms} ${sel.partShare.arms}% • ${esText.terms.sheet.part_legs} ${sel.partShare.legs}%`,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 14,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.inkCrypt,
+          wordWrap: true,
+          wordWrapWidth: colW - 24,
+        }),
+      });
+      shareTitle.roundPixels = true;
+      shareTitle.position.set(12, 68);
+      detailCard.addChild(shareTitle);
+
+      const slotsTxt = new Text({
+        text: `${t.slots_avail}: ${sel.slotsText}`,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 14,
+          fill: COLOR_HEX.inkCrypt,
+        }),
+      });
+      slotsTxt.roundPixels = true;
+      slotsTxt.position.set(12, 116);
+      detailCard.addChild(slotsTxt);
+
+      const div = new KitDivider(colW - 24);
+      div.position.set(12, 144);
+      detailCard.addChild(div);
+
+      const descTxt = new Text({
+        text: sel.description,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 14,
+          lineHeight: 20,
+          fill: COLOR_HEX.inkCrypt,
+          wordWrap: true,
+          wordWrapWidth: colW - 24,
+        }),
+      });
+      descTxt.roundPixels = true;
+      descTxt.position.set(12, 160);
+      detailCard.addChild(descTxt);
+    }
+
+    const totalH = isTwoCol
+      ? startY + Math.max(listCardH, detailCardH) + 16
+      : startY + listCardH + detailCardH + 28;
+    frame.setContentTotalHeight(totalH);
+  }
+
+  private openUnitSheet(soul: CodexSoulEntryVM): void {
+    const saveState = GlobalSaveService.getCurrentState();
+    const allOwned = [...(saveState.party || []), ...(saveState.storage || [])];
+    const activeDoll = allOwned.find((s) => s.speciesId === soul.id);
+
+    GlobalAudioService.playSfx('confirm');
+    if (activeDoll) {
+      GlobalSceneManager.pushScene('CreatureDetail', {
+        uid: activeDoll.uid,
+        list: allOwned,
+      });
+    } else {
+      const previewDoll = StatCalculator.createSouldoll(soul.id, 10, 'chassis_madera_t1', soul.name);
+      GlobalSceneManager.pushScene('CreatureDetail', {
+        index: 0,
+        list: [previewDoll],
+      });
+    }
+  }
+
+  public update(_dt: number): void {
+    if (this.screenFrame) {
+      this.screenFrame.updateInertia();
+    }
+
+    const state = GlobalSaveService.getCurrentState();
+    const vm = buildCodexVM(state, this.activeTab, this.currentFilter);
+    const listLen = this.activeTab === 'souls' ? vm.souls.length : vm.bodies.length;
+
+    if (GlobalInput.justPressed('UP')) {
+      if (listLen > 0) {
+        this.selectedIndex = (this.selectedIndex - 1 + listLen) % listLen;
+        GlobalAudioService.playSfx('select');
+        this.buildUI();
+      }
+    } else if (GlobalInput.justPressed('DOWN')) {
+      if (listLen > 0) {
+        this.selectedIndex = (this.selectedIndex + 1) % listLen;
+        GlobalAudioService.playSfx('select');
+        this.buildUI();
+      }
+    } else if (GlobalInput.justPressed('LEFT') || GlobalInput.justPressed('RIGHT')) {
+      this.activeTab = this.activeTab === 'souls' ? 'bodies' : 'souls';
+      this.selectedIndex = 0;
+      GlobalAudioService.playSfx('select');
+      this.buildUI();
+    } else if (GlobalInput.justPressed('CONFIRM')) {
+      this.focusManager.activateCurrent();
+    } else if (GlobalInput.justPressed('CANCEL') || GlobalInput.justPressed('MENU')) {
+      this.close();
+    }
+  }
+
+  public onResize(_width: number, _height: number): void {
+    this.buildUI();
+  }
+
+  private close(): void {
+    GlobalAudioService.playSfx('cancel');
+    GlobalSceneManager.popScene();
+  }
+
   public render(_alpha: number): void {}
-  public onResize(_width: number, _height: number): void {}
 
   public async exit(): Promise<void> {
-    if (this.container.parent) {
-      this.container.parent.removeChildren();
-    }
+    this.focusManager.clear();
+    this.container.destroy({ children: true });
   }
 }

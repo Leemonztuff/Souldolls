@@ -14,13 +14,15 @@ import { CREATURES_DATA } from '../data/creatures/creatures';
 import { MOVES_DATA } from '../data/moves/moves';
 import { ITEMS_DATA } from '../data/items/items';
 import { GlobalAssetRegistry } from '../render/procedural/AssetRegistry';
-import { SoulDollSpriteFactory, SpriteView } from '../render/procedural/SoulDollSpriteFactory';
+import { SoulDollSpriteFactory, SpriteView, IdleBandMeta } from '../render/procedural/SoulDollSpriteFactory';
+import { BattleIdleMesh } from '../render/battle/BattleIdleMesh';
 import { GlobalEvolutionSystem } from '../systems/evolution/EvolutionSystem';
-import { CreatureInstance } from '../types';
+import { CreatureInstance, BustAnimationMode } from '../types';
 import { HumanoidPartSilhouette } from '../render/ui/HumanoidPartSilhouette';
 import { BodyPart } from '../types/bodies';
 import { GlobalTheme } from '../data/theme/ThemeManager';
 import { COLOR_NUM, COLOR_HEX, FONTS, COLOR_SEMANTIC } from '../ui/styles';
+import { KitCard, KitButton, UIKitLinter } from '../ui/kit';
 import battleConfigRaw from '../data/config/battle.json';
 
 export type BiomeType = 'pasto' | 'bosque' | 'cueva' | 'interior';
@@ -74,19 +76,23 @@ export class BattleScene implements IScene {
   private biome: BiomeType = 'pasto';
   private layout!: ComputedBattleLayout;
 
-  // Sprites, Platforms & Elliptical Shadows
+  // Sprites (MeshPlane Idle Deformation), Platforms & Elliptical Shadows
   private playerPlatform!: Graphics;
   private opponentPlatform!: Graphics;
   private playerShadow!: Graphics;
   private opponentShadow!: Graphics;
-  private playerSprite!: Sprite;
-  private opponentSprite!: Sprite;
+  private playerSprite!: BattleIdleMesh;
+  private opponentSprite!: BattleIdleMesh;
 
-  // Base scales & coordinates for integer pixel placement
+  // Base scales, views & coordinates for integer pixel placement
   private playerBaseScale = 2;
   private opponentBaseScale = 2;
-  private playerSignX = 1;
+  private playerSignX = -1;
   private opponentSignX = -1;
+  private playerFlipX = true;
+  private opponentFlipX = true;
+  private playerView: SpriteView = 'view_back34';
+  private opponentView: SpriteView = 'view_front34';
   private playerBaseX = 260;
   private playerBaseY = 420;
   private opponentBaseX = 680;
@@ -98,6 +104,8 @@ export class BattleScene implements IScene {
   private fpsAccum = 0;
   private currentFps = 60;
   private fpsText?: Text;
+  private bufUpdatesText?: Text;
+  private isActionAnimating = false;
 
   // HUD Elements
   private playerHpBarFill!: Graphics;
@@ -125,18 +133,26 @@ export class BattleScene implements IScene {
   private menuItemsContainers: Container[] = [];
   private onBattleEndCallback?: (victory: boolean, capturedCreature?: CreatureInstance) => void;
 
-  // Debug State (Bloque 37 Req 7)
+  // Debug State (Bloque 37, 38 & 39)
   private debugVisible = false;
-  private debugFlipOverride = false;
+  private debugAllyViewOverride: SpriteView | null = null;
+  private debugEnemyViewOverride: SpriteView | null = null;
+  private debugAllyFlipOverride: boolean | null = null;
+  private debugEnemyFlipOverride: boolean | null = null;
   private debugIntegerScale = true;
   private debugShowBoundingBoxes = true;
   private debugShowAnchorsAndGrid = true;
+  private debugShowHotspots = true;
+  private debugShowIdleBands = true;
+  private debugSlowMotion = false;
+  private debugEditSide: BattleSide = 'opponent';
+  private debugCustomIdleMeta: Partial<Record<SpriteView, IdleBandMeta>> = {};
   private debugNativeSize = false;
 
   public async enter(params?: BattleSceneParams): Promise<void> {
-    GlobalPixiRenderer.clearAllLayers();
     this.container = new Container();
     this.container.roundPixels = true;
+    this.container.zIndex = 1000;
     GlobalPixiRenderer.menuLayer.addChild(this.container);
 
     this.biome = params?.biome || 'pasto';
@@ -295,13 +311,13 @@ export class BattleScene implements IScene {
     bg.rect(0, 0, width, height);
 
     if (this.biome === 'bosque') {
-      bg.fill({ color: 0x064e3b }); // Deep emerald forest
+      bg.fill({ color: COLOR_NUM.woodDark });
     } else if (this.biome === 'cueva') {
-      bg.fill({ color: 0x1e1b4b }); // Dark cave indigo
+      bg.fill({ color: COLOR_NUM.inkCrypt });
     } else if (this.biome === 'interior') {
-      bg.fill({ color: 0x1e293b }); // Modern arena slate
+      bg.fill({ color: COLOR_NUM.smokedWood });
     } else {
-      bg.fill({ color: 0x0f172a }); // Lush Pasto night/day sky
+      bg.fill({ color: COLOR_NUM.inkCrypt });
     }
     this.bgContainer.addChild(bg);
 
@@ -309,7 +325,7 @@ export class BattleScene implements IScene {
     const horizonY = Math.round(height * 0.42);
     const horizon = new Graphics();
     horizon.rect(0, horizonY, width, height - horizonY);
-    horizon.fill({ color: 0x0284c7, alpha: 0.14 });
+    horizon.fill({ color: COLOR_NUM.cyan, alpha: 0.14 });
     this.bgContainer.addChild(horizon);
   }
 
@@ -356,40 +372,84 @@ export class BattleScene implements IScene {
     this.playerShadow.fill({ color: 0x000000, alpha: shadowAlpha });
     this.fieldContainer.addChild(this.playerShadow);
 
-    // 4. Create Sprites with anchor (0.5, 1.0) at the feet on the exact center of their elliptical platform
-    this.opponentSprite = new Sprite();
-    this.opponentSprite.anchor.set(0.5, 1.0);
+    // 4. Create BattleIdleMesh instances (MeshPlane per pixel with feet anchored at (0,0) on the elliptical platform center)
+    const bustMode: BustAnimationMode =
+      GlobalSaveService.getCurrentState()?.settings?.bustAnimation || 'subtle';
+
+    this.opponentSprite = new BattleIdleMesh({
+      texture: GlobalAssetRegistry.getCreatureSpritePixi(this.engine.getOpponentActive().speciesId, 'view_front34'),
+      bustMode,
+      phaseOffsetSec: 1.45,
+      cycleJitterFactor: 1.08,
+    });
     this.opponentSprite.roundPixels = true;
     this.fieldContainer.addChild(this.opponentSprite);
 
-    this.playerSprite = new Sprite();
-    this.playerSprite.anchor.set(0.5, 1.0);
+    this.playerSprite = new BattleIdleMesh({
+      texture: GlobalAssetRegistry.getCreatureSpritePixi(this.engine.getPlayerActive().speciesId, 'view_back34'),
+      bustMode,
+      phaseOffsetSec: 0.15,
+      cycleJitterFactor: 0.93,
+    });
     this.playerSprite.roundPixels = true;
     this.fieldContainer.addChild(this.playerSprite);
 
     this.applyCreatureSpritesAndScales();
   }
 
+  private getEffectiveIdleMeta(speciesId: string, view: SpriteView): IdleBandMeta | null {
+    if (this.debugCustomIdleMeta[view]) {
+      return this.debugCustomIdleMeta[view]!;
+    }
+    const meta = GlobalAssetRegistry.getCreatureFrameMeta(speciesId, view);
+    return meta.idle ? JSON.parse(JSON.stringify(meta.idle)) : null;
+  }
+
   /**
-   * Req 1, 2, 3, 4 & 7:
-   * - Orientación desde battle.json (ally: "side_r" mirando a la derecha; enemy: "side_r" con flip horizontal mirando a la izquierda).
+   * Bloque 38 & 39:
+   * - Asignación por data (battle.json -> battleViews):
+   *   ally:  { view: "view_back34",  flipX: true } (de espaldas, mirando arriba-derecha hacia el enemigo)
+   *   enemy: { view: "view_front34", flipX: true } (de frente en 3/4, mirando abajo-izquierda hacia el jugador)
+   * - Si existe una vista con "native": true en el atlas, se usa con flipX: false.
+   * - Fallback si falta view_back34 -> view_back (sin flip). Si falta view_front34 -> view_front.
    * - Escala UNIFORME y ENTERA respecto al tamaño nativo del frame (Math.max(1, Math.floor(targetHeight / nativeHeight))).
-   * - Pies en el centro de su plataforma elíptica en coordenadas enteras.
-   * - Validación en consola si escala no es entera o si la textura tiene fondo opaco.
+   * - Pies en el centro de su plataforma elíptica en coordenadas enteras, con deformación idle por filas.
    */
   private applyCreatureSpritesAndScales(): void {
     const { enemyPlatform, allyPlatform, allyTargetHeight, enemyTargetHeight } = this.layout;
-    const roleViews = (battleConfigRaw as any).roleViews || { ally: 'side_r', enemy: 'side_r' };
-    const battleFacing = (battleConfigRaw as any).battleFacing || { ally: 'right', enemy: 'left' };
+    const battleViews = (battleConfigRaw as any).battleViews || {
+      ally: { view: 'view_back34', flipX: true },
+      enemy: { view: 'view_front34', flipX: true },
+    };
+
+    const bustMode: BustAnimationMode =
+      GlobalSaveService.getCurrentState()?.settings?.bustAnimation || 'subtle';
 
     const plCreature = this.engine.getPlayerActive();
     const opCreature = this.engine.getOpponentActive();
 
-    // --- ALLY (Abajo-Izquierda, mira a la DERECHA) ---
-    const allyView = (roleViews.ally || 'side_r') as SpriteView;
+    // --- ALLY (Abajo-Izquierda: de espaldas 3/4, mirando arriba-derecha hacia la enemiga) ---
+    let allyView = (this.debugAllyViewOverride || battleViews.ally?.view || 'view_back34') as SpriteView;
+    let allyFlipX = this.debugAllyFlipOverride !== null ? this.debugAllyFlipOverride : Boolean(battleViews.ally?.flipX ?? true);
+
+    if (allyView === 'view_back34' && !GlobalAssetRegistry.hasRealCreatureView(plCreature.speciesId, 'view_back34')) {
+      allyView = 'view_back';
+      if (this.debugAllyFlipOverride === null) allyFlipX = false;
+    } else {
+      const allyMeta = GlobalAssetRegistry.getCreatureFrameMeta(plCreature.speciesId, allyView);
+      if (allyMeta.native && this.debugAllyFlipOverride === null) {
+        allyFlipX = false;
+      }
+    }
+
+    this.playerView = allyView;
+    this.playerFlipX = allyFlipX;
+
     const plTex = GlobalAssetRegistry.getCreatureSpritePixi(plCreature.speciesId, allyView);
     this.playerSprite.texture = plTex;
-    this.playerSprite.anchor.set(0.5, 1.0);
+    this.playerSprite.bustMode = bustMode;
+    this.playerSprite.timeScale = this.debugSlowMotion ? 0.25 : 1.0;
+    this.playerSprite.setIdleMeta(this.getEffectiveIdleMeta(plCreature.speciesId, allyView));
 
     const plNativeH = Math.max(1, plTex.height || 160);
     let plScale = this.debugNativeSize
@@ -399,31 +459,36 @@ export class BattleScene implements IScene {
       : Number((allyTargetHeight / plNativeH).toFixed(2));
 
     this.playerBaseScale = plScale;
-    const allyWantRight = battleFacing.ally !== 'left';
-    this.playerSignX = (allyWantRight ? 1 : -1) * (this.debugFlipOverride ? -1 : 1);
+    this.playerSignX = allyFlipX ? -1 : 1;
 
     this.playerSprite.scale.set(this.playerSignX * plScale, plScale);
     this.playerBaseX = Math.round(allyPlatform.cx);
     this.playerBaseY = Math.round(allyPlatform.cy);
     this.playerSprite.position.set(this.playerBaseX, this.playerBaseY);
 
-    // --- ENEMY (Arriba-Derecha, mira a la IZQUIERDA) ---
-    let enemyView = (roleViews.enemy || 'side_r') as SpriteView;
-    const enemyWantLeft = battleFacing.enemy === 'left';
+    // --- ENEMY (Arriba-Derecha: de frente 3/4, mirando abajo-izquierda hacia el jugador) ---
+    let enemyView = (this.debugEnemyViewOverride || battleViews.enemy?.view || 'view_front34') as SpriteView;
+    let enemyFlipX =
+      this.debugEnemyFlipOverride !== null ? this.debugEnemyFlipOverride : Boolean(battleViews.enemy?.flipX ?? true);
 
-    // Req 1: "Enemiga (arriba-derecha): la misma vista side_r con flip horizontal (scale.x negativo), mira a la IZQUIERDA.
-    // Si el atlas define side_l real, úsalo en lugar del flip."
-    let useEnemyFlip = enemyWantLeft;
-    if (enemyView === 'side_l' && GlobalAssetRegistry.hasRealCreatureView(opCreature.speciesId, 'side_l')) {
-      useEnemyFlip = false;
-    } else if (enemyView === 'side_l') {
-      enemyView = 'side_r';
-      useEnemyFlip = true;
+    if (enemyView === 'view_front34' && !GlobalAssetRegistry.hasRealCreatureView(opCreature.speciesId, 'view_front34')) {
+      enemyView = 'view_front';
+      if (this.debugEnemyFlipOverride === null) enemyFlipX = false;
+    } else {
+      const enemyMeta = GlobalAssetRegistry.getCreatureFrameMeta(opCreature.speciesId, enemyView);
+      if (enemyMeta.native && this.debugEnemyFlipOverride === null) {
+        enemyFlipX = false;
+      }
     }
+
+    this.opponentView = enemyView;
+    this.opponentFlipX = enemyFlipX;
 
     const opTex = GlobalAssetRegistry.getCreatureSpritePixi(opCreature.speciesId, enemyView);
     this.opponentSprite.texture = opTex;
-    this.opponentSprite.anchor.set(0.5, 1.0);
+    this.opponentSprite.bustMode = bustMode;
+    this.opponentSprite.timeScale = this.debugSlowMotion ? 0.25 : 1.0;
+    this.opponentSprite.setIdleMeta(this.getEffectiveIdleMeta(opCreature.speciesId, enemyView));
 
     const opNativeH = Math.max(1, opTex.height || 160);
     let opScale = this.debugNativeSize
@@ -438,19 +503,25 @@ export class BattleScene implements IScene {
     }
 
     this.opponentBaseScale = opScale;
-    this.opponentSignX = (useEnemyFlip ? -1 : 1) * (this.debugFlipOverride ? -1 : 1);
+    this.opponentSignX = enemyFlipX ? -1 : 1;
 
     this.opponentSprite.scale.set(this.opponentSignX * opScale, opScale);
     this.opponentBaseX = Math.round(enemyPlatform.cx);
     this.opponentBaseY = Math.round(enemyPlatform.cy);
     this.opponentSprite.position.set(this.opponentBaseX, this.opponentBaseY);
 
-    // Req 7: Validación en consola de escala entera y transparencia de esquinas
-    this.validateSpriteCompliance('Aliada', this.playerSprite, plCreature.speciesId, allyView);
-    this.validateSpriteCompliance('Enemiga', this.opponentSprite, opCreature.speciesId, enemyView);
+    // Validación en consola de escala entera, transparencia y aviso de mirrorSafe: false
+    this.validateSpriteCompliance('Aliada', this.playerSprite, plCreature.speciesId, allyView, allyFlipX);
+    this.validateSpriteCompliance('Enemiga', this.opponentSprite, opCreature.speciesId, enemyView, enemyFlipX);
   }
 
-  private validateSpriteCompliance(roleLabel: string, sprite: Sprite, speciesId: string, view: SpriteView): void {
+  private validateSpriteCompliance(
+    roleLabel: string,
+    sprite: BattleIdleMesh,
+    speciesId: string,
+    view: SpriteView,
+    flipX: boolean
+  ): void {
     const absScaleX = Math.abs(sprite.scale.x);
     const absScaleY = Math.abs(sprite.scale.y);
 
@@ -460,8 +531,15 @@ export class BattleScene implements IScene {
       );
     }
 
+    const meta = GlobalAssetRegistry.getCreatureFrameMeta(speciesId, view);
+    if (flipX && !meta.mirrorSafe) {
+      console.info(
+        `ℹ️ [BattleScene Asimetría] '${roleLabel}' (${speciesId}, ${view}, flipX=true) -> mirrorSafe: false (${meta.note})`
+      );
+    }
+
     const set = GlobalAssetRegistry.getCreatureSpriteSet(speciesId);
-    const canvas = set ? (set as any)[view] || set.side_r || set.front : null;
+    const canvas = set ? (set as any)[view] || set.view_front34 || set.front : null;
     if (canvas && canvas instanceof HTMLCanvasElement) {
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -496,17 +574,12 @@ export class BattleScene implements IScene {
     const textRes = this.getTextRes();
 
     // 1. Opponent HUD Card (Top-Left)
-    const opCard = new Container();
-    opCard.roundPixels = true;
+    const opCard = new KitCard({
+      width: enemyHud.w,
+      height: enemyHud.h,
+      variant: 'smokedWood',
+    });
     opCard.position.set(Math.round(enemyHud.x), Math.round(enemyHud.y));
-
-    const opBg = new Graphics();
-    opBg.roundRect(0, 0, enemyHud.w, enemyHud.h, 8);
-    opBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
-    opBg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-    opBg.roundRect(3, 3, enemyHud.w - 6, enemyHud.h - 6, 6);
-    opBg.stroke({ color: COLOR_NUM.gold, width: 1, alpha: 0.35 });
-    opCard.addChild(opBg);
 
     const opCreature = this.engine.getOpponentActive();
     const opNameTxt = new Text({
@@ -541,7 +614,7 @@ export class BattleScene implements IScene {
     this.opponentBarWidth = Math.round(enemyHud.w - 72);
     const opTrack = new Graphics();
     opTrack.roundRect(14, 38, this.opponentBarWidth, 16, 4);
-    opTrack.fill({ color: COLOR_NUM.smokedWood });
+    opTrack.fill({ color: COLOR_NUM.inkCrypt });
     opCard.addChild(opTrack);
 
     this.opponentHpBarFill = new Graphics();
@@ -575,17 +648,12 @@ export class BattleScene implements IScene {
     this.hudContainer.addChild(opCard);
 
     // 2. Player HUD Card (Bottom-Right)
-    const plCard = new Container();
-    plCard.roundPixels = true;
+    const plCard = new KitCard({
+      width: allyHud.w,
+      height: allyHud.h,
+      variant: 'smokedWood',
+    });
     plCard.position.set(Math.round(allyHud.x), Math.round(allyHud.y));
-
-    const plBg = new Graphics();
-    plBg.roundRect(0, 0, allyHud.w, allyHud.h, 8);
-    plBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
-    plBg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-    plBg.roundRect(3, 3, allyHud.w - 6, allyHud.h - 6, 6);
-    plBg.stroke({ color: COLOR_NUM.gold, width: 1, alpha: 0.35 });
-    plCard.addChild(plBg);
 
     const plCreature = this.engine.getPlayerActive();
     const plNameTxt = new Text({
@@ -620,7 +688,7 @@ export class BattleScene implements IScene {
     this.playerBarWidth = Math.round(allyHud.w - 72);
     const plTrack = new Graphics();
     plTrack.roundRect(14, 38, this.playerBarWidth, 18, 4);
-    plTrack.fill({ color: COLOR_NUM.smokedWood });
+    plTrack.fill({ color: COLOR_NUM.inkCrypt });
     plCard.addChild(plTrack);
 
     this.playerHpBarFill = new Graphics();
@@ -667,6 +735,8 @@ export class BattleScene implements IScene {
     this.renderHpBar('opponent', opCreature.currentHp, opCreature.maxHp);
     this.renderExpBar(plCreature.currentExp, plCreature.maxHp * 10);
     this.updateSilhouettes();
+
+    UIKitLinter.inspectTree(this.hudContainer, 'BattleHUD');
   }
 
   private buildUIMenu(): void {
@@ -678,18 +748,13 @@ export class BattleScene implements IScene {
     const { narratorBox } = this.layout;
     const textRes = this.getTextRes();
 
-    // Narrator Box (pixel-aligned, fontSize 16px multiple of 8)
-    this.narratorBox = new Container();
-    this.narratorBox.roundPixels = true;
+    // Narrator Box using KitCard (smokedWood + bronze frame)
+    this.narratorBox = new KitCard({
+      width: narratorBox.w,
+      height: narratorBox.h,
+      variant: 'smokedWood',
+    });
     this.narratorBox.position.set(Math.round(narratorBox.x), Math.round(narratorBox.y));
-
-    const narrBg = new Graphics();
-    narrBg.roundRect(0, 0, narratorBox.w, narratorBox.h, 8);
-    narrBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
-    narrBg.stroke({ color: COLOR_NUM.bronze, width: 2 });
-    narrBg.roundRect(3, 3, narratorBox.w - 6, narratorBox.h - 6, 6);
-    narrBg.stroke({ color: COLOR_NUM.gold, width: 1, alpha: 0.35 });
-    this.narratorBox.addChild(narrBg);
 
     this.narratorText = new Text({
       text: '¿Qué debería hacer tu Souldoll?',
@@ -716,18 +781,16 @@ export class BattleScene implements IScene {
     this.clearSubmenus();
 
     const { menuBox } = this.layout;
-    const textRes = this.getTextRes();
 
     const menuContainer = new Container();
     menuContainer.roundPixels = true;
     menuContainer.position.set(Math.round(menuBox.x), Math.round(menuBox.y));
 
-    // Req 5: Botones LUCHAR, MOCHILA, EQUIPO y HUIR nítidos, completos, sin distorsión ni letterSpacing fraccionario
     const items = [
-      { label: 'LUCHAR', action: () => this.openFightMenu(), isGold: true },
-      { label: 'MOCHILA', action: () => this.openBagMenu(), isGold: false },
-      { label: 'EQUIPO', action: () => this.openPartyMenu(), isGold: false },
-      { label: 'HUIR', action: () => this.handleFleeAction(), isGold: false },
+      { label: 'LUCHAR', iconId: 'weapon' as const, action: () => this.openFightMenu(), variant: 'primary' as const },
+      { label: 'MOCHILA', iconId: 'bag' as const, action: () => this.openBagMenu(), variant: 'secondary' as const },
+      { label: 'EQUIPO', iconId: 'party' as const, action: () => this.openPartyMenu(), variant: 'secondary' as const },
+      { label: 'HUIR', iconId: 'back' as const, action: () => this.handleFleeAction(), variant: 'secondary' as const },
     ];
 
     const gapX = 10;
@@ -737,41 +800,18 @@ export class BattleScene implements IScene {
 
     this.menuItemsContainers = [];
     items.forEach((item, idx) => {
-      const btn = new Container();
-      btn.roundPixels = true;
       const col = idx % 2;
       const row = Math.floor(idx / 2);
+      const btn = new KitButton({
+        width: btnW,
+        height: btnH,
+        label: item.label,
+        iconId: item.iconId,
+        variant: item.variant,
+        fontSize: 16,
+        onClick: () => item.action(),
+      });
       btn.position.set(Math.round(col * (btnW + gapX)), Math.round(row * (btnH + gapY)));
-      btn.eventMode = 'static';
-      btn.cursor = 'pointer';
-
-      const bg = new Graphics();
-      bg.roundRect(0, 0, btnW, btnH, 8);
-      bg.fill({ color: COLOR_NUM.smokedWood, alpha: 0.96 });
-      bg.stroke({ color: item.isGold ? COLOR_NUM.gold : COLOR_NUM.bronze, width: 2 });
-      bg.roundRect(2, 2, btnW - 4, btnH - 4, 6);
-      bg.stroke({ color: COLOR_NUM.gold, width: 1, alpha: 0.25 });
-      btn.addChild(bg);
-
-      const txt = new Text({
-        text: item.label,
-        resolution: textRes,
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 16,
-          fontWeight: 'bold',
-          fill: item.isGold ? COLOR_HEX.gold : COLOR_HEX.parchment,
-        }),
-      });
-      txt.roundPixels = true;
-      txt.anchor.set(0.5);
-      txt.position.set(Math.round(btnW / 2), Math.round(btnH / 2));
-      btn.addChild(txt);
-
-      btn.on('pointerdown', () => {
-        GlobalAudioService.playSfx('confirm');
-        item.action();
-      });
 
       menuContainer.addChild(btn);
       this.menuItemsContainers.push(btn);
@@ -779,6 +819,7 @@ export class BattleScene implements IScene {
 
     this.uiMenuContainer.addChild(menuContainer);
     this.showNarratorMessage('¿Qué debería hacer tu Souldoll?');
+    UIKitLinter.inspectTree(this.uiMenuContainer, 'BattleMainMenu');
   }
 
   private openFightMenu(): void {
@@ -1054,6 +1095,44 @@ export class BattleScene implements IScene {
       hpTxt.position.set(12, Math.round(btnH - 26));
       btn.addChild(hpTxt);
 
+      // Botón rápido para abrir la Ficha de Souldoll desde el menú de equipo en batalla (Bloque 40 Req 4)
+      const sheetBtn = new Container();
+      sheetBtn.roundPixels = true;
+      sheetBtn.position.set(Math.round(btnW - 68), Math.round(btnH - 30));
+      sheetBtn.eventMode = 'static';
+      sheetBtn.cursor = 'pointer';
+
+      const sheetBg = new Graphics();
+      sheetBg.roundRect(0, 0, 60, 24, 4);
+      sheetBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.9 });
+      sheetBg.stroke({ color: COLOR_NUM.gold, width: 1.5 });
+      sheetBtn.addChild(sheetBg);
+
+      const sheetTxt = new Text({
+        text: 'FICHA',
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.hud,
+          fontSize: 10,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.gold,
+        }),
+      });
+      sheetTxt.roundPixels = true;
+      sheetTxt.anchor.set(0.5);
+      sheetTxt.position.set(30, 12);
+      sheetBtn.addChild(sheetTxt);
+
+      sheetBtn.on('pointerdown', (e) => {
+        e.stopPropagation();
+        GlobalAudioService.playSfx('select');
+        GlobalSceneManager.pushScene('CreatureDetail', {
+          index: idx,
+          list: this.engine.playerParty,
+        });
+      });
+      btn.addChild(sheetBtn);
+
       btn.on('pointerdown', () => {
         if (isCurrent) {
           this.showNarratorMessage('¡Esta Souldoll ya está en combate!');
@@ -1076,39 +1155,18 @@ export class BattleScene implements IScene {
   }
 
   private addBackButtonToSubmenu(parentBox: Container, menuWidth: number): void {
-    const textRes = this.getTextRes();
-    const backBtn = new Container();
-    backBtn.roundPixels = true;
+    const backBtn = new KitButton({
+      width: 116,
+      height: 36,
+      label: 'ATRÁS',
+      iconId: 'back',
+      variant: 'secondary',
+      fontSize: 14,
+      onClick: () => {
+        this.openMainMenu();
+      },
+    });
     backBtn.position.set(Math.round(menuWidth - 116), -44);
-    backBtn.eventMode = 'static';
-    backBtn.cursor = 'pointer';
-
-    const backBg = new Graphics();
-    backBg.roundRect(0, 0, 116, 36, 6);
-    backBg.fill({ color: COLOR_NUM.bronze });
-    backBg.stroke({ color: COLOR_NUM.gold, width: 2 });
-    backBtn.addChild(backBg);
-
-    const backTxt = new Text({
-      text: 'ATRÁS',
-      resolution: textRes,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 16,
-        fontWeight: 'bold',
-        fill: COLOR_HEX.parchment,
-      }),
-    });
-    backTxt.roundPixels = true;
-    backTxt.anchor.set(0.5);
-    backTxt.position.set(58, 18);
-    backBtn.addChild(backTxt);
-
-    backBtn.on('pointerdown', () => {
-      GlobalAudioService.playSfx('cancel');
-      this.openMainMenu();
-    });
-
     parentBox.addChild(backBtn);
   }
 
@@ -1197,37 +1255,135 @@ export class BattleScene implements IScene {
     await this.sleep(400);
   }
 
-  // --- ANIMATIONS & VISUAL UPDATES ---
+  // --- ANIMATIONS, HOTSPOTS & VISUAL UPDATES (BLOQUE 38 REQ 3, 4 & 7) ---
+
+  /**
+   * Dirección visual horizontal hacia la que mira el rol (1 = derecha, -1 = izquierda),
+   * calculada dinámicamente según la vista activa y su flipX (nunca un signo fijo).
+   */
+  public getRoleFacingDirX(side: BattleSide): number {
+    const view = side === 'player' ? this.playerView : this.opponentView;
+    const flipX = side === 'player' ? this.playerFlipX : this.opponentFlipX;
+    // En el arte original: view_front34 mira a la DERECHA (+1), view_back34 mira a la IZQUIERDA (-1)
+    const baseDir = view === 'view_back34' || view === 'side_l' ? -1 : 1;
+    return flipX ? -baseDir : baseDir;
+  }
+
+  /**
+   * Bloque 38 Req 3 & Bloque 39 Req 5:
+   * Los hotspots de partes (head, torso, arms, legs, weapon), los números de daño y las chispas de ki
+   * se reflejan junto al sprite (x' = -x cuando flipX es true) y se transforman con la misma
+   * deformación por franjas del idle (los hotspots de torso y cabeza suben con la franja).
+   */
+  public getPartHotspotWorldPos(
+    side: BattleSide,
+    part: 'head' | 'torso' | 'arms' | 'legs' | 'weapon' = 'torso'
+  ): { x: number; y: number } {
+    const isPlayer = side === 'player';
+    const baseX = isPlayer ? this.playerBaseX : this.opponentBaseX;
+    const baseY = isPlayer ? this.playerBaseY : this.opponentBaseY;
+    const flipX = isPlayer ? this.playerFlipX : this.opponentFlipX;
+    const sprite = isPlayer ? this.playerSprite : this.opponentSprite;
+    const scale = isPlayer ? this.playerBaseScale : this.opponentBaseScale;
+    const texH = Math.max(1, sprite?.texture?.height || 160);
+    const renderedH = texH * scale;
+
+    const hotspotsCfg = (battleConfigRaw as any).partHotspots || {
+      head: { dx: 4, dy: -0.78 },
+      torso: { dx: 2, dy: -0.52 },
+      arms: { dx: 22, dy: -0.50 },
+      legs: { dx: 0, dy: -0.20 },
+      weapon: { dx: 26, dy: -0.54 },
+    };
+
+    const spec = hotspotsCfg[part] || hotspotsCfg.torso;
+    const rawDx = (spec.dx || 0) * scale;
+    // Reflejo exacto respecto al pivote: x' = -x cuando flipX es true
+    const reflectedDx = flipX ? -rawDx : rawDx;
+    const dyNorm = spec.dy ?? -0.5;
+    const dyBase = dyNorm * renderedH;
+
+    // Deformación por franjas en píxeles nativos multiplicada por la escala entera del contenedor
+    const deformDeltaY = sprite ? sprite.getDeformedRowDeltaY(dyNorm) * scale : 0;
+
+    return {
+      x: Math.round(baseX + reflectedDx),
+      y: Math.round(baseY + dyBase + deformDeltaY),
+    };
+  }
 
   public getSpritePosition(side: BattleSide): { x: number; y: number } {
-    return side === 'player'
-      ? { x: this.playerBaseX, y: Math.round(this.playerBaseY - 60) }
-      : { x: this.opponentBaseX, y: Math.round(this.opponentBaseY - 60) };
+    return this.getPartHotspotWorldPos(side, 'torso');
   }
 
+  /**
+   * Bloque 38 Req 4 & Bloque 39 Req 3 & 5:
+   * Ataque: embestida hacia el rival respetando el flip y la orientación del rol,
+   * aplicando un impulso al resorte secundario del busto sin reiniciar la fase del idle.
+   */
   public async animateAttackerLunge(side: BattleSide): Promise<void> {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
+    const cfgIdle = (battleConfigRaw as any).idle || {};
+    sprite.applyImpulse(cfgIdle.lungeImpulse ?? -22);
+
+    this.isActionAnimating = true;
     const origX = Math.round(sprite.position.x);
     const origY = Math.round(sprite.position.y);
-    const targetDx = side === 'player' ? 32 : -32;
-    const targetDy = side === 'player' ? -20 : 20;
 
-    sprite.position.set(Math.round(origX + targetDx), Math.round(origY + targetDy));
+    const dirX = this.getRoleFacingDirX(side);
+    const otherBaseY = side === 'player' ? this.opponentBaseY : this.playerBaseY;
+    const dirY = otherBaseY < origY ? -1 : 1;
+
+    const lungeDx = Math.round(dirX * 28);
+    const lungeDy = Math.round(dirY * 16);
+
+    sprite.position.set(Math.round(origX + lungeDx), Math.round(origY + lungeDy));
     await this.sleep(120);
     sprite.position.set(origX, origY);
+    this.isActionAnimating = false;
   }
 
+  /**
+   * Bloque 38 Req 4 & Bloque 39 Req 3 & 5:
+   * Daño: parpadeo blanco, retroceso de 1-2 px enteros alejándose del atacante e impulso mayor al resorte.
+   */
   public async animateDefenderHitBlink(side: BattleSide): Promise<void> {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
+    const cfgIdle = (battleConfigRaw as any).idle || {};
+    sprite.applyImpulse(cfgIdle.hitImpulse ?? 28);
+
+    this.isActionAnimating = true;
+    const origX = Math.round(sprite.position.x);
+    const origY = Math.round(sprite.position.y);
+
+    // Alejarse del atacante (opuesto a la dirección hacia la que mira el defensor)
+    const retreatDirX = -this.getRoleFacingDirX(side);
+    const retreatDirY = side === 'player' ? 1 : -1;
+
     for (let i = 0; i < 4; i++) {
-      sprite.visible = !sprite.visible;
+      const stepPx = i % 2 === 0 ? 2 : 1;
+      sprite.position.set(Math.round(origX + retreatDirX * stepPx), Math.round(origY + retreatDirY * stepPx));
+      sprite.tint = i % 2 === 0 ? 0xffffff : 0xf43f5e;
+      sprite.alpha = i % 2 === 0 ? 0.45 : 1.0;
       await this.sleep(60);
     }
-    sprite.visible = true;
+    sprite.tint = 0xffffff;
+    sprite.alpha = 1.0;
+    sprite.position.set(origX, origY);
+    this.isActionAnimating = false;
   }
 
+  /**
+   * Bloque 38 Req 4 & Bloque 39 Req 3 & 5:
+   * KO: impulso de caída, desplazamiento en píxeles enteros y fundido de alpha.
+   */
   public async animateFaint(side: BattleSide): Promise<void> {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
+    const cfgIdle = (battleConfigRaw as any).idle || {};
+    sprite.applyImpulse(cfgIdle.koImpulse ?? 34);
+    sprite.setPaused(true);
+
+    this.isActionAnimating = true;
     let elapsed = 0;
     const interval = setInterval(() => {
       elapsed += 0.05;
@@ -1239,6 +1395,7 @@ export class BattleScene implements IScene {
       }
     }, 30);
     await this.sleep(550);
+    this.isActionAnimating = false;
   }
 
   public async animateSwitchIn(side: BattleSide, _creatureName: string, hp: number, maxHp: number): Promise<void> {
@@ -1246,6 +1403,7 @@ export class BattleScene implements IScene {
     this.applyCreatureSpritesAndScales();
 
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
+    sprite.setPaused(false);
     sprite.visible = true;
     sprite.alpha = 0;
 
@@ -1262,6 +1420,7 @@ export class BattleScene implements IScene {
   }
 
   public async animateCaptureSequence(shakes: number, success: boolean): Promise<void> {
+    this.opponentSprite.setPaused(true);
     const bottle = new Container();
     bottle.roundPixels = true;
     const startX = this.playerBaseX;
@@ -1343,6 +1502,7 @@ export class BattleScene implements IScene {
       soulSprite.destroy();
       this.opponentSprite.alpha = 1.0;
       this.opponentSprite.visible = true;
+      this.opponentSprite.setPaused(false);
       bottle.destroy();
       await this.showNarratorMessage('¡El alma salvaje resistió la resonancia y regresó a su contenedor!');
     }
@@ -1426,11 +1586,11 @@ export class BattleScene implements IScene {
     const bg = new Graphics();
     bg.roundRect(0, 0, 52, 20, 4);
 
-    let color = 0x64748b;
-    if (status === 'burn') color = 0xe11d48;
-    if (status === 'paralysis') color = 0xd97706;
-    if (status === 'poison') color = 0x7e22ce;
-    if (status === 'sleep') color = 0x0284c7;
+    let color = COLOR_NUM.disabledBg;
+    if (status === 'burn') color = COLOR_SEMANTIC.danger;
+    if (status === 'paralysis') color = COLOR_SEMANTIC.warning;
+    if (status === 'poison') color = COLOR_NUM.soulViolet;
+    if (status === 'sleep') color = COLOR_SEMANTIC.info;
 
     bg.fill({ color });
     badgeContainer.addChild(bg);
@@ -1442,7 +1602,7 @@ export class BattleScene implements IScene {
         fontFamily: FONTS.hud,
         fontSize: 16,
         fontWeight: 'bold',
-        fill: '#ffffff',
+        fill: COLOR_HEX.white,
       }),
     });
     txt.roundPixels = true;
@@ -1491,7 +1651,7 @@ export class BattleScene implements IScene {
 
     const g = new Graphics();
 
-    const drawSpriteDebug = (sprite: Sprite, baseScale: number, boxColor: number) => {
+    const drawSpriteDebug = (side: BattleSide, sprite: BattleIdleMesh, baseScale: number, boxColor: number) => {
       if (!sprite || !sprite.visible) return;
       const w = Math.round((sprite.texture.width || 64) * baseScale);
       const h = Math.round((sprite.texture.height || 160) * baseScale);
@@ -1511,16 +1671,54 @@ export class BattleScene implements IScene {
           g.moveTo(left, y);
           g.lineTo(left + w, y);
         }
-        g.stroke({ color: 0xffffff, width: 1, alpha: 0.14 });
+        g.stroke({ color: 0xffffff, width: 1, alpha: 0.12 });
       }
 
       // 2. Bounding Box
       if (this.debugShowBoundingBoxes) {
         g.rect(left, top, w, h);
-        g.stroke({ color: boxColor, width: 2, alpha: 0.9 });
+        g.stroke({ color: boxColor, width: 2, alpha: 0.85 });
       }
 
-      // 3. Anchor point (0.5, 1.0) at the feet
+      // 3. Bloque 39 Req 6: Líneas de neck, waist, caja de bust y línea horizontal de anclaje en los pies
+      if (this.debugShowIdleBands) {
+        const idleMeta = sprite.idleMeta;
+        if (idleMeta) {
+          const neckY = Math.round(top + idleMeta.neck * h);
+          const waistY = Math.round(top + idleMeta.waist * h);
+
+          // Neck line (Cyan)
+          g.moveTo(left - 8, neckY);
+          g.lineTo(left + w + 8, neckY);
+          g.stroke({ color: 0x38bdf8, width: 2 });
+
+          // Waist line (Amber)
+          g.moveTo(left - 8, waistY);
+          g.lineTo(left + w + 8, waistY);
+          g.stroke({ color: 0xf59e0b, width: 2 });
+
+          // Bust box (Magenta)
+          if (idleMeta.bust) {
+            const flipX = side === 'player' ? this.playerFlipX : this.opponentFlipX;
+            const bx0 = flipX ? 1 - idleMeta.bust.x1 : idleMeta.bust.x0;
+            const bx1 = flipX ? 1 - idleMeta.bust.x0 : idleMeta.bust.x1;
+            const boxX = Math.round(left + bx0 * w);
+            const boxY = Math.round(top + idleMeta.bust.y0 * h);
+            const boxW = Math.round((bx1 - bx0) * w);
+            const boxH = Math.round((idleMeta.bust.y1 - idleMeta.bust.y0) * h);
+            g.rect(boxX, boxY, boxW, boxH);
+            g.stroke({ color: 0xec4899, width: 2 });
+          }
+        }
+
+        // Feet Horizontal Anchor Line (Green if anchored 0px, Red if moved)
+        const feetAnchored = !sprite.feetMovedWarning;
+        g.moveTo(left - 18, ay);
+        g.lineTo(left + w + 18, ay);
+        g.stroke({ color: feetAnchored ? 0x10b981 : 0xef4444, width: 3 });
+      }
+
+      // 4. Anchor point (0.5, 1.0) at the feet
       if (this.debugShowAnchorsAndGrid) {
         g.moveTo(ax - 12, ay);
         g.lineTo(ax + 12, ay);
@@ -1530,10 +1728,28 @@ export class BattleScene implements IScene {
         g.circle(ax, ay, 4);
         g.fill({ color: 0xef4444 });
       }
+
+      // 5. Reflected & Deformed Part Hotspots (head, torso, arms, legs, weapon)
+      if (this.debugShowHotspots) {
+        const parts: Array<{ key: 'head' | 'torso' | 'arms' | 'legs' | 'weapon'; col: number }> = [
+          { key: 'head', col: 0xfacc15 },
+          { key: 'torso', col: 0x38bdf8 },
+          { key: 'arms', col: 0x22c55e },
+          { key: 'legs', col: 0xa855f7 },
+          { key: 'weapon', col: 0xf97316 },
+        ];
+        parts.forEach((p) => {
+          const hp = this.getPartHotspotWorldPos(side, p.key);
+          g.circle(hp.x, hp.y, 4);
+          g.fill({ color: p.col });
+          g.circle(hp.x, hp.y, 4);
+          g.stroke({ color: 0x090d16, width: 1.5 });
+        });
+      }
     };
 
-    drawSpriteDebug(this.playerSprite, this.playerBaseScale, 0x38bdf8);
-    drawSpriteDebug(this.opponentSprite, this.opponentBaseScale, 0xf43f5e);
+    drawSpriteDebug('player', this.playerSprite, this.playerBaseScale, 0x38bdf8);
+    drawSpriteDebug('opponent', this.opponentSprite, this.opponentBaseScale, 0xf43f5e);
 
     this.debugOverlayContainer.addChild(g);
   }
@@ -1543,8 +1759,8 @@ export class BattleScene implements IScene {
     if (!this.debugVisible) return;
 
     const textRes = this.getTextRes();
-    const panelW = Math.min(340, this.layout.width - 16);
-    const panelH = 236;
+    const panelW = Math.min(410, this.layout.width - 16);
+    const panelH = 486;
     const panelX = Math.round(this.layout.width - panelW - 8);
     const panelY = 8;
 
@@ -1554,12 +1770,12 @@ export class BattleScene implements IScene {
 
     const bg = new Graphics();
     bg.roundRect(0, 0, panelW, panelH, 8);
-    bg.fill({ color: 0x090d16, alpha: 0.92 });
+    bg.fill({ color: 0x090d16, alpha: 0.95 });
     bg.stroke({ color: 0x38bdf8, width: 2 });
     panel.addChild(bg);
 
     const title = new Text({
-      text: 'DEBUG COMBATE (F2)',
+      text: 'DEBUG IDLE & VISTAS (F2) - B39',
       resolution: textRes,
       style: new TextStyle({
         fontFamily: FONTS.hud,
@@ -1573,7 +1789,7 @@ export class BattleScene implements IScene {
     panel.addChild(title);
 
     this.fpsText = new Text({
-      text: `FPS: ${this.currentFps}`,
+      text: `FPS:${this.currentFps}`,
       resolution: textRes,
       style: new TextStyle({
         fontFamily: FONTS.hud,
@@ -1583,112 +1799,407 @@ export class BattleScene implements IScene {
       }),
     });
     this.fpsText.roundPixels = true;
-    this.fpsText.position.set(panelW - 92, 8);
+    this.fpsText.position.set(panelW - 88, 8);
     panel.addChild(this.fpsText);
 
-    const plW = this.playerSprite?.texture?.width || 0;
-    const plH = this.playerSprite?.texture?.height || 0;
-    const opW = this.opponentSprite?.texture?.width || 0;
-    const opH = this.opponentSprite?.texture?.height || 0;
+    const totalBufUpd =
+      (this.playerSprite?.getBufferUpdatesPerSec() || 0) + (this.opponentSprite?.getBufferUpdatesPerSec() || 0);
+    const anyFeetMoved = Boolean(this.playerSprite?.feetMovedWarning || this.opponentSprite?.feetMovedWarning);
+    const anyNonInt = Boolean(this.playerSprite?.hasNonIntegerWarning || this.opponentSprite?.hasNonIntegerWarning);
 
-    const metricsTxt = new Text({
-      text: `Aliada: ${plW}x${plH}px (x${this.playerSprite?.scale.x}) | Enemiga: ${opW}x${opH}px (x${this.opponentSprite?.scale.x})`,
+    this.bufUpdatesText = new Text({
+      text: `BufUpd/s: ${totalBufUpd} | Pies: ${anyFeetMoved ? '⚠ MOVIDO' : '✓ FIJOS (0px)'} | Int: ${
+        anyNonInt ? '⚠ FLOAT' : '✓ ENTERO'
+      }`,
       resolution: textRes,
       style: new TextStyle({
         fontFamily: FONTS.hud,
         fontSize: 8,
-        fill: '#cbd5e1',
+        fill: anyFeetMoved || anyNonInt ? '#ef4444' : '#4ade80',
       }),
     });
-    metricsTxt.roundPixels = true;
-    metricsTxt.position.set(12, 30);
-    panel.addChild(metricsTxt);
+    this.bufUpdatesText.roundPixels = true;
+    this.bufUpdatesText.position.set(12, 28);
+    panel.addChild(this.bufUpdatesText);
 
-    const toggles = [
+    const editSpr = this.debugEditSide === 'player' ? this.playerSprite : this.opponentSprite;
+    const editView = this.debugEditSide === 'player' ? this.playerView : this.opponentView;
+    const editSpecies =
+      this.debugEditSide === 'player'
+        ? this.engine.getPlayerActive().speciesId
+        : this.engine.getOpponentActive().speciesId;
+
+    const ensureEditMeta = (): IdleBandMeta => {
+      if (!this.debugCustomIdleMeta[editView]) {
+        const base = this.getEffectiveIdleMeta(editSpecies, editView) || { neck: 0.30, waist: 0.48 };
+        this.debugCustomIdleMeta[editView] = JSON.parse(JSON.stringify(base));
+      }
+      return this.debugCustomIdleMeta[editView]!;
+    };
+
+    const curMeta = this.getEffectiveIdleMeta(editSpecies, editView) || { neck: 0.30, waist: 0.48 };
+
+    // Helper for compact stepper rows (Sliders / +/-)
+    const addStepperRow = (
+      rowIdx: number,
+      label: string,
+      valueStr: string,
+      onMinus: () => void,
+      onPlus: () => void
+    ) => {
+      const y = 44 + rowIdx * 32;
+      const rowBg = new Graphics();
+      rowBg.roundRect(12, y, panelW - 24, 28, 5);
+      rowBg.fill({ color: 0x1e293b });
+      rowBg.stroke({ color: 0x334155, width: 1 });
+      panel.addChild(rowBg);
+
+      const lbl = new Text({
+        text: `${label}: ${valueStr}`,
+        resolution: textRes,
+        style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 16, fontWeight: 'bold', fill: '#f8fafc' }),
+      });
+      lbl.roundPixels = true;
+      lbl.position.set(20, y + 4);
+      panel.addChild(lbl);
+
+      const makeStepBtn = (bx: number, signTxt: string, cb: () => void) => {
+        const b = new Container();
+        b.roundPixels = true;
+        b.position.set(bx, y + 2);
+        b.eventMode = 'static';
+        b.cursor = 'pointer';
+        const g = new Graphics();
+        g.roundRect(0, 0, 34, 24, 4);
+        g.fill({ color: 0x0284c7 });
+        b.addChild(g);
+        const t = new Text({
+          text: signTxt,
+          resolution: textRes,
+          style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 16, fontWeight: 'bold', fill: '#ffffff' }),
+        });
+        t.roundPixels = true;
+        t.anchor.set(0.5);
+        t.position.set(17, 12);
+        b.addChild(t);
+        b.on('pointerdown', () => {
+          GlobalAudioService.playSfx('select');
+          cb();
+          this.applyCreatureSpritesAndScales();
+          this.renderDebugOverlay();
+          this.renderDebugPanel();
+        });
+        panel.addChild(b);
+      };
+
+      makeStepBtn(panelW - 88, '-', onMinus);
+      makeStepBtn(panelW - 48, '+', onPlus);
+    };
+
+    const viewCycle: SpriteView[] = ['view_back34', 'view_back', 'view_front34', 'view_front'];
+
+    // Row 0: Rol editado + Vista
+    addStepperRow(
+      0,
+      `Rol [${this.debugEditSide === 'player' ? 'ALIADA' : 'ENEMIGA'}]`,
+      editView,
+      () => {
+        this.debugEditSide = this.debugEditSide === 'player' ? 'opponent' : 'player';
+      },
+      () => {
+        const idx = viewCycle.indexOf(editView);
+        const nextV = viewCycle[(idx + 1) % viewCycle.length];
+        if (this.debugEditSide === 'player') this.debugAllyViewOverride = nextV;
+        else this.debugEnemyViewOverride = nextV;
+      }
+    );
+
+    // Row 1: Neck (0..1)
+    addStepperRow(
+      1,
+      'Neck (Cuello)',
+      curMeta.neck.toFixed(2),
+      () => {
+        const m = ensureEditMeta();
+        m.neck = Math.max(0.05, Number((m.neck - 0.01).toFixed(2)));
+      },
+      () => {
+        const m = ensureEditMeta();
+        m.neck = Math.min(m.waist - 0.02, Number((m.neck + 0.01).toFixed(2)));
+      }
+    );
+
+    // Row 2: Waist (0..1)
+    addStepperRow(
+      2,
+      'Waist (Torso ½)',
+      curMeta.waist.toFixed(2),
+      () => {
+        const m = ensureEditMeta();
+        m.waist = Math.max(m.neck + 0.02, Number((m.waist - 0.01).toFixed(2)));
+      },
+      () => {
+        const m = ensureEditMeta();
+        m.waist = Math.min(0.85, Number((m.waist + 0.01).toFixed(2)));
+      }
+    );
+
+    // Row 3: Bust Y0..Y1
+    addStepperRow(
+      3,
+      'Bust Y0..Y1',
+      curMeta.bust ? `${curMeta.bust.y0.toFixed(2)}..${curMeta.bust.y1.toFixed(2)}` : 'SIN BUST',
+      () => {
+        const m = ensureEditMeta();
+        if (!m.bust) m.bust = { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 };
+        else {
+          m.bust.y0 = Math.max(0.15, Number((m.bust.y0 - 0.01).toFixed(2)));
+          m.bust.y1 = Math.max(m.bust.y0 + 0.04, Number((m.bust.y1 - 0.01).toFixed(2)));
+        }
+      },
+      () => {
+        const m = ensureEditMeta();
+        if (!m.bust) m.bust = { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 };
+        else {
+          m.bust.y0 = Math.min(0.6, Number((m.bust.y0 + 0.01).toFixed(2)));
+          m.bust.y1 = Math.min(0.75, Number((m.bust.y1 + 0.01).toFixed(2)));
+        }
+      }
+    );
+
+    // Row 4: Amplitud Respiración & Rebote (1-3 px)
+    addStepperRow(
+      4,
+      'Amp Resp/Bust',
+      `${editSpr.breathAmpPx}px / ${editSpr.bustJigglePx}px`,
+      () => {
+        const next = Math.max(0, editSpr.breathAmpPx - 1);
+        this.playerSprite.breathAmpPx = next;
+        this.opponentSprite.breathAmpPx = next;
+      },
+      () => {
+        const next = Math.min(3, editSpr.breathAmpPx + 1);
+        this.playerSprite.breathAmpPx = next;
+        this.opponentSprite.breathAmpPx = next;
+      }
+    );
+
+    // Row 5: Resorte k (rigidez)
+    addStepperRow(
+      5,
+      'Resorte k / c',
+      `k=${editSpr.springK} c=${editSpr.springC}`,
+      () => {
+        this.playerSprite.springK = Math.max(20, editSpr.springK - 10);
+        this.opponentSprite.springK = this.playerSprite.springK;
+      },
+      () => {
+        this.playerSprite.springK = Math.min(200, editSpr.springK + 10);
+        this.opponentSprite.springK = this.playerSprite.springK;
+      }
+    );
+
+    // Row 6: Amortiguamiento c
+    addStepperRow(
+      6,
+      'Amortig. c',
+      `${editSpr.springC}`,
+      () => {
+        this.playerSprite.springC = Math.max(1, editSpr.springC - 1);
+        this.opponentSprite.springC = this.playerSprite.springC;
+      },
+      () => {
+        this.playerSprite.springC = Math.min(25, editSpr.springC + 1);
+        this.opponentSprite.springC = this.playerSprite.springC;
+      }
+    );
+
+    // Action Buttons at bottom of Debug Panel
+    const actions = [
       {
-        label: `1. Orientación Flip: ${this.debugFlipOverride ? 'INVERTIDO' : 'NORMAL'}`,
-        active: this.debugFlipOverride,
+        label: `Vel: ${this.debugSlowMotion ? '0.25x LENTA' : '1.0x NORMAL'}`,
+        col: this.debugSlowMotion ? 0xd97706 : 0x1e293b,
         onClick: () => {
-          this.debugFlipOverride = !this.debugFlipOverride;
+          this.debugSlowMotion = !this.debugSlowMotion;
+          this.applyCreatureSpritesAndScales();
+          this.renderDebugPanel();
+        },
+      },
+      {
+        label: `FlipX ${this.debugEditSide === 'player' ? 'Aliada' : 'Enemiga'}`,
+        col: 0x0284c7,
+        onClick: () => {
+          if (this.debugEditSide === 'player') this.debugAllyFlipOverride = !this.playerFlipX;
+          else this.debugEnemyFlipOverride = !this.opponentFlipX;
           this.applyCreatureSpritesAndScales();
           this.renderDebugOverlay();
           this.renderDebugPanel();
         },
       },
       {
-        label: `2. Escala Entera: ${this.debugIntegerScale ? 'ON (Floor)' : 'OFF (Float)'}`,
-        active: this.debugIntegerScale,
+        label: '💥 IMPULSO (GOLPE)',
+        col: 0xe11d48,
         onClick: () => {
-          this.debugIntegerScale = !this.debugIntegerScale;
-          this.applyCreatureSpritesAndScales();
-          this.renderDebugOverlay();
-          this.renderDebugPanel();
+          this.playerSprite.applyImpulse(28);
+          this.opponentSprite.applyImpulse(28);
         },
       },
       {
-        label: `3. Bounding Boxes: ${this.debugShowBoundingBoxes ? 'ON' : 'OFF'}`,
-        active: this.debugShowBoundingBoxes,
+        label: '📋 EXPORTAR JSON',
+        col: 0x16a34a,
         onClick: () => {
-          this.debugShowBoundingBoxes = !this.debugShowBoundingBoxes;
-          this.renderDebugOverlay();
-          this.renderDebugPanel();
-        },
-      },
-      {
-        label: `4. Anclas y Grid Píxel: ${this.debugShowAnchorsAndGrid ? 'ON' : 'OFF'}`,
-        active: this.debugShowAnchorsAndGrid,
-        onClick: () => {
-          this.debugShowAnchorsAndGrid = !this.debugShowAnchorsAndGrid;
-          this.renderDebugOverlay();
-          this.renderDebugPanel();
-        },
-      },
-      {
-        label: `5. Tamaño: ${this.debugNativeSize ? 'NATIVO (1x)' : 'ESCALADO'}`,
-        active: this.debugNativeSize,
-        onClick: () => {
-          this.debugNativeSize = !this.debugNativeSize;
-          this.applyCreatureSpritesAndScales();
-          this.renderDebugOverlay();
-          this.renderDebugPanel();
+          const exported = {
+            view_front: this.getEffectiveIdleMeta('maga', 'view_front'),
+            view_front34: this.getEffectiveIdleMeta('maga', 'view_front34'),
+            view_back: this.getEffectiveIdleMeta('maga', 'view_back'),
+            view_back34: this.getEffectiveIdleMeta('maga', 'view_back34'),
+          };
+          const jsonStr = JSON.stringify(exported, null, 2);
+          console.log('📦 [Bloque 39 Export Idle JSON]:\n' + jsonStr);
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(jsonStr).catch(() => {});
+          }
+          this.showNarratorMessage('¡JSON de franjas idle exportado a consola y portapapeles!');
         },
       },
     ];
 
-    toggles.forEach((t, idx) => {
+    actions.forEach((act, idx) => {
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const btnW = Math.floor((panelW - 32) / 2);
+      const bx = 12 + col * (btnW + 8);
+      const by = 274 + row * 38;
+
       const btn = new Container();
       btn.roundPixels = true;
-      btn.position.set(12, 46 + idx * 36);
+      btn.position.set(bx, by);
       btn.eventMode = 'static';
       btn.cursor = 'pointer';
 
       const bBg = new Graphics();
-      bBg.roundRect(0, 0, panelW - 24, 30, 6);
-      bBg.fill({ color: t.active ? 0x0284c7 : 0x1e293b });
-      bBg.stroke({ color: t.active ? 0xffffff : 0x475569, width: 1.5 });
+      bBg.roundRect(0, 0, btnW, 32, 6);
+      bBg.fill({ color: act.col });
+      bBg.stroke({ color: 0xffffff, width: 1.5 });
       btn.addChild(bBg);
 
       const bTxt = new Text({
-        text: t.label,
+        text: act.label,
         resolution: textRes,
-        style: new TextStyle({
-          fontFamily: FONTS.hud,
-          fontSize: 16,
-          fontWeight: 'bold',
-          fill: '#ffffff',
-        }),
+        style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 16, fontWeight: 'bold', fill: '#ffffff' }),
       });
       bTxt.roundPixels = true;
-      bTxt.position.set(10, 6);
+      bTxt.anchor.set(0.5);
+      bTxt.position.set(Math.round(btnW / 2), 16);
       btn.addChild(bTxt);
 
       btn.on('pointerdown', () => {
-        GlobalAudioService.playSfx('select');
-        t.onClick();
+        GlobalAudioService.playSfx('confirm');
+        act.onClick();
       });
 
       panel.addChild(btn);
     });
+
+    // Bust Animation Mode Selector (Apagada / Sutil 50% / Normal) - Bloque 39 Req 3
+    const state = GlobalSaveService.getCurrentState();
+    const curBustMode: BustAnimationMode = state?.settings?.bustAnimation || 'subtle';
+    const bustBtn = new Container();
+    bustBtn.roundPixels = true;
+    bustBtn.position.set(12, 354);
+    bustBtn.eventMode = 'static';
+    bustBtn.cursor = 'pointer';
+
+    const bustBg = new Graphics();
+    bustBg.roundRect(0, 0, panelW - 24, 32, 6);
+    bustBg.fill({ color: 0x7e22ce });
+    bustBg.stroke({ color: 0xffffff, width: 1.5 });
+    bustBtn.addChild(bustBg);
+
+    const bustTxt = new Text({
+      text: `Animación Busto: ${
+        curBustMode === 'off' ? 'APAGADA' : curBustMode === 'normal' ? 'NORMAL (100%)' : 'SUTIL (50%)'
+      }`,
+      resolution: textRes,
+      style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 16, fontWeight: 'bold', fill: '#ffffff' }),
+    });
+    bustTxt.roundPixels = true;
+    bustTxt.anchor.set(0.5);
+    bustTxt.position.set(Math.round((panelW - 24) / 2), 16);
+    bustBtn.addChild(bustTxt);
+
+    bustBtn.on('pointerdown', () => {
+      GlobalAudioService.playSfx('select');
+      const modes: BustAnimationMode[] = ['off', 'subtle', 'normal'];
+      const nextMode = modes[(modes.indexOf(curBustMode) + 1) % modes.length];
+      if (state && state.settings) {
+        state.settings.bustAnimation = nextMode;
+        GlobalSaveService.save();
+      }
+      this.applyCreatureSpritesAndScales();
+      this.renderDebugPanel();
+    });
+    panel.addChild(bustBtn);
+
+    // Toggle Lines / Overlays button
+    const ovBtn = new Container();
+    ovBtn.roundPixels = true;
+    ovBtn.position.set(12, 392);
+    ovBtn.eventMode = 'static';
+    ovBtn.cursor = 'pointer';
+
+    const ovBg = new Graphics();
+    ovBg.roundRect(0, 0, panelW - 24, 32, 6);
+    ovBg.fill({ color: this.debugShowIdleBands ? 0x0284c7 : 0x1e293b });
+    ovBg.stroke({ color: 0xffffff, width: 1.5 });
+    ovBtn.addChild(ovBg);
+
+    const ovTxt = new Text({
+      text: `Ver Franjas/Pies/Hotspots: ${this.debugShowIdleBands ? 'ON' : 'OFF'}`,
+      resolution: textRes,
+      style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 16, fontWeight: 'bold', fill: '#ffffff' }),
+    });
+    ovTxt.roundPixels = true;
+    ovTxt.anchor.set(0.5);
+    ovTxt.position.set(Math.round((panelW - 24) / 2), 16);
+    ovBtn.addChild(ovTxt);
+
+    ovBtn.on('pointerdown', () => {
+      GlobalAudioService.playSfx('select');
+      const next = !this.debugShowIdleBands;
+      this.debugShowIdleBands = next;
+      this.debugShowBoundingBoxes = next;
+      this.debugShowAnchorsAndGrid = next;
+      this.debugShowHotspots = next;
+      this.renderDebugOverlay();
+      this.renderDebugPanel();
+    });
+    panel.addChild(ovBtn);
+
+    const footNote = new Text({
+      text: `Línea verde en pies = anclados (0px). Escala aliada: x${this.playerSprite?.scale.x}, enemiga: x${this.opponentSprite?.scale.x}`,
+      resolution: textRes,
+      style: new TextStyle({ fontFamily: FONTS.hud, fontSize: 8, fill: '#cbd5e1' }),
+    });
+    footNote.roundPixels = true;
+    footNote.position.set(12, 434);
+    panel.addChild(footNote);
+
+    const asymNote = new Text({
+      text:
+        this.playerFlipX || this.opponentFlipX
+          ? '⚠ mirrorSafe: false -> El brazo del guantelete cambia de lado al espejar'
+          : '✓ mirrorSafe: sin flipX activo',
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: 8,
+        fill: this.playerFlipX || this.opponentFlipX ? '#facc15' : '#4ade80',
+      }),
+    });
+    asymNote.roundPixels = true;
+    asymNote.position.set(12, 450);
+    panel.addChild(asymNote);
 
     this.debugPanelContainer.addChild(panel);
   }
@@ -1698,13 +2209,16 @@ export class BattleScene implements IScene {
   }
 
   /**
-   * Req 4: Posiciones y escalas de sprites en píxeles enteros (Math.round) para evitar
-   * parpadeo y bordes irregulares durante animaciones (idle de respiración con desplazamientos de 1 px enteros).
+   * Bloque 39 Req 1, 2, 3, 4 & 5:
+   * - Los pies y todo lo que está debajo de waist permanecen inmóviles en la plataforma (0 px de desplazamiento).
+   * - Solo se deforma la malla entre waist y neck (pecho se infla) y la cabeza sube como bloque rígido,
+   *   más el rebote secundario amortiguado en la zona bust.
+   * - Si la vista carece de datos de "idle" (fallback), se aplica el desplazamiento entero de 1 px.
    */
   public update(dt: number): void {
     this.animTimer += dt;
 
-    // FPS Counter update
+    // FPS & Buffer updates counter
     this.fpsFrames++;
     this.fpsAccum += dt;
     if (this.fpsAccum >= 0.5) {
@@ -1712,7 +2226,16 @@ export class BattleScene implements IScene {
       this.fpsFrames = 0;
       this.fpsAccum = 0;
       if (this.debugVisible && this.fpsText && !this.fpsText.destroyed) {
-        this.fpsText.text = `FPS: ${this.currentFps}`;
+        this.fpsText.text = `FPS:${this.currentFps}`;
+      }
+      if (this.debugVisible && this.bufUpdatesText && !this.bufUpdatesText.destroyed) {
+        const totalBufUpd =
+          (this.playerSprite?.getBufferUpdatesPerSec() || 0) + (this.opponentSprite?.getBufferUpdatesPerSec() || 0);
+        const anyFeetMoved = Boolean(this.playerSprite?.feetMovedWarning || this.opponentSprite?.feetMovedWarning);
+        const anyNonInt = Boolean(this.playerSprite?.hasNonIntegerWarning || this.opponentSprite?.hasNonIntegerWarning);
+        this.bufUpdatesText.text = `BufUpd/s: ${totalBufUpd} | Pies: ${
+          anyFeetMoved ? '⚠ MOVIDO' : '✓ FIJOS (0px)'
+        } | Int: ${anyNonInt ? '⚠ FLOAT' : '✓ ENTERO'}`;
       }
     }
 
@@ -1728,17 +2251,21 @@ export class BattleScene implements IScene {
         const armsBroken = pl.partHP && pl.partHP.arms <= 0;
 
         this.playerSprite.rotation = legsBroken ? -0.12 : 0;
+        this.playerSprite.update(dt);
 
-        // Idle de respiración con desplazamiento entero de 1 px (sin sub-píxeles)
-        const breathOffsetPx = Math.round(Math.sin(this.animTimer * 2.5));
-        this.playerSprite.position.x = Math.round(this.playerBaseX);
-        this.playerSprite.position.y = Math.round(this.playerBaseY + (legsBroken ? 6 : 0) + breathOffsetPx);
+        if (!this.isActionAnimating) {
+          const fallbackY = this.playerSprite.currentFallbackOffsetY;
+          this.playerSprite.position.x = Math.round(this.playerBaseX);
+          this.playerSprite.position.y = Math.round(this.playerBaseY + (legsBroken ? 6 : 0) + fallbackY);
+        }
 
         if ((armsBroken || legsBroken) && Math.random() < 0.25) {
+          const sparkPart = armsBroken ? 'arms' : 'legs';
+          const sparkOrigin = this.getPartHotspotWorldPos('player', sparkPart);
           const p = GlobalVFXSystem.particlePool?.getParticle();
           if (p) {
-            p.x = Math.round(this.playerBaseX + (Math.random() - 0.5) * 40);
-            p.y = Math.round(this.playerBaseY - 40 + (Math.random() - 0.5) * 40);
+            p.x = Math.round(sparkOrigin.x + (Math.random() - 0.5) * 18);
+            p.y = Math.round(sparkOrigin.y + (Math.random() - 0.5) * 18);
             p.vx = (Math.random() - 0.5) * 2;
             p.vy = -1 - Math.random() * 2;
             p.life = 0;
@@ -1757,17 +2284,21 @@ export class BattleScene implements IScene {
         const armsBroken = op.partHP && op.partHP.arms <= 0;
 
         this.opponentSprite.rotation = legsBroken ? 0.12 : 0;
+        this.opponentSprite.update(dt);
 
-        // Idle de respiración con desplazamiento entero de 1 px (sin sub-píxeles)
-        const breathOffsetPx = Math.round(Math.sin(this.animTimer * 2.5 + 1.2));
-        this.opponentSprite.position.x = Math.round(this.opponentBaseX);
-        this.opponentSprite.position.y = Math.round(this.opponentBaseY + (legsBroken ? 6 : 0) + breathOffsetPx);
+        if (!this.isActionAnimating) {
+          const fallbackY = this.opponentSprite.currentFallbackOffsetY;
+          this.opponentSprite.position.x = Math.round(this.opponentBaseX);
+          this.opponentSprite.position.y = Math.round(this.opponentBaseY + (legsBroken ? 6 : 0) + fallbackY);
+        }
 
         if ((armsBroken || legsBroken) && Math.random() < 0.25) {
+          const sparkPart = armsBroken ? 'arms' : 'legs';
+          const sparkOrigin = this.getPartHotspotWorldPos('opponent', sparkPart);
           const p = GlobalVFXSystem.particlePool?.getParticle();
           if (p) {
-            p.x = Math.round(this.opponentBaseX + (Math.random() - 0.5) * 40);
-            p.y = Math.round(this.opponentBaseY - 40 + (Math.random() - 0.5) * 40);
+            p.x = Math.round(sparkOrigin.x + (Math.random() - 0.5) * 18);
+            p.y = Math.round(sparkOrigin.y + (Math.random() - 0.5) * 18);
             p.vx = (Math.random() - 0.5) * 2;
             p.vy = -1 - Math.random() * 2;
             p.life = 0;
@@ -1778,6 +2309,10 @@ export class BattleScene implements IScene {
             p.graphic.fill({ color: 0xc084fc });
           }
         }
+      }
+
+      if (this.debugVisible && this.debugShowHotspots) {
+        this.renderDebugOverlay();
       }
     }
 

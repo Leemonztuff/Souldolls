@@ -20,19 +20,67 @@
     "ally": "right",
     "enemy": "left"
   },
+  "battleViews": {
+    "ally": { "view": "view_back34", "flipX": true },
+    "enemy": { "view": "view_front34", "flipX": true }
+  },
   "roleViews": {
-    "ally": "side_r",
-    "enemy": "side_r"
+    "ally": "view_back34",
+    "enemy": "view_front34"
   },
   "allyHeightPct": 0.38,
   "enemyHeightPct": 0.30,
   "nativeTargetHeightPx": 160,
   "shadowAlpha": 0.35,
+  "partHotspots": {
+    "head": { "dx": 4, "dy": -0.78 },
+    "torso": { "dx": 2, "dy": -0.52 },
+    "arms": { "dx": 22, "dy": -0.50 },
+    "legs": { "dx": 0, "dy": -0.20 },
+    "weapon": { "dx": 26, "dy": -0.54 }
+  },
+  "idle": {
+    "cycleSec": 3.0,
+    "inhaleRatio": 0.40,
+    "pauseRatio": 0.07,
+    "exhaleRatio": 0.53,
+    "durationJitterPct": 0.10,
+    "breathAmpPx": 2,
+    "bustJigglePx": 2,
+    "springK": 90,
+    "springC": 7,
+    "driveGain": 18,
+    "inhaleImpulse": 8,
+    "exhaleImpulse": -6,
+    "lungeImpulse": -22,
+    "hitImpulse": 28,
+    "koImpulse": 34,
+    "views": {
+      "view_front": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": { "y0": 0.34, "y1": 0.46, "x0": 0.30, "x1": 0.70 }
+      },
+      "view_front34": {
+        "neck": 0.30,
+        "waist": 0.48,
+        "bust": { "y0": 0.33, "y1": 0.46, "x0": 0.28, "x1": 0.72 }
+      },
+      "view_back": {
+        "neck": 0.30,
+        "waist": 0.48
+      },
+      "view_back34": {
+        "neck": 0.30,
+        "waist": 0.48
+      }
+    }
+  },
   "layout": {
-    "enemyPlatform": { "xPct": 0.72, "yPct": 0.36, "rxPct": 0.16, "ryPct": 0.055 },
-    "allyPlatform": { "xPct": 0.28, "yPct": 0.58, "rxPct": 0.20, "ryPct": 0.065 },
-    "enemyHud": { "xPct": 0.03, "yPct": 0.03, "wPct": 0.42, "hPct": 0.13 },
-    "allyHud": { "xPct": 0.55, "yPct": 0.41, "wPct": 0.42, "hPct": 0.17 },
+    "enemyPlatform": { "xPct": 0.74, "yPct": 0.36, "rxPct": 0.16, "ryPct": 0.055 },
+    "allyPlatform": { "xPct": 0.23, "yPct": 0.58, "rxPct": 0.18, "ryPct": 0.06 },
+    "enemyHud": { "xPct": 0.025, "yPct": 0.025, "wPct": 0.42, "hPct": 0.13 },
+    "allyHud": { "xPct": 0.55, "yPct": 0.43, "wPct": 0.425, "hPct": 0.16 },
     "narratorBox": { "xPct": 0.025, "yPct": 0.62, "wPct": 0.95, "hPct": 0.11 },
     "menuBox": { "xPct": 0.025, "yPct": 0.75, "wPct": 0.95, "hPct": 0.22 }
   }

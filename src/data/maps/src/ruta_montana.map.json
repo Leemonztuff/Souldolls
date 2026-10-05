@@ -1,0 +1,248 @@
+{
+  "id": "ruta_montana",
+  "name": "Ruta Escarpada",
+  "category": "route",
+  "seed": 45066,
+  "width": 40,
+  "height": 28,
+  "baseGround": "grass",
+  "skyColor": 9684477,
+  "sunlightColor": 14742270,
+  "ambientMusic": "route",
+  "borders": {
+    "style": "cliff_belt",
+    "depth": 2,
+    "primaryDecor": "rock",
+    "gaps": [
+      { "side": "south", "start": 18, "end": 21 }
+    ]
+  },
+  "regions": [],
+  "paths": [
+    {
+      "id": "lower_mountain_ascent",
+      "kind": "main",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [19, 27],
+        [19, 15],
+        [12, 15],
+        [12, 9],
+        [19, 9],
+        [19, 4]
+      ],
+      "wobble": 0.25
+    },
+    {
+      "id": "eastern_ridge_shortcut_loop",
+      "kind": "secondary",
+      "width": 2,
+      "tile": "path",
+      "waypoints": [
+        [19, 9],
+        [27, 9],
+        [27, 18],
+        [19, 18]
+      ],
+      "wobble": 0.25
+    }
+  ],
+  "patches": [
+    {
+      "id": "glacial_mirror_pool",
+      "kind": "lake",
+      "center": [24, 6],
+      "radiusX": 2.6,
+      "radiusY": 2.0,
+      "noise": 0.25,
+      "minTiles": 10,
+      "groundTile": "water",
+      "isWater": true
+    },
+    {
+      "id": "west_alpine_tall_grass",
+      "kind": "tall_grass",
+      "center": [7, 19],
+      "radiusX": 3.6,
+      "radiusY": 2.8,
+      "noise": 0.34,
+      "minTiles": 16,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "east_plateau_tall_grass",
+      "kind": "tall_grass",
+      "center": [33, 18],
+      "radiusX": 3.8,
+      "radiusY": 2.8,
+      "noise": 0.34,
+      "minTiles": 18,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    },
+    {
+      "id": "summit_sanctuary_tall_grass",
+      "kind": "tall_grass",
+      "center": [15, 5],
+      "radiusX": 3.0,
+      "radiusY": 2.0,
+      "noise": 0.3,
+      "minTiles": 12,
+      "groundTile": "tall_grass",
+      "isEncounter": true
+    }
+  ],
+  "stamps": [],
+  "scatter": [
+    {
+      "id": "alpine_crag_clusters",
+      "decorType": "rock",
+      "clusterSizes": [3, 5, 7],
+      "density": 0.45,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 6,
+      "preferNearBorders": false,
+      "allowedGround": ["grass"]
+    },
+    {
+      "id": "highland_pines",
+      "decorType": "tree",
+      "clusterSizes": [3, 5],
+      "density": 0.28,
+      "minDistanceToPath": 2,
+      "minDistanceBetweenClusters": 7,
+      "preferNearBorders": true,
+      "allowedGround": ["grass"]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_summit_champions_platform",
+      "name": "Altar de la Cumbre del Mundo",
+      "role": "focus",
+      "x": 20,
+      "y": 4,
+      "radius": 4
+    },
+    {
+      "id": "lm_glacial_pool_rest",
+      "name": "Manantial Glacial del Este",
+      "role": "rest",
+      "x": 24,
+      "y": 9,
+      "radius": 3,
+      "loreProp": {
+        "type": "mana_berry_plant",
+        "offsetX": 2,
+        "offsetY": 0,
+        "reward": "cristal_agua"
+      }
+    },
+    {
+      "id": "lm_ancient_battlefield_remains",
+      "name": "Mirador del Antiguo Artífice",
+      "role": "secret",
+      "x": 11,
+      "y": 12,
+      "radius": 3,
+      "loreProp": {
+        "type": "bones",
+        "offsetX": -1,
+        "offsetY": 0
+      }
+    }
+  ],
+  "signs": [
+    {
+      "x": 21,
+      "y": 25,
+      "text": "RUTA ESCARPADA\n\"Ascenso al Santuario de la Cumbre.\""
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "text": "CUMBRE DEL MUNDO\nPlataforma de los Grandes Maestros Soultrainers."
+    }
+  ],
+  "warps": [
+    {
+      "x": 19,
+      "y": 27,
+      "targetMapId": "ciudad_gimnasio",
+      "targetX": 17,
+      "targetY": 1,
+      "targetDirection": "down"
+    },
+    {
+      "x": 20,
+      "y": 27,
+      "targetMapId": "ciudad_gimnasio",
+      "targetX": 18,
+      "targetY": 1,
+      "targetDirection": "down"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_climber_bruno",
+      "name": "Montañero Bruno",
+      "paletteId": "hiker",
+      "x": 21,
+      "y": 18,
+      "direction": "left",
+      "dialogueLines": [
+        "¡El aire aquí arriba vibra con ki puro! Los Paladines y Monjes prosperan en estas cumbres."
+      ],
+      "isTrainer": true,
+      "trainerData": {
+        "trainerClass": "Montañero",
+        "creatureSpeciesId": "paladin",
+        "creatureLevel": 25
+      }
+    },
+    {
+      "id": "npc_elite_valeria",
+      "name": "Gran Maestra Valeria",
+      "paletteId": "lass",
+      "x": 20,
+      "y": 4,
+      "direction": "down",
+      "dialogueLines": [
+        "¡Bienvenido a la Cumbre de Anima!",
+        "Soy Valeria. Has demostrado una sincronía ejemplar con tus Souldolls.",
+        "¡Demuestra que eres digno del título de Maestro Artífice!"
+      ],
+      "isTrainer": true,
+      "trainerData": {
+        "trainerClass": "Gran Maestra",
+        "creatureSpeciesId": "archimaga",
+        "creatureLevel": 35
+      }
+    },
+    {
+      "id": "npc_expert_dario",
+      "name": "Veterano Darío",
+      "paletteId": "professor",
+      "x": 15,
+      "y": 10,
+      "direction": "right",
+      "dialogueLines": [
+        "El ramal del este te permite descender en bucle de regreso hacia Ciudad Cumbre sin cruzar la hierba alta."
+      ]
+    }
+  ],
+  "spawnPoints": {
+    "default": { "x": 19, "y": 25, "direction": "up" },
+    "from_south": { "x": 19, "y": 25, "direction": "up" }
+  },
+  "encounterRate": 0.22,
+  "encounterTable": [
+    { "speciesId": "monje", "minLevel": 20, "maxLevel": 24, "weight": 35 },
+    { "speciesId": "paladin", "minLevel": 21, "maxLevel": 25, "weight": 30 },
+    { "speciesId": "maestro_trueno", "minLevel": 22, "maxLevel": 26, "weight": 15 },
+    { "speciesId": "templario", "minLevel": 24, "maxLevel": 28, "weight": 10 },
+    { "speciesId": "archimaga", "minLevel": 24, "maxLevel": 28, "weight": 10 }
+  ]
+}

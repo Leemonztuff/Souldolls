@@ -7,8 +7,10 @@
   "nativeTargetHeightPx": 160,
   "hasMixelsInSource": true,
   "sourcePixelBlockApprox": 8.82,
+  "mirrorSafe": false,
+  "asymmetryNote": "El brazo del guantelete cambia de lado al espejar horizontalmente (flipX: true).",
   "frames": {
-    "front": {
+    "view_front34": {
       "x": 0,
       "y": 0,
       "w": 68,
@@ -16,9 +18,28 @@
       "anchor": [
         0.5,
         1
-      ]
+      ],
+      "sourceRect": [
+        87,
+        74,
+        583,
+        1411
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.30,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.33,
+          "y1": 0.46,
+          "x0": 0.28,
+          "x1": 0.72
+        }
+      }
     },
-    "side_r": {
+    "view_front": {
       "x": 70,
       "y": 0,
       "w": 59,
@@ -26,9 +47,28 @@
       "anchor": [
         0.5,
         1
-      ]
+      ],
+      "sourceRect": [
+        768,
+        74,
+        505,
+        1412
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.30,
+          "x1": 0.70
+        }
+      }
     },
-    "back": {
+    "view_back": {
       "x": 131,
       "y": 0,
       "w": 71,
@@ -36,9 +76,22 @@
       "anchor": [
         0.5,
         1
-      ]
+      ],
+      "sourceRect": [
+        1434,
+        74,
+        607,
+        1406
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.30,
+        "waist": 0.48
+      }
     },
-    "side_l": {
+    "view_back34": {
       "x": 204,
       "y": 0,
       "w": 64,
@@ -46,7 +99,20 @@
       "anchor": [
         0.5,
         1
-      ]
+      ],
+      "sourceRect": [
+        2151,
+        74,
+        544,
+        1411
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.30,
+        "waist": 0.48
+      }
     }
   }
 }
