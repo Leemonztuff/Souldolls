@@ -211,7 +211,7 @@ export class OverworldScene implements IScene {
         saveState.party.push(StatCalculator.createCreatureInstance('maga', 5));
       }
 
-      GlobalSceneManager.pushScene('Battle', {
+      GlobalSceneManager.pushSceneWithTransition('Battle', {
         battleType: 'wild',
         playerParty: saveState.party,
         opponentParty: [wildCreature],
@@ -1095,7 +1095,7 @@ export class OverworldScene implements IScene {
               StatCalculator.createCreatureInstance('noctarro', 18),
               StatCalculator.createCreatureInstance('rocalin', 16),
             ];
-            GlobalSceneManager.pushScene('Battle', {
+            GlobalSceneManager.pushSceneWithTransition('Battle', {
               battleType: 'boss',
               playerParty: saveState.party,
               opponentParty: bossParty,
@@ -1377,7 +1377,7 @@ export class OverworldScene implements IScene {
 
     this.showToast(tLab.tutorial_parts_banner, 4500);
 
-    GlobalSceneManager.pushScene('Battle', {
+    GlobalSceneManager.pushSceneWithTransition('Battle', {
       battleType: 'trainer',
       trainerName: 'Aprendiz Kael',
       tutorialPartsBattle: true,

@@ -7,6 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execFileSync } from 'child_process';
 // @ts-ignore
 import jpeg from 'jpeg-js';
 import { PNG } from 'pngjs';
@@ -305,96 +306,147 @@ export function prepareBattleSpritesheet(
   targetNativeHeight = 160
 ): boolean {
   const rootDir = process.cwd();
+  const inputWebp = path.resolve(rootDir, 'assets/raw/spritesheet.webp');
   const inputJpg = path.resolve(rootDir, 'assets/raw/maga_battle_raw.jpg');
   const outputAtlasPublic = path.resolve(rootDir, 'public/assets/souldolls/maga_battle_sheet.png');
   const outputJsonPath = path.resolve(rootDir, 'src/data/art/souldolls/maga_battle_atlas.json');
   const outputPublicJsonPath = path.resolve(rootDir, 'public/data/art/souldolls/maga_battle_atlas.json');
   const legacyPublicJsonPath = path.resolve(rootDir, 'public/data/art/maga_battle_atlas.json');
 
-  if (!fs.existsSync(inputJpg)) {
-    console.error(`❌ [prepareBattleSpritesheet] No se encontró el archivo de entrada: ${inputJpg}`);
+  const useWebp5View = fs.existsSync(inputWebp);
+  const inputSource = useWebp5View ? inputWebp : inputJpg;
+
+  if (!fs.existsSync(inputSource)) {
+    console.error(`❌ [prepareBattleSpritesheet] No se encontró el archivo de entrada: ${inputSource}`);
     return false;
   }
 
-  console.log(`\n🔍 [prepareBattleSpritesheet] Procesando hoja de combate: ${inputJpg}...`);
-  const rawJpg = fs.readFileSync(inputJpg);
-  const decoded = jpeg.decode(rawJpg, { useTArray: true });
-  const { width, height, data } = decoded;
-  console.log(`📐 [prepareBattleSpritesheet] Dimensiones fuente: ${width}x${height} px`);
+  console.log(`\n🔍 [prepareBattleSpritesheet] Procesando hoja de personaje (${useWebp5View ? '5 vistas WebP' : '4 vistas JPG'}): ${inputSource}...`);
+
+  let width = 0;
+  let height = 0;
+  let data: Uint8Array;
+  let hasRealAlpha = false;
+
+  if (useWebp5View) {
+    const tmpPngPath = path.resolve('/tmp', `souldolls_webp_decode_${process.pid}.png`);
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', inputWebp, tmpPngPath]);
+    const decodedPng = PNG.sync.read(fs.readFileSync(tmpPngPath));
+    try {
+      fs.unlinkSync(tmpPngPath);
+    } catch (_) {
+      // Ignore cleanup error
+    }
+    width = decodedPng.width;
+    height = decodedPng.height;
+    data = new Uint8Array(decodedPng.data);
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 16) {
+        hasRealAlpha = true;
+        break;
+      }
+    }
+  } else {
+    const rawJpg = fs.readFileSync(inputJpg);
+    const decoded = jpeg.decode(rawJpg, { useTArray: true });
+    width = decoded.width;
+    height = decoded.height;
+    data = decoded.data;
+  }
+
+  console.log(`📐 [prepareBattleSpritesheet] Dimensiones fuente: ${width}x${height} px (alpha nativo: ${hasRealAlpha})`);
 
   const [bgR, bgG, bgB] = targetGreen;
-
-  // 1. Chroma-key del verde + Despill de halo (en bordes, g = max(r, b))
   const keyed = new Uint8Array(width * height * 4);
   let transparentCount = 0;
   let despilledCount = 0;
 
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-
-    const dist = Math.hypot(r - bgR, g - bgG, b - bgB);
-    const greenExcess = g - Math.max(r, b);
-
-    if (dist <= tolerance || (greenExcess > 48 && g > 95 && r < 115 && b < 115)) {
-      keyed[i] = 0;
-      keyed[i + 1] = 0;
-      keyed[i + 2] = 0;
-      keyed[i + 3] = 0;
-      transparentCount++;
-    } else {
-      let cleanG = g;
-      // Despill: si el píxel tiene contaminación de halo verde en bordes, g = max(r, b)
-      if (greenExcess > 12) {
-        cleanG = Math.max(r, b);
-        despilledCount++;
+  if (hasRealAlpha) {
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      if (a <= 64) {
+        keyed[i] = 0;
+        keyed[i + 1] = 0;
+        keyed[i + 2] = 0;
+        keyed[i + 3] = 0;
+        transparentCount++;
+      } else {
+        keyed[i] = data[i];
+        keyed[i + 1] = data[i + 1];
+        keyed[i + 2] = data[i + 2];
+        keyed[i + 3] = 255;
       }
-      keyed[i] = r;
-      keyed[i + 1] = cleanG;
-      keyed[i + 2] = b;
-      keyed[i + 3] = 255;
     }
-  }
+    console.log(
+      `🎨 [prepareBattleSpritesheet] Canal Alpha lossless procesado: ${transparentCount} px transparentes.`
+    );
+  } else {
+    // 1. Chroma-key del verde + Despill de halo (en bordes, g = max(r, b))
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
 
-  // Segunda pasada de despill en píxeles adyacentes a transparentes (borde de 2 px)
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = (y * width + x) * 4;
-      if (keyed[idx + 3] === 0) continue;
+      const dist = Math.hypot(r - bgR, g - bgG, b - bgB);
+      const greenExcess = g - Math.max(r, b);
 
-      let nearTransparent = false;
-      for (let dy = -2; dy <= 2 && !nearTransparent; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
-          const ny = y + dy;
-          const nx = x + dx;
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-            if (keyed[(ny * width + nx) * 4 + 3] === 0) {
-              nearTransparent = true;
-              break;
+      if (dist <= tolerance || (greenExcess > 48 && g > 95 && r < 115 && b < 115)) {
+        keyed[i] = 0;
+        keyed[i + 1] = 0;
+        keyed[i + 2] = 0;
+        keyed[i + 3] = 0;
+        transparentCount++;
+      } else {
+        let cleanG = g;
+        if (greenExcess > 12) {
+          cleanG = Math.max(r, b);
+          despilledCount++;
+        }
+        keyed[i] = r;
+        keyed[i + 1] = cleanG;
+        keyed[i + 2] = b;
+        keyed[i + 3] = 255;
+      }
+    }
+
+    // Segunda pasada de despill en píxeles adyacentes a transparentes (borde de 2 px)
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        if (keyed[idx + 3] === 0) continue;
+
+        let nearTransparent = false;
+        for (let dy = -2; dy <= 2 && !nearTransparent; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const ny = y + dy;
+            const nx = x + dx;
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+              if (keyed[(ny * width + nx) * 4 + 3] === 0) {
+                nearTransparent = true;
+                break;
+              }
             }
           }
         }
-      }
 
-      if (nearTransparent) {
-        const r = keyed[idx];
-        const g = keyed[idx + 1];
-        const b = keyed[idx + 2];
-        if (g > Math.max(r, b)) {
-          keyed[idx + 1] = Math.max(r, b);
-          despilledCount++;
+        if (nearTransparent) {
+          const r = keyed[idx];
+          const g = keyed[idx + 1];
+          const b = keyed[idx + 2];
+          if (g > Math.max(r, b)) {
+            keyed[idx + 1] = Math.max(r, b);
+            despilledCount++;
+          }
         }
       }
     }
+
+    console.log(
+      `🎨 [prepareBattleSpritesheet] Chroma-key verde completado: ${transparentCount} px transparentes, ${despilledCount} px con despill (g = max(r,b)).`
+    );
   }
 
-  console.log(
-    `🎨 [prepareBattleSpritesheet] Chroma-key verde completado: ${transparentCount} px transparentes, ${despilledCount} px con despill (g = max(r,b)).`
-  );
-
-  // 2. Detectar las 4 vistas por componentes conectados del canal alpha (sin cajas fijas)
-  // Primero agrupamos columnas no vacías y luego filtramos el componente conectado principal de cada vista
+  // 2. Detectar las vistas por componentes conectados del canal alpha (sin cajas fijas)
   const colOpaqueCounts = new Int32Array(width);
   for (let x = 0; x < width; x++) {
     let count = 0;
@@ -426,9 +478,11 @@ export function prepareBattleSpritesheet(
 
   // 3. Detectar tamaño de "píxel" del arte y verificar uniformidad (mixels)
   const runHistogram = new Map<number, number>();
-  for (let y = 150; y < height - 150; y += 4) {
+  const yScanMargin = Math.min(150, Math.floor(height * 0.15));
+  const xScanMargin = Math.min(90, Math.floor(width * 0.05));
+  for (let y = yScanMargin; y < height - yScanMargin; y += 4) {
     let run = 1;
-    for (let x = 90; x < width - 90; x++) {
+    for (let x = xScanMargin; x < width - xScanMargin; x++) {
       const i1 = (y * width + x) * 4;
       const i2 = (y * width + x - 1) * 4;
       if (keyed[i1 + 3] === 0) {
@@ -442,7 +496,7 @@ export function prepareBattleSpritesheet(
       if (d < 22) {
         run++;
       } else {
-        if (run >= 3 && run <= 18) {
+        if (run >= 2 && run <= 18) {
           runHistogram.set(run, (runHistogram.get(run) || 0) + 1);
         }
         run = 1;
@@ -453,27 +507,27 @@ export function prepareBattleSpritesheet(
   const topRuns = [...runHistogram.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   const hasMixels = topRuns.length > 1 && topRuns[1][1] > topRuns[0][1] * 0.45;
 
-  const rawViewHeight = 1412;
+  const rawViewHeight = height;
   const blockSizeFloat = rawViewHeight / targetNativeHeight;
   console.log(
     `🔬 [prepareBattleSpritesheet] Tamaño de bloque detectado: ~${blockSizeFloat.toFixed(2)} px (runs dominantes: ${topRuns
       .map(([r, c]) => `${r}px:${c}`)
       .join(', ')})`
   );
-  if (hasMixels) {
-    console.warn(
-      `⚠️ [prepareBattleSpritesheet] AVISO MIXELS: El arte fuente presenta bloques de píxel de tamaño no uniforme (ej. runs de ${topRuns
-        .map((r) => r[0] + 'px')
-        .join(' y ')}). Se normalizará por mediana/moda de bloque a cuadrícula uniforme de ~${targetNativeHeight} px de alto.`
-    );
-  }
 
-  // Bloque 38 Req 1:
-  // Col 0: view_front34 (rostro y pecho visibles, mira hacia la DERECHA en el arte original)
-  // Col 1: view_front (perfil/frontal secundaria)
-  // Col 2: view_back (espalda simétrica)
-  // Col 3: view_back34 (de espaldas, nuca visible, mira hacia la IZQUIERDA en el arte original)
-  const viewNames = ['view_front34', 'view_front', 'view_back', 'view_back34'];
+  // Orden de vistas:
+  // Si el spritesheet tiene 5 vistas (assets/raw/spritesheet.webp):
+  //   Col 0: view_front   (Frontal 0°)
+  //   Col 1: view_front34 (3/4 Frontal 45°)
+  //   Col 2: view_side    (Perfil Lateral 90°)
+  //   Col 3: view_back34  (3/4 Trasera 135°)
+  //   Col 4: view_back    (Trasera 180°)
+  // Si tiene 4 vistas (legacy):
+  //   Col 0: view_front34, Col 1: view_front, Col 2: view_back, Col 3: view_back34
+  const viewNames =
+    colSegments.length >= 5
+      ? ['view_front', 'view_front34', 'view_side', 'view_back34', 'view_back']
+      : ['view_front34', 'view_front', 'view_back', 'view_back34'];
 
   interface CroppedView {
     name: string;
@@ -638,6 +692,11 @@ export function prepareBattleSpritesheet(
       neck: 0.30,
       waist: 0.48,
       bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 },
+    },
+    view_side: {
+      neck: 0.30,
+      waist: 0.48,
+      bust: { y0: 0.33, y1: 0.46, x0: 0.22, x1: 0.65 },
     },
     view_back: {
       neck: 0.30,

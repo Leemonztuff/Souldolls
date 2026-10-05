@@ -97,10 +97,10 @@ export function buildWorkshopVM(state: GameState): WorkshopVM {
       repairCostGold: repairCost,
       needsRepair: anyPartDamaged,
       parts: {
-        head: { cur: pCur.head, max: pMax.head, ev: pEv.head },
-        torso: { cur: pCur.torso, max: pMax.torso, ev: pEv.torso },
-        arms: { cur: pCur.arms, max: pMax.arms, ev: pEv.arms },
-        legs: { cur: pCur.legs, max: pMax.legs, ev: pEv.legs },
+        head: { cur: pCur?.head ?? sd.currentHp, max: pMax?.head ?? sd.maxHp, ev: pEv?.head ?? 0 },
+        torso: { cur: pCur?.torso ?? sd.currentHp, max: pMax?.torso ?? sd.maxHp, ev: pEv?.torso ?? 0 },
+        arms: { cur: pCur?.arms ?? sd.currentHp, max: pMax?.arms ?? sd.maxHp, ev: pEv?.arms ?? 0 },
+        legs: { cur: pCur?.legs ?? sd.currentHp, max: pMax?.legs ?? sd.maxHp, ev: pEv?.legs ?? 0 },
       },
       totalEv,
       maxTotalEv: 256,
@@ -341,24 +341,36 @@ export function buildStorageVM(state: GameState, tab: StorageTabId): StorageEntr
 
   return freeBodies.map((body, idx) => {
     const ch = BODY_CHASSIS_DATA[body.chassisId] || BODY_CHASSIS_DATA['chassis_madera_t1'];
-    const avgIv = Math.round(
-      (body.ivs.head + body.ivs.torso + body.ivs.arms + body.ivs.legs) / 4
-    );
-    const avgDur = Math.round(
-      (body.partDurability.head + body.partDurability.torso + body.partDurability.arms + body.partDurability.legs) / 4
-    );
+    const avgIv = body.ivs
+      ? Math.round(
+          ((body.ivs.head ?? (body.ivs as any).hp ?? 15) +
+            (body.ivs.torso ?? (body.ivs as any).def ?? 15) +
+            (body.ivs.arms ?? (body.ivs as any).atk ?? 15) +
+            (body.ivs.legs ?? (body.ivs as any).speed ?? 15)) /
+            4
+        )
+      : 15;
+    const avgDur = body.partDurability
+      ? Math.round(
+          ((body.partDurability.head ?? 100) +
+            (body.partDurability.torso ?? 100) +
+            (body.partDurability.arms ?? 100) +
+            (body.partDurability.legs ?? 100)) /
+            4
+        )
+      : 100;
     return {
       index: idx,
       id: body.instanceId,
-      title: body.nickname || ch.name,
-      subtitle: `${ch.material.toUpperCase()} · Tier ${ch.tier}`,
+      title: body.nickname || ch?.name || 'Cuerpo',
+      subtitle: `${(ch?.material || 'madera').toUpperCase()} · Tier ${ch?.tier || 1}`,
       valueText: `Dur ${avgDur}%`,
       iconId: 'body_chassis',
       chassisId: body.chassisId,
       detailLines: [
-        ch.description,
+        ch?.description || '',
         `Calidad media IV: ${avgIv}/31 · Durabilidad: ${avgDur}%`,
-        `Reparto PS: C:${Math.round(ch.partShare.head * 100)}% T:${Math.round(ch.partShare.torso * 100)}% B:${Math.round(ch.partShare.arms * 100)}% P:${Math.round(ch.partShare.legs * 100)}%`,
+        `Reparto PS: C:${Math.round((ch?.partShare?.head ?? 0.15) * 100)}% T:${Math.round((ch?.partShare?.torso ?? 0.40) * 100)}% B:${Math.round((ch?.partShare?.arms ?? 0.20) * 100)}% P:${Math.round((ch?.partShare?.legs ?? 0.25) * 100)}%`,
       ],
     };
   });
@@ -427,8 +439,8 @@ export function buildBindingPreviewVM(
   const minTierReq = sp?.bodyRequirement?.minTier || 1;
   const isCompatible = ch.tier >= minTierReq;
 
-  const partMaxHP = StatCalculator.calculatePartMaxHp(soul.stats.hp, ch.id, body.ivs, body.evs);
-  const totalHp = partMaxHP.head + partMaxHP.torso + partMaxHP.arms + partMaxHP.legs;
+  const partMaxHP = StatCalculator.calculatePartMaxHp(soul.stats?.hp || 20, ch.id, body.ivs, body.evs);
+  const totalHp = (partMaxHP?.head ?? 20) + (partMaxHP?.torso ?? 30) + (partMaxHP?.arms ?? 20) + (partMaxHP?.legs ?? 20);
 
   return {
     hasSelection: true,

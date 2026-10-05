@@ -2006,6 +2006,7 @@ export class BattleScene implements IScene {
     this.container.addChild(soulSprite);
 
     this.opponentSprite.alpha = 0.35;
+    GlobalVFXSystem.emitSoulCaptureStream(startX, startY, targetX, targetY, 24);
     GlobalVFXSystem.playPresetVfx('bottle_seal', targetX, targetY, targetX, targetY - 40);
 
     const soulSteps = 12;
@@ -2037,21 +2038,12 @@ export class BattleScene implements IScene {
       bottle.rotation = 0;
       GlobalAudioService.playSfx('wood', 1.1); // Organic landing clack!
       
-      // Spawn tiny yellow/cyan sparkles at bottle location on each shake!
-      await GlobalVFXSystem.playPresetVfx(
-        'aura',
-        targetX,
-        targetY - 12,
-        targetX,
-        targetY - 12,
-        '#38bdf8',
-        '#facc15'
-      );
+      // Emite ondas de resonancia y chispas de ki en cada sacudida de la Soul Bottle
+      GlobalVFXSystem.emitSoulCaptureShake(targetX, targetY - 12, s);
     }
 
     if (success) {
-      await GlobalVFXSystem.screenFlash(0xfacc15, 250);
-      await GlobalVFXSystem.playPresetVfx('ki_burst', targetX, targetY, targetX, targetY);
+      GlobalVFXSystem.emitSoulCaptureSuccess(targetX, targetY - 12);
       GlobalAudioService.playSfx('levelUp');
       await this.showNarratorMessage(
         `¡Alma de ${(opCreature.nickname || opCreature.speciesId).toUpperCase()} capturada! Guardada SIN CUERPO en tu Códice.`
@@ -2060,7 +2052,7 @@ export class BattleScene implements IScene {
       soulSprite.destroy();
       this.opponentSprite.visible = false;
     } else {
-      await GlobalVFXSystem.screenFlash(0xf43f5e, 150);
+      GlobalVFXSystem.emitSoulCaptureFail(targetX, targetY - 12);
       soulSprite.visible = true;
       for (let s = soulSteps; s >= 0; s--) {
         const st = s / soulSteps;

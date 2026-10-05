@@ -284,6 +284,40 @@ export class SaveService {
     // Schema v1 -> v2 Souldolls Migration
     if (!state.bodies) {
       state.bodies = {};
+    } else {
+      Object.values(state.bodies).forEach((b: any) => {
+        if (!b) return;
+        if (!b.ivs) {
+          b.ivs = { head: 15, torso: 15, arms: 15, legs: 15 };
+        } else {
+          b.ivs = {
+            head: b.ivs.head ?? b.ivs.hp ?? 15,
+            torso: b.ivs.torso ?? b.ivs.def ?? 15,
+            arms: b.ivs.arms ?? b.ivs.atk ?? 15,
+            legs: b.ivs.legs ?? b.ivs.speed ?? 15,
+          };
+        }
+        if (!b.evs) {
+          b.evs = { head: 0, torso: 0, arms: 0, legs: 0 };
+        } else {
+          b.evs = {
+            head: b.evs.head ?? 0,
+            torso: b.evs.torso ?? 0,
+            arms: b.evs.arms ?? 0,
+            legs: b.evs.legs ?? 0,
+          };
+        }
+        if (!b.partDurability) {
+          b.partDurability = { head: 100, torso: 100, arms: 100, legs: 100 };
+        } else {
+          b.partDurability = {
+            head: b.partDurability.head ?? 100,
+            torso: b.partDurability.torso ?? 100,
+            arms: b.partDurability.arms ?? 100,
+            legs: b.partDurability.legs ?? 100,
+          };
+        }
+      });
     }
 
     if (!state.soulCodex) {
@@ -346,6 +380,13 @@ export class SaveService {
       state.bodies = init.bodies;
     }
 
+    // Ensure all Souldolls in party and storage have valid partHP and maxPartHP
+    [...(state.party || []), ...(state.storage || [])].forEach((sd: any) => {
+      if (sd) {
+        StatCalculator.ensurePartHp(sd);
+      }
+    });
+
     // Inventory migration
     if (state.inventory.potion && !state.inventory.elixir_ki) {
       state.inventory.elixir_ki = state.inventory.potion;
@@ -358,6 +399,9 @@ export class SaveService {
     }
     if (state.inventory.soul_fragment === undefined) {
       state.inventory.soul_fragment = 5;
+    }
+    if (state.inventory.soul_fragment_brilliant === undefined) {
+      state.inventory.soul_fragment_brilliant = 1;
     }
     if (!state.saveId) {
       state.saveId = `save_${Math.floor(100000 + Math.random() * 900000)}`;

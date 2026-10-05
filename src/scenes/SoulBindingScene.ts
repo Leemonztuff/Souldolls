@@ -1,4 +1,4 @@
-import { Container, Text, TextStyle } from 'pixi.js';
+import { Container, Sprite, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
@@ -9,6 +9,8 @@ import { StatCalculator } from '../systems/battle/StatCalculator';
 import { CREATURES_DATA } from '../data/creatures/creatures';
 import { BODY_CHASSIS_DATA } from '../data/bodies/chassis';
 import { HumanoidPartSilhouette } from '../render/ui/HumanoidPartSilhouette';
+import { GlobalAssetRegistry } from '../render/procedural/AssetRegistry';
+import { SoulDollSpriteFactory } from '../render/procedural/SoulDollSpriteFactory';
 import {
   ScreenFrame,
   KitCard,
@@ -183,15 +185,21 @@ export class SoulBindingScene implements IScene {
     } else {
       bodies.forEach((body, idx) => {
         const ch = BODY_CHASSIS_DATA[body.chassisId] || BODY_CHASSIS_DATA['chassis_madera_t1'];
-        const avgDur = Math.round(
-          (body.partDurability.head + body.partDurability.torso + body.partDurability.arms + body.partDurability.legs) / 4
-        );
+        const avgDur = body.partDurability
+          ? Math.round(
+              ((body.partDurability.head ?? 100) +
+                (body.partDurability.torso ?? 100) +
+                (body.partDurability.arms ?? 100) +
+                (body.partDurability.legs ?? 100)) /
+                4
+            )
+          : 100;
         const row = new KitListRow({
           width: colW - 20,
           height: bodyRowH,
           iconId: 'body_chassis',
-          title: body.nickname || ch.name,
-          subtitle: `${ch.material.toUpperCase()} · Tier ${ch.tier}`,
+          title: body.nickname || ch?.name || 'Cuerpo',
+          subtitle: `${(ch?.material || 'madera').toUpperCase()} · Tier ${ch?.tier || 1}`,
           valueText: `Dur ${avgDur}%`,
           selected: idx === this.selectedBodyIdx,
           onClick: () => {
@@ -234,9 +242,24 @@ export class SoulBindingScene implements IScene {
       prevCard.addChild(compatBadge);
 
       const sil = new HumanoidPartSilhouette();
-      sil.position.set(18, 72);
+      sil.position.set(14, 72);
       sil.updateParts(preview.partMaxHP, preview.partMaxHP);
       prevCard.addChild(sil);
+
+      const selectedSoul = souls[this.selectedSoulIdx];
+      if (selectedSoul) {
+        const previewCanvas = SoulDollSpriteFactory.generateLayeredCanvas({
+          speciesId: selectedSoul.speciesId,
+          view: 'view_side',
+        });
+        const previewTex = GlobalAssetRegistry.createCrispPixiTexture(previewCanvas);
+        const spr = new Sprite(previewTex);
+        spr.roundPixels = true;
+        spr.anchor.set(0.5, 1.0);
+        spr.scale.set(1);
+        spr.position.set(92, 206);
+        prevCard.addChild(spr);
+      }
 
       const statsList: Array<{ key: 'hp' | 'atk' | 'def' | 'spAtk' | 'spDef' | 'speed'; label: string; val: number }> = [
         { key: 'hp', label: 'PS', val: preview.hpMax },
@@ -246,7 +269,7 @@ export class SoulBindingScene implements IScene {
         { key: 'spDef', label: 'DF.ESP', val: preview.spDef },
         { key: 'speed', label: 'VEL', val: preview.speed },
       ];
-      const gridW = cw - 124;
+      const gridW = cw - 144;
       const boxW = Math.floor((gridW - 16) / 3);
       statsList.forEach((st, idx) => {
         const col = idx % 3;
@@ -258,7 +281,7 @@ export class SoulBindingScene implements IScene {
           width: boxW,
           height: 54,
         });
-        sb.position.set(108 + col * (boxW + 8), 72 + row * 62);
+        sb.position.set(126 + col * (boxW + 8), 72 + row * 62);
         prevCard.addChild(sb);
       });
     }

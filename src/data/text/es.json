@@ -139,6 +139,11 @@
       "modal_close": "CERRAR",
       "pedestal_view_front": "3/4 FRONTAL",
       "pedestal_view_back": "3/4 ESPALDA",
+      "pedestal_view_front_full": "FRONTAL (1/5)",
+      "pedestal_view_front34_full": "3/4 FRONTAL (2/5)",
+      "pedestal_view_side_full": "PERFIL (3/5)",
+      "pedestal_view_back34_full": "3/4 ESPALDA (4/5)",
+      "pedestal_view_back_full": "ESPALDA (5/5)",
       "ko_badge": "FUERA DE COMBATE (KO)"
     },
     "uikit_gallery": {
@@ -239,16 +244,25 @@
       "party": {
         "title": "EQUIPO DE SOULDOLLS",
         "sec_active": "FORMACIÓN ACTIVA (MÁX. 6)",
-        "sec_actions": "ACCIONES DE UNIDAD",
+        "sec_actions": "ACCIONES DE FORMACIÓN",
+        "sec_stats_preview": "ESTADÍSTICAS Y COMBATE",
         "empty": "No hay Souldolls en tu equipo activo.",
-        "lead_badge": "LÍDER",
+        "lead_badge": "LÍDER (1º)",
         "ko_badge": "KO",
         "sealed_badge": "SELLADA",
         "btn_sheet": "VER FICHA",
-        "btn_lead": "PONER LÍDER",
+        "btn_lead": "HACER LÍDER",
+        "btn_move_up": "SUBIR (▲)",
+        "btn_move_down": "BAJAR (▼)",
+        "btn_swap_mode": "INTERCAMBIAR",
+        "btn_swap_cancel": "CANCELAR CAMBIO",
         "btn_heal": "USAR ELIXIR",
         "btn_back": "VOLVER",
-        "swapped_msg": "{name} ahora lidera la formación."
+        "swapped_msg": "{name} ahora lidera la formación.",
+        "order_changed_msg": "Posición de {name} actualizada ({pos}/6).",
+        "swap_selected_hint": "Seleccionada: {name}. Toca otra Souldoll para intercambiar posiciones.",
+        "no_elixir_msg": "No tienes Elixir de Ki en la mochila.",
+        "healed_msg": "{name} ha recuperado sus puntos de salud."
       },
       "bag": {
         "title": "MOCHILA DE ARTÍFICE",

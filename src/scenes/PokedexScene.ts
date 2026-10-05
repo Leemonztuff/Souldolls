@@ -1,4 +1,4 @@
-import { Container, Text, TextStyle } from 'pixi.js';
+import { Container, Sprite, Text, TextStyle } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
@@ -6,6 +6,8 @@ import { GlobalAudioService } from '../services/AudioService';
 import { GlobalSaveService } from '../services/SaveService';
 import { GlobalInput } from '../core/Input';
 import { StatCalculator } from '../systems/battle/StatCalculator';
+import { GlobalAssetRegistry } from '../render/procedural/AssetRegistry';
+import { SoulDollSpriteFactory } from '../render/procedural/SoulDollSpriteFactory';
 import {
   ScreenFrame,
   KitCard,
@@ -47,6 +49,11 @@ export class PokedexScene implements IScene {
     GlobalPixiRenderer.menuLayer.addChild(this.container);
 
     this.selectedIndex = 0;
+    SoulDollSpriteFactory.onSpritesheetReady(() => {
+      if (!this.container.destroyed && this.container.visible) {
+        this.buildUI();
+      }
+    });
     this.buildUI();
     GlobalAudioService.playSfx('confirm');
   }
@@ -290,8 +297,22 @@ export class PokedexScene implements IScene {
         detailCard.addChild(habTxt);
 
         const hearts = new KitHearts(Math.min(5, Math.floor(sel.syncValue / 50)), 5, 14);
-        hearts.position.set(colW - 96, 68);
+        hearts.position.set(colW - 148, 68);
         detailCard.addChild(hearts);
+
+        // Miniatura de perfil lateral (view_side) de la Souldoll avistada/ligada
+        const previewTex = GlobalAssetRegistry.getCreatureSpritePixi(sel.id, 'view_side');
+        if (previewTex) {
+          const spr = new Sprite(previewTex);
+          spr.roundPixels = true;
+          spr.anchor.set(0.5, 1.0);
+          spr.scale.set(1);
+          spr.position.set(colW - 28, 92);
+          if (sel.status === 'seen') {
+            spr.alpha = 0.75;
+          }
+          detailCard.addChild(spr);
+        }
 
         // 3x2 StatBoxes
         const sbW = Math.floor((colW - 36) / 3);
@@ -416,8 +437,12 @@ export class PokedexScene implements IScene {
       matBadge.position.set(110, 34);
       detailCard.addChild(matBadge);
 
+      const headShare = sel.partShare?.head ?? 15;
+      const torsoShare = sel.partShare?.torso ?? 40;
+      const armsShare = sel.partShare?.arms ?? 20;
+      const legsShare = sel.partShare?.legs ?? 25;
       const shareTitle = new Text({
-        text: `${t.part_share}: ${esText.terms.sheet.part_head} ${sel.partShare.head}% • ${esText.terms.sheet.part_torso} ${sel.partShare.torso}% • ${esText.terms.sheet.part_arms} ${sel.partShare.arms}% • ${esText.terms.sheet.part_legs} ${sel.partShare.legs}%`,
+        text: `${t.part_share}: ${esText.terms.sheet.part_head} ${headShare}% • ${esText.terms.sheet.part_torso} ${torsoShare}% • ${esText.terms.sheet.part_arms} ${armsShare}% • ${esText.terms.sheet.part_legs} ${legsShare}%`,
         style: new TextStyle({
           fontFamily: FONTS.body,
           fontSize: 14,

@@ -256,16 +256,16 @@ export class WorkshopScene implements IScene {
       sil.position.set(22, 46);
       sil.updateParts(
         {
-          head: activeMember.parts.head.cur,
-          torso: activeMember.parts.torso.cur,
-          arms: activeMember.parts.arms.cur,
-          legs: activeMember.parts.legs.cur,
+          head: activeMember.parts?.head?.cur ?? 1,
+          torso: activeMember.parts?.torso?.cur ?? 1,
+          arms: activeMember.parts?.arms?.cur ?? 1,
+          legs: activeMember.parts?.legs?.cur ?? 1,
         },
         {
-          head: activeMember.parts.head.max,
-          torso: activeMember.parts.torso.max,
-          arms: activeMember.parts.arms.max,
-          legs: activeMember.parts.legs.max,
+          head: activeMember.parts?.head?.max ?? 1,
+          torso: activeMember.parts?.torso?.max ?? 1,
+          arms: activeMember.parts?.arms?.max ?? 1,
+          legs: activeMember.parts?.legs?.max ?? 1,
         }
       );
       rightCard.addChild(sil);

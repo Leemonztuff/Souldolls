@@ -19,10 +19,10 @@ export class HumanoidPartSilhouette extends Container {
   public updateParts(partHP?: PartBlock, maxPartHP?: PartBlock): void {
     if (!partHP || !maxPartHP) return;
 
-    this.drawZone(this.headG, 'head', partHP.head, maxPartHP.head);
-    this.drawZone(this.torsoG, 'torso', partHP.torso, maxPartHP.torso);
-    this.drawZone(this.armsG, 'arms', partHP.arms, maxPartHP.arms);
-    this.drawZone(this.legsG, 'legs', partHP.legs, maxPartHP.legs);
+    this.drawZone(this.headG, 'head', partHP?.head ?? 0, maxPartHP?.head ?? 1);
+    this.drawZone(this.torsoG, 'torso', partHP?.torso ?? 0, maxPartHP?.torso ?? 1);
+    this.drawZone(this.armsG, 'arms', partHP?.arms ?? 0, maxPartHP?.arms ?? 1);
+    this.drawZone(this.legsG, 'legs', partHP?.legs ?? 0, maxPartHP?.legs ?? 1);
   }
 
   private drawZone(g: Graphics, part: BodyPart, hp: number, maxHp: number): void {

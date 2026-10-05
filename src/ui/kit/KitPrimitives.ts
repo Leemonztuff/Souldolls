@@ -190,10 +190,11 @@ export class KitButton extends Container {
     }
 
     if (config.label) {
+      const hasParentheses = config.label.includes('(') || config.label.includes(')');
       this.labelText = new Text({
         text: config.label.toUpperCase(),
         style: new TextStyle({
-          fontFamily: FONTS.hud,
+          fontFamily: hasParentheses ? FONTS.body : FONTS.hud,
           fontSize: config.fontSize || 14,
           fontWeight: 'bold',
           fill: this.isDisabled ? COLOR_HEX.disabledText : COLOR_HEX.parchment,
@@ -815,10 +816,11 @@ export class KitStatBox extends Container {
     g.stroke({ color: pal.border, width: 1.5 });
     this.addChild(g);
 
+    const hasSpecialPunctuation = label.includes('(') || label.includes(')') || label.includes('.');
     const lbl = new Text({
       text: label,
       style: new TextStyle({
-        fontFamily: FONTS.hud,
+        fontFamily: hasSpecialPunctuation ? FONTS.body : FONTS.hud,
         fontSize: 14,
         fontWeight: 'bold',
         fill: pal.labelHex,
@@ -961,6 +963,8 @@ export class KitBar extends Container {
 }
 
 export class KitBadge extends Container {
+  public badgeWidth: number;
+
   constructor(
     label: string,
     kind: 'element' | 'rarity' | 'tier' = 'element',
@@ -982,10 +986,11 @@ export class KitBadge extends Container {
       bgCol = COLOR_NUM.gold;
     }
 
+    const hasParentheses = label.includes('(') || label.includes(')');
     const txt = new Text({
       text: label.toUpperCase(),
       style: new TextStyle({
-        fontFamily: FONTS.hud,
+        fontFamily: hasParentheses ? FONTS.body : FONTS.hud,
         fontSize: 14,
         fontWeight: 'bold',
         fill: kind === 'tier' || kind === 'rarity' ? COLOR_HEX.inkCrypt : COLOR_HEX.white,
@@ -994,6 +999,7 @@ export class KitBadge extends Container {
     txt.roundPixels = true;
 
     const w = Math.max(54, Math.round(txt.width + 16));
+    this.badgeWidth = w;
     const h = 24;
 
     const bg = new Graphics();

@@ -136,14 +136,24 @@ export class StatCalculator {
     evs?: Partial<PartBlock>
   ): PartBlock {
     const chassis: BodyChassis = BODY_CHASSIS_DATA[chassisId] || BODY_CHASSIS_DATA['chassis_madera_t1'];
-    const share = chassis.partShare;
+    const share = chassis?.partShare || { head: 0.15, torso: 0.40, arms: 0.20, legs: 0.25 };
     const i = ivs || {};
     const e = evs || {};
 
-    const head = Math.max(1, Math.floor(poolHp * share.head)) + Math.floor((i.head || 0) / 4) + Math.floor((e.head || 0) / 16);
-    const torso = Math.max(1, Math.floor(poolHp * share.torso)) + Math.floor((i.torso || 0) / 4) + Math.floor((e.torso || 0) / 16);
-    const arms = Math.max(1, Math.floor(poolHp * share.arms)) + Math.floor((i.arms || 0) / 4) + Math.floor((e.arms || 0) / 16);
-    const legs = Math.max(1, Math.floor(poolHp * share.legs)) + Math.floor((i.legs || 0) / 4) + Math.floor((e.legs || 0) / 16);
+    const headIv = i.head ?? (i as any).hp ?? 0;
+    const torsoIv = i.torso ?? (i as any).def ?? 0;
+    const armsIv = i.arms ?? (i as any).atk ?? 0;
+    const legsIv = i.legs ?? (i as any).speed ?? 0;
+
+    const headEv = e.head ?? (e as any).hp ?? 0;
+    const torsoEv = e.torso ?? (e as any).def ?? 0;
+    const armsEv = e.arms ?? (e as any).atk ?? 0;
+    const legsEv = e.legs ?? (e as any).speed ?? 0;
+
+    const head = Math.max(1, Math.floor(poolHp * (share.head ?? 0.15))) + Math.floor(headIv / 4) + Math.floor(headEv / 16);
+    const torso = Math.max(1, Math.floor(poolHp * (share.torso ?? 0.40))) + Math.floor(torsoIv / 4) + Math.floor(torsoEv / 16);
+    const arms = Math.max(1, Math.floor(poolHp * (share.arms ?? 0.20))) + Math.floor(armsIv / 4) + Math.floor(armsEv / 16);
+    const legs = Math.max(1, Math.floor(poolHp * (share.legs ?? 0.25))) + Math.floor(legsIv / 4) + Math.floor(legsEv / 16);
 
     return { head, torso, arms, legs };
   }
@@ -228,15 +238,31 @@ export class StatCalculator {
    * Ensures that a Souldoll has valid partHP and maxPartHP objects
    */
   public static ensurePartHp(souldoll: Souldoll): void {
+    const chassisId = this.getChassisId(souldoll);
+    const partIVs = souldoll.ivs ? { head: souldoll.ivs.hp, torso: souldoll.ivs.def, arms: souldoll.ivs.atk, legs: souldoll.ivs.speed } : undefined;
+    const partEVs = souldoll.evs ? { head: souldoll.evs.hp, torso: souldoll.evs.def, arms: souldoll.evs.atk, legs: souldoll.evs.speed } : undefined;
+    const defaultMax = this.calculatePartMaxHp(souldoll.stats?.hp || 20, chassisId, partIVs, partEVs);
+
     if (!souldoll.maxPartHP) {
-      const chassisId = this.getChassisId(souldoll);
-      const partIVs = souldoll.ivs ? { head: souldoll.ivs.hp, torso: souldoll.ivs.def, arms: souldoll.ivs.atk, legs: souldoll.ivs.speed } : undefined;
-      const partEVs = souldoll.evs ? { head: souldoll.evs.hp, torso: souldoll.evs.def, arms: souldoll.evs.atk, legs: souldoll.evs.speed } : undefined;
-      souldoll.maxPartHP = this.calculatePartMaxHp(souldoll.stats.hp, chassisId, partIVs, partEVs);
+      souldoll.maxPartHP = { ...defaultMax };
+    } else {
+      souldoll.maxPartHP = {
+        head: souldoll.maxPartHP.head ?? defaultMax.head,
+        torso: souldoll.maxPartHP.torso ?? defaultMax.torso,
+        arms: souldoll.maxPartHP.arms ?? defaultMax.arms,
+        legs: souldoll.maxPartHP.legs ?? defaultMax.legs,
+      };
     }
 
     if (!souldoll.partHP) {
       souldoll.partHP = { ...souldoll.maxPartHP };
+    } else {
+      souldoll.partHP = {
+        head: souldoll.partHP.head ?? souldoll.maxPartHP.head,
+        torso: souldoll.partHP.torso ?? souldoll.maxPartHP.torso,
+        arms: souldoll.partHP.arms ?? souldoll.maxPartHP.arms,
+        legs: souldoll.partHP.legs ?? souldoll.maxPartHP.legs,
+      };
     }
 
     // Keep total HP synced to sum of parts

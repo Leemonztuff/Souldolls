@@ -277,17 +277,20 @@ export function buildSheetVM(
 
   if (hasBody) {
     if (bodyInst?.ivs) {
-      const avgIv =
-        (bodyInst.ivs.head + bodyInst.ivs.torso + bodyInst.ivs.arms + bodyInst.ivs.legs) / 4;
+      const headIv = bodyInst.ivs.head ?? (bodyInst.ivs as any).hp ?? 15;
+      const torsoIv = bodyInst.ivs.torso ?? (bodyInst.ivs as any).def ?? 15;
+      const armsIv = bodyInst.ivs.arms ?? (bodyInst.ivs as any).atk ?? 15;
+      const legsIv = bodyInst.ivs.legs ?? (bodyInst.ivs as any).speed ?? 15;
+      const avgIv = (headIv + torsoIv + armsIv + legsIv) / 4;
       ivStars = Math.max(1, Math.min(5, Math.round((avgIv / 31) * 5)));
     } else if (souldoll.ivs) {
       const avgIv =
-        (souldoll.ivs.hp +
-          souldoll.ivs.atk +
-          souldoll.ivs.def +
-          souldoll.ivs.spAtk +
-          souldoll.ivs.spDef +
-          souldoll.ivs.speed) /
+        ((souldoll.ivs.hp ?? 15) +
+          (souldoll.ivs.atk ?? 15) +
+          (souldoll.ivs.def ?? 15) +
+          (souldoll.ivs.spAtk ?? 15) +
+          (souldoll.ivs.spDef ?? 15) +
+          (souldoll.ivs.speed ?? 15)) /
         6;
       ivStars = Math.max(1, Math.min(5, Math.round((avgIv / 31) * 5)));
     } else {
@@ -296,7 +299,11 @@ export function buildSheetVM(
 
     if (bodyInst?.partDurability) {
       const d = bodyInst.partDurability;
-      durabilityPct = Math.round((d.head + d.torso + d.arms + d.legs) / 4);
+      const headDur = d.head ?? 100;
+      const torsoDur = d.torso ?? 100;
+      const armsDur = d.arms ?? 100;
+      const legsDur = d.legs ?? 100;
+      durabilityPct = Math.round((headDur + torsoDur + armsDur + legsDur) / 4);
     } else {
       const maxTot =
         (souldoll.maxPartHP?.head || 0) +
@@ -328,26 +335,35 @@ export function buildSheetVM(
   const pCur = souldoll.partHP || { head: 0, torso: 0, arms: 0, legs: 0 };
   const pMax = souldoll.maxPartHP || { head: 1, torso: 1, arms: 1, legs: 1 };
 
+  const curHead = pCur.head ?? 0;
+  const maxHead = pMax.head ?? 1;
+  const curTorso = pCur.torso ?? 0;
+  const maxTorso = pMax.torso ?? 1;
+  const curArms = pCur.arms ?? 0;
+  const maxArms = pMax.arms ?? 1;
+  const curLegs = pCur.legs ?? 0;
+  const maxLegs = pMax.legs ?? 1;
+
   const parts: SheetPartsVM = {
     head: {
-      cur: hasBody ? pCur.head : 0,
-      max: hasBody ? pMax.head : 0,
-      state: computePartState(pCur.head, pMax.head, hasBody),
+      cur: hasBody ? curHead : 0,
+      max: hasBody ? maxHead : 0,
+      state: computePartState(curHead, maxHead, hasBody),
     },
     torso: {
-      cur: hasBody ? pCur.torso : 0,
-      max: hasBody ? pMax.torso : 0,
-      state: computePartState(pCur.torso, pMax.torso, hasBody),
+      cur: hasBody ? curTorso : 0,
+      max: hasBody ? maxTorso : 0,
+      state: computePartState(curTorso, maxTorso, hasBody),
     },
     arms: {
-      cur: hasBody ? pCur.arms : 0,
-      max: hasBody ? pMax.arms : 0,
-      state: computePartState(pCur.arms, pMax.arms, hasBody),
+      cur: hasBody ? curArms : 0,
+      max: hasBody ? maxArms : 0,
+      state: computePartState(curArms, maxArms, hasBody),
     },
     legs: {
-      cur: hasBody ? pCur.legs : 0,
-      max: hasBody ? pMax.legs : 0,
-      state: computePartState(pCur.legs, pMax.legs, hasBody),
+      cur: hasBody ? curLegs : 0,
+      max: hasBody ? maxLegs : 0,
+      state: computePartState(curLegs, maxLegs, hasBody),
     },
   };
 

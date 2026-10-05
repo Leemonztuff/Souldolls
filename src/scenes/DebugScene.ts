@@ -228,7 +228,10 @@ export class DebugScene implements IScene {
       btn.position.set(x, 16);
       header.addChild(btn);
     };
-    if (width >= 1120) {
+    if (width >= 1220) {
+      makeDebugServiceBtn('GACHA QR', width - 562, () => {
+        GlobalSceneManager.pushScene('GachaResonance', { tab: 'scan' });
+      });
       makeDebugServiceBtn('MERCADO', width - 460, () => {
         GlobalSceneManager.pushScene('Shop', { mode: 'buy' });
       });
@@ -1306,26 +1309,26 @@ export class DebugScene implements IScene {
     viewTitle.position.set(16, 345);
     leftPanel.addChild(viewTitle);
 
-    const views: SpriteView[] = ['view_front34', 'view_back34', 'view_front', 'view_back', 'icon'];
+    const views: SpriteView[] = ['view_front', 'view_front34', 'view_side', 'view_back34', 'view_back', 'icon'];
     views.forEach((v, idx) => {
       const isSel = this.labView === v;
       const btn = new Container();
-      btn.position.set(16 + idx * 88, 365);
+      btn.position.set(16 + idx * 74, 365);
       btn.eventMode = 'static';
       btn.cursor = 'pointer';
 
       const bg = new Graphics();
-      bg.roundRect(0, 0, 82, 26, 4);
+      bg.roundRect(0, 0, 70, 26, 4);
       bg.fill({ color: isSel ? 0x7e22ce : 0x1e293b });
       bg.stroke({ color: isSel ? 0xffffff : 0x334155, width: 1.5 });
       btn.addChild(bg);
 
       const label = new Text({
-        text: v.toUpperCase(),
-        style: new TextStyle({ fontFamily: 'monospace', fontSize: 10, fontWeight: 'bold', fill: '#ffffff' }),
+        text: v.replace('view_', '').toUpperCase(),
+        style: new TextStyle({ fontFamily: 'monospace', fontSize: 9.5, fontWeight: 'bold', fill: '#ffffff' }),
       });
       label.anchor.set(0.5);
-      label.position.set(41, 13);
+      label.position.set(35, 13);
       btn.addChild(label);
 
       btn.on('pointerdown', () => {

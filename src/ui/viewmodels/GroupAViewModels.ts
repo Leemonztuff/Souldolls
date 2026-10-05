@@ -2,6 +2,7 @@ import { GameState, SaveSlotSummary, Souldoll } from '../../types';
 import { CREATURES_DATA } from '../../data/creatures/creatures';
 import { BODY_CHASSIS_DATA } from '../../data/bodies/chassis';
 import { ITEMS_DATA } from '../../data/items/items';
+import { MOVES_DATA } from '../../data/moves/moves';
 import { PokedexSystem, PokedexStatus } from '../../systems/PokedexSystem';
 import { StatCalculator } from '../../systems/battle/StatCalculator';
 import { QuestData, QuestProgressState } from '../../types/quests';
@@ -170,6 +171,7 @@ export function buildSaveSlotsVM(summaries: SaveSlotSummary[]): SaveSlotsVM {
 export interface PartyMemberVM {
   index: number;
   uid: string;
+  speciesId: string;
   name: string;
   speciesName: string;
   level: number;
@@ -177,11 +179,31 @@ export interface PartyMemberVM {
   hpCur: number;
   hpMax: number;
   hpRatio: number;
+  sync: number;
+  syncHearts: number;
   isLead: boolean;
   isKO: boolean;
   isSealed: boolean;
   chassisName: string;
   tier: number;
+  stats: {
+    hp: number;
+    atk: number;
+    def: number;
+    spAtk: number;
+    spDef: number;
+    speed: number;
+  };
+  weaponName: string;
+  relicName: string;
+  moves: Array<{
+    id: string;
+    name: string;
+    element: string;
+    power: number;
+    currentPp: number;
+    maxPp: number;
+  }>;
   parts: {
     head: { cur: number; max: number };
     torso: { cur: number; max: number };
@@ -194,11 +216,17 @@ export interface PartyScreenVM {
   title: string;
   secActive: string;
   secActions: string;
+  secStatsPreview: string;
   money: number;
+  elixirCount: number;
   members: PartyMemberVM[];
   emptyText: string;
   btnSheet: string;
   btnLead: string;
+  btnMoveUp: string;
+  btnMoveDown: string;
+  btnSwapMode: string;
+  btnSwapCancel: string;
   btnHeal: string;
   btnBack: string;
 }
@@ -206,6 +234,8 @@ export interface PartyScreenVM {
 export function buildPartyVM(state: GameState): PartyScreenVM {
   const t = (esText as any).terms.group_a.party;
   const party = state.party || [];
+  const inv = state.inventory || {};
+  const elixirCount = Number(inv['elixir_ki'] || inv['potion'] || 0);
 
   const members: PartyMemberVM[] = party.map((doll: Souldoll, index: number) => {
     StatCalculator.ensurePartHp(doll);
@@ -221,7 +251,7 @@ export function buildPartyVM(state: GameState): PartyScreenVM {
       arms: Math.max(1, Math.round(hpMax * 0.2)),
       legs: Math.max(1, Math.round(hpMax * 0.2)),
     };
-    const isKO = hpCur <= 0 || partCur.head <= 0 || partCur.torso <= 0;
+    const isKO = hpCur <= 0 || (partCur.head ?? 1) <= 0 || (partCur.torso ?? 1) <= 0;
 
     const bodyInst = doll.bodyInstanceId
       ? state.bodies?.[doll.bodyInstanceId] ||
@@ -229,9 +259,31 @@ export function buildPartyVM(state: GameState): PartyScreenVM {
       : null;
     const chassis = bodyInst ? BODY_CHASSIS_DATA[bodyInst.chassisId] : BODY_CHASSIS_DATA.chassis_madera_t1;
 
+    const weaponId = doll.equipped?.weapon || sp.weaponId;
+    const weaponName = weaponId ? (ITEMS_DATA[weaponId]?.name || weaponId) : 'Sin arma';
+
+    const relicId = doll.equipped?.relic || doll.heldItemId;
+    const relicName = relicId ? (ITEMS_DATA[relicId]?.name || relicId) : 'Sin reliquia';
+
+    const syncVal = doll.sync ?? 70;
+    const syncHearts = Math.min(5, Math.max(0, Math.floor(syncVal / 50)));
+
+    const moves = (doll.moves || []).map((m) => {
+      const def = MOVES_DATA[m.moveId];
+      return {
+        id: m.moveId,
+        name: def?.name || m.moveId,
+        element: def?.type || 'neutro',
+        power: def?.power || 0,
+        currentPp: m.currentPp ?? (m as any).pp ?? def?.pp ?? 15,
+        maxPp: m.maxPp ?? def?.pp ?? (m as any).pp ?? 15,
+      };
+    });
+
     return {
       index,
       uid: doll.uid,
+      speciesId: doll.speciesId,
       name: doll.nickname || sp.name,
       speciesName: sp.name,
       level: doll.level,
@@ -239,16 +291,29 @@ export function buildPartyVM(state: GameState): PartyScreenVM {
       hpCur,
       hpMax,
       hpRatio: hpCur / hpMax,
+      sync: syncVal,
+      syncHearts,
       isLead: index === 0,
       isKO,
       isSealed,
       chassisName: isSealed ? esText.terms.sheet.sealed_soul : chassis?.name || 'Cuerpo',
       tier: isSealed ? 0 : chassis?.tier || 1,
+      stats: {
+        hp: hpMax,
+        atk: stats.atk,
+        def: stats.def,
+        spAtk: stats.spAtk,
+        spDef: stats.spDef,
+        speed: stats.speed,
+      },
+      weaponName,
+      relicName,
+      moves,
       parts: {
-        head: { cur: partCur.head, max: Math.max(1, partMax.head) },
-        torso: { cur: partCur.torso, max: Math.max(1, partMax.torso) },
-        arms: { cur: partCur.arms, max: Math.max(1, partMax.arms) },
-        legs: { cur: partCur.legs, max: Math.max(1, partMax.legs) },
+        head: { cur: partCur.head ?? hpCur, max: Math.max(1, partMax.head ?? hpMax) },
+        torso: { cur: partCur.torso ?? hpCur, max: Math.max(1, partMax.torso ?? hpMax) },
+        arms: { cur: partCur.arms ?? hpCur, max: Math.max(1, partMax.arms ?? hpMax) },
+        legs: { cur: partCur.legs ?? hpCur, max: Math.max(1, partMax.legs ?? hpMax) },
       },
     };
   });
@@ -257,11 +322,17 @@ export function buildPartyVM(state: GameState): PartyScreenVM {
     title: t.title,
     secActive: t.sec_active,
     secActions: t.sec_actions,
+    secStatsPreview: t.sec_stats_preview || 'ESTADÍSTICAS Y COMBATE',
     money: state.player?.money || 0,
+    elixirCount,
     members,
     emptyText: t.empty,
     btnSheet: t.btn_sheet,
     btnLead: t.btn_lead,
+    btnMoveUp: t.btn_move_up || 'SUBIR (▲)',
+    btnMoveDown: t.btn_move_down || 'BAJAR (▼)',
+    btnSwapMode: t.btn_swap_mode || 'INTERCAMBIAR',
+    btnSwapCancel: t.btn_swap_cancel || 'CANCELAR CAMBIO',
     btnHeal: t.btn_heal,
     btnBack: t.btn_back,
   };

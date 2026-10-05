@@ -1,6 +1,7 @@
 import { IScene } from '../scenes/IScene';
 import { GlobalEventBus } from './EventBus';
 import { GlobalInput } from './Input';
+import { GlobalScreenWipeTransition, ScreenWipeOptions } from '../render/transition/ScreenWipeTransition';
 
 export class SceneManager {
   private static instance: SceneManager;
@@ -91,6 +92,33 @@ export class SceneManager {
         console.error(`[SceneManager] Error pushing scene "${name}":`, err);
       }
     });
+  }
+
+  /**
+   * Empuja una nueva escena aplicando un barrido de pantalla cinematográfico en PixiJS
+   * (ideal para la transición del Overworld 3D al Combate 2D).
+   */
+  public async pushSceneWithTransition(
+    name: string,
+    params?: any,
+    options: ScreenWipeOptions = {}
+  ): Promise<void> {
+    return GlobalScreenWipeTransition.executeTransition(async () => {
+      await this.pushScene(name, params);
+    }, options);
+  }
+
+  /**
+   * Cambia de escena raíz aplicando una animación de barrido de pantalla.
+   */
+  public async changeSceneWithTransition(
+    name: string,
+    params?: any,
+    options: ScreenWipeOptions = {}
+  ): Promise<void> {
+    return GlobalScreenWipeTransition.executeTransition(async () => {
+      await this.changeScene(name, params);
+    }, options);
   }
 
   public async popScene(): Promise<void> {

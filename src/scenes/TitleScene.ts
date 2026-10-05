@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Container, Graphics, Text, TextStyle, Texture, Sprite } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Texture, Sprite, Assets } from 'pixi.js';
 import { IScene } from './IScene';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalThreeRenderer } from '../render/ThreeRenderer';
@@ -70,6 +70,12 @@ export class TitleScene implements IScene {
     this.container = new Container();
     this.container.roundPixels = true;
     GlobalPixiRenderer.menuLayer.addChild(this.container);
+
+    try {
+      await Assets.load('/assets/SoulDollslogo.png');
+    } catch {
+      // Ignored if fallback is used
+    }
 
     this.setupThreeDiorama();
     this.refreshMenuDefinitions();
@@ -321,28 +327,95 @@ export class TitleScene implements IScene {
     }
   }
 
+  private getBaseLogoY(height: number): number {
+    return height < 520
+      ? Math.max(40, Math.round(height * 0.11))
+      : Math.max(60, Math.round(height * 0.13));
+  }
+
+  private calculateLogoScale(
+    width: number,
+    height: number,
+    nativeW: number,
+    nativeH = 770
+  ): number {
+    const nw = Math.max(1, nativeW);
+    const nh = Math.max(1, nativeH);
+
+    // Ensure logo never exceeds 40% of screen width or 40% of screen height
+    const maxW = width * 0.40;
+    const maxH = height * 0.40;
+
+    const scaleX = maxW / nw;
+    const scaleY = maxH / nh;
+
+    // Maintain aspect ratio by picking the smaller scale factor
+    const uniformScale = Math.min(scaleX, scaleY);
+    return Math.max(0.08, uniformScale);
+  }
+
   private buildTitleUI(): void {
-    const width = GlobalPixiRenderer.width;
-    const height = GlobalPixiRenderer.height;
+    const width = GlobalPixiRenderer.width || 960;
+    const height = GlobalPixiRenderer.height || 720;
+    const isShortScreen = height < 520;
 
     // 1. Thread Graphics & Logo
     this.logoThreadGraphics = new Graphics();
     this.container.addChild(this.logoThreadGraphics);
 
-    const logoTexture = this.generateLogoTexture();
-    this.logoSprite = new Sprite(logoTexture);
-    this.logoSprite.anchor.set(0.5);
-    const logoScale = width < 520 ? Math.min(1, (width - 20) / 520) : 1;
-    this.logoSprite.scale.set(logoScale);
-    const logoY = Math.max(76, Math.round(height * 0.14));
+    let logoTexture: Texture | null = null;
+    try {
+      if (Assets.cache.has('/assets/SoulDollslogo.png')) {
+        logoTexture = Assets.get('/assets/SoulDollslogo.png');
+      } else {
+        logoTexture = Texture.from('/assets/SoulDollslogo.png');
+      }
+    } catch {
+      logoTexture = null;
+    }
+
+    if (logoTexture && logoTexture.width > 10) {
+      this.logoSprite = new Sprite(logoTexture);
+      this.logoSprite.anchor.set(0.5);
+      const nativeW = logoTexture.width || 2043;
+      const nativeH = logoTexture.height || 770;
+      this.logoSprite.scale.set(this.calculateLogoScale(width, height, nativeW, nativeH));
+    } else {
+      const generatedTex = this.generateLogoTexture();
+      this.logoSprite = new Sprite(generatedTex);
+      this.logoSprite.anchor.set(0.5);
+      this.logoSprite.scale.set(this.calculateLogoScale(width, height, 520, 128));
+    }
+
+    if (logoTexture && logoTexture.width <= 10) {
+      logoTexture.once('update', () => {
+        if (this.logoSprite && !this.logoSprite.destroyed) {
+          const nw = logoTexture.width || 2043;
+          const nh = logoTexture.height || 770;
+          this.logoSprite.scale.set(this.calculateLogoScale(width, height, nw, nh));
+        }
+      });
+    }
+
+    const logoY = this.getBaseLogoY(height);
     this.logoSprite.position.set(Math.round(width / 2), logoY);
     this.container.addChild(this.logoSprite);
 
     // 2. Subtitle & Age Badge inside a compact KitCard
     const cardW = Math.min(420, width - 24);
-    const cardH = 360;
+    const btnCount = this.menuItems.length;
+    const btnH = isShortScreen ? 38 : 44;
+    const stepY = isShortScreen ? 44 : 50;
+    const startY = isShortScreen ? 54 : 64;
+    const cardH = startY + btnCount * stepY + 12;
+
     const cardX = Math.round((width - cardW) / 2);
-    const cardY = Math.max(logoY + 66, Math.round((height - cardH) / 2 + 36));
+    const logoHalfH = Math.round((this.logoSprite.height || 80) / 2);
+    const logoBottom = logoY + logoHalfH;
+    const cardY = Math.max(
+      logoBottom + 10,
+      Math.min(height - cardH - 20, Math.round((height - cardH) / 2 + 24))
+    );
 
     const menuCard = new KitCard({
       width: cardW,
@@ -354,12 +427,11 @@ export class TitleScene implements IScene {
     this.container.addChild(menuCard);
 
     const ageBadge = new KitBadge(esText.app.age_warning, 'element', 'fuego');
-    ageBadge.position.set(Math.round((cardW - ageBadge.width) / 2), 34);
+    const badgeW = (ageBadge as any).badgeWidth || ageBadge.width || 200;
+    ageBadge.position.set(Math.round((cardW - badgeW) / 2), 34);
     menuCard.addChild(ageBadge);
 
     const btnW = cardW - 32;
-    const startY = 68;
-    const stepY = 54;
 
     this.menuItems.forEach((item, idx) => {
       const isEnabled = item.enabled !== false;
@@ -368,7 +440,7 @@ export class TitleScene implements IScene {
         iconId: item.iconId,
         variant: idx === 0 ? 'primary' : 'secondary',
         width: btnW,
-        height: 46,
+        height: btnH,
         disabled: !isEnabled,
         onClick: () => {
           this.selectedIndex = idx;
@@ -381,7 +453,7 @@ export class TitleScene implements IScene {
       this.focusManager.register({
         container: btn,
         width: btnW,
-        height: 46,
+        height: btnH,
         disabled: !isEnabled,
         onActivate: () => {
           this.selectedIndex = idx;
@@ -889,18 +961,18 @@ export class TitleScene implements IScene {
     }
 
     if (this.currentSubScreen === 'main' && this.logoThreadGraphics && this.logoSprite) {
-      const width = GlobalPixiRenderer.width;
-      const height = GlobalPixiRenderer.height;
-      const baseLogoY = Math.max(76, Math.round(height * 0.14));
-      const bobY = Math.sin(this.timeElapsed * 2.0) * 3.5;
-      const swayX = Math.cos(this.timeElapsed * 1.4) * 2.5;
+      const width = GlobalPixiRenderer.width || 960;
+      const height = GlobalPixiRenderer.height || 720;
+      const baseLogoY = this.getBaseLogoY(height);
+      const bobY = Math.sin(this.timeElapsed * 2.0) * 3.0;
+      const swayX = Math.cos(this.timeElapsed * 1.4) * 2.0;
 
       this.logoSprite.position.set(Math.round(width / 2 + swayX), Math.round(baseLogoY + bobY));
 
-      const scale = this.logoSprite.scale.x;
-      const attachY = this.logoSprite.y - 44 * scale;
-      const letterTopY = this.logoSprite.y - 12 * scale;
-      const span = 150 * scale;
+      const logoW = this.logoSprite.width || 300;
+      const logoH = this.logoSprite.height || 80;
+      const letterTopY = this.logoSprite.y - logoH / 2;
+      const span = logoW * 0.45;
 
       const tX1 = this.logoSprite.x - span;
       const tX2 = this.logoSprite.x - span * 0.35;
@@ -909,7 +981,7 @@ export class TitleScene implements IScene {
 
       this.logoThreadGraphics.clear();
 
-      // Golden/parchment marionette strings descending from the top of the screen to the crossbar and letters
+      // Golden marionette strings descending from the top of the screen to the logo
       this.logoThreadGraphics
         .moveTo(width / 2 - span, 0)
         .lineTo(tX1, letterTopY)
@@ -919,13 +991,7 @@ export class TitleScene implements IScene {
         .lineTo(tX3, letterTopY)
         .moveTo(width / 2 + span, 0)
         .lineTo(tX4, letterTopY)
-        .stroke({ color: COLOR_NUM.parchment, width: 1.5, alpha: 0.48 });
-
-      // Subtle cyan ki thread on the central soul flame
-      this.logoThreadGraphics
-        .moveTo(width / 2 - 112 * scale, 0)
-        .lineTo(this.logoSprite.x - 112 * scale, attachY + 18 * scale)
-        .stroke({ color: COLOR_NUM.cyan, width: 1.5, alpha: 0.65 });
+        .stroke({ color: COLOR_NUM.gold, width: 1.5, alpha: 0.48 });
     }
 
     if (this.activeScreenFrame) {

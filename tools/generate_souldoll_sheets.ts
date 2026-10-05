@@ -299,6 +299,8 @@ function applyPaletteTransformToRegion(
   const [sR, sG, sB] = profile.secondaryRgb;
   const [dR, dG, dB] = profile.darkTrimRgb;
 
+  const headBottomY = frame.y + Math.round(frame.h * 0.25);
+
   for (let y = frame.y; y < frame.y + frame.h; y++) {
     for (let x = frame.x; x < frame.x + frame.w; x++) {
       const idx = (y * png.width + x) * 4;
@@ -309,21 +311,48 @@ function applyPaletteTransformToRegion(
       const g = png.data[idx + 1];
       const b = png.data[idx + 2];
 
-      // Preservar piel clara, ojos y madera de articulaciones
-      const isSkin = r > 185 && g > 135 && b > 110 && r > g && g > b && r - b < 95;
-      if (isSkin) continue;
+      // 1. Piel cálida / durazno (en el spritesheet de 5 vistas: R ~235..255, G ~135..200, B ~85..135)
+      const isWarmSkin = r > 228 && g >= 132 && g <= 210 && b >= 80 && b <= 142 && r > g + 35 && g > b + 20;
+      // En la parte superior de la cabeza (sombrero puntiagudo, y < 13% del alto), ese tono naranja es el sombrero, no piel
+      const isTopHatCone = y < frame.y + Math.round(frame.h * 0.13);
+      if (isWarmSkin && !isTopHatCone) {
+        continue;
+      }
 
-      const isFabricRed = r > 105 && r > g * 1.32 && b < r * 0.78;
-      const isWarmGoldOrOrange = r > 160 && g > 95 && b < 95 && r > g;
+      // 2. Blanco/crema del atuendo (corsé/top y falda: R>215, G>215, B>205) y pliegues grises (R~145..195, G~150..195, B~145..195)
+      // Excluir la esclerótica de los ojos en la zona de la cara (y < 25%)
+      const isWhiteGarment = y >= headBottomY && r > 215 && g > 215 && b > 205 && Math.abs(r - g) < 20;
+      const isGreyGarmentFold =
+        y >= headBottomY &&
+        r >= 135 &&
+        r <= 205 &&
+        g >= 140 &&
+        g <= 205 &&
+        b >= 135 &&
+        b <= 205 &&
+        Math.abs(r - g) < 18 &&
+        Math.abs(g - b) < 18;
+
+      // 3. Rojo/carmesí del cabello, cintas y bordes del sombrero (R ~175..238, G ~65..118, B ~60..98)
+      const isCrimsonHairOrRibbon = r > 165 && g < 122 && b < 105 && r > g * 1.55;
       const isDarkHatOrCape = r > 55 && b > 50 && g < Math.min(r, b) * 0.88;
 
-      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 175;
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 185;
 
-      if (isWarmGoldOrOrange) {
-        png.data[idx] = Math.min(255, Math.max(0, Math.round(sR * lum)));
-        png.data[idx + 1] = Math.min(255, Math.max(0, Math.round(sG * lum)));
-        png.data[idx + 2] = Math.min(255, Math.max(0, Math.round(sB * lum)));
-      } else if (isFabricRed) {
+      if (isWhiteGarment || isGreyGarmentFold) {
+        // Teñir el atuendo blanco/gris con una mezcla luminosa del color secundario y primario de la clase
+        const mixR = sR * 0.65 + pR * 0.35;
+        const mixG = sG * 0.65 + pG * 0.35;
+        const mixB = sB * 0.65 + pB * 0.35;
+        const clothLum = (0.299 * r + 0.587 * g + 0.114 * b) / 235;
+        png.data[idx] = Math.min(255, Math.max(0, Math.round(mixR * clothLum)));
+        png.data[idx + 1] = Math.min(255, Math.max(0, Math.round(mixG * clothLum)));
+        png.data[idx + 2] = Math.min(255, Math.max(0, Math.round(mixB * clothLum)));
+      } else if (isTopHatCone && isWarmSkin) {
+        png.data[idx] = Math.min(255, Math.max(0, Math.round(pR * lum)));
+        png.data[idx + 1] = Math.min(255, Math.max(0, Math.round(pG * lum)));
+        png.data[idx + 2] = Math.min(255, Math.max(0, Math.round(pB * lum)));
+      } else if (isCrimsonHairOrRibbon) {
         png.data[idx] = Math.min(255, Math.max(0, Math.round(pR * lum)));
         png.data[idx + 1] = Math.min(255, Math.max(0, Math.round(pG * lum)));
         png.data[idx + 2] = Math.min(255, Math.max(0, Math.round(pB * lum)));
@@ -344,7 +373,9 @@ function drawSignatureEquipmentOnFrame(
 ): void {
   const isBack = frameName === 'view_back' || frameName === 'view_back34';
   const handX =
-    frameName === 'view_front34'
+    frameName === 'view_side'
+      ? frame.x + Math.round(frame.w * 0.72)
+      : frameName === 'view_front34'
       ? frame.x + Math.round(frame.w * 0.78)
       : frame.x + Math.round(frame.w * 0.82);
   const handY = frame.y + Math.round(frame.h * 0.56);
@@ -472,12 +503,10 @@ function drawSignatureEquipmentOnFrame(
 export function generateAllSoulDollSheets(): boolean {
   const rootDir = process.cwd();
 
-  // 1. Asegurar que maga_battle_sheet.png y maga_battle_atlas.json existen
+  // 1. Regenerar maga_battle_sheet.png y maga_battle_atlas.json desde el spritesheet fuente actual (5 vistas WebP)
+  prepareBattleSpritesheet();
   const basePngPath = path.resolve(rootDir, 'public/assets/souldolls/maga_battle_sheet.png');
   const baseJsonPath = path.resolve(rootDir, 'src/data/art/souldolls/maga_battle_atlas.json');
-  if (!fs.existsSync(basePngPath) || !fs.existsSync(baseJsonPath)) {
-    prepareBattleSpritesheet();
-  }
 
   const baseBuffer = fs.readFileSync(basePngPath);
   const basePng = PNG.sync.read(baseBuffer);
@@ -555,9 +584,9 @@ export function generateAllSoulDollSheets(): boolean {
   }
 
   const manifestJson = {
-    version: '1.0.0',
+    version: '1.1.0',
     totalSpecies: manifestEntries.length,
-    defaultViews: ['view_front34', 'view_front', 'view_back', 'view_back34'],
+    defaultViews: Object.keys(baseAtlas.frames),
     species: Object.fromEntries(manifestEntries.map((e) => [e.speciesId, e])),
   };
 

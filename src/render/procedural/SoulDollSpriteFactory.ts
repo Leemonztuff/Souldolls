@@ -7,6 +7,7 @@ export type ChassisMaterial = 'wood' | 'iron' | 'crystal' | 'stone' | 'clay' | '
 export type SpriteView =
   | 'view_front34'
   | 'view_front'
+  | 'view_side'
   | 'view_back'
   | 'view_back34'
   | 'front'
@@ -31,6 +32,7 @@ export interface LayeredRenderConfig {
 export interface CreatureSpriteSet {
   view_front34: HTMLCanvasElement;
   view_front: HTMLCanvasElement;
+  view_side: HTMLCanvasElement;
   view_back: HTMLCanvasElement;
   view_back34: HTMLCanvasElement;
   front: HTMLCanvasElement;
@@ -304,6 +306,11 @@ export class SoulDollSpriteFactory {
         waist: 0.48,
         bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 },
       },
+      view_side: {
+        neck: 0.30,
+        waist: 0.48,
+        bust: { y0: 0.33, y1: 0.46, x0: 0.22, x1: 0.65 },
+      },
       view_back: {
         neck: 0.30,
         waist: 0.48,
@@ -314,7 +321,10 @@ export class SoulDollSpriteFactory {
       },
     };
 
-    const viewNames: SpriteView[] = ['view_front34', 'view_front', 'view_back', 'view_back34'];
+    const viewNames: SpriteView[] =
+      segments.length >= 5
+        ? ['view_front', 'view_front34', 'view_side', 'view_back34', 'view_back']
+        : ['view_front34', 'view_front', 'view_back', 'view_back34'];
     segments.forEach(([sx, ex], idx) => {
       const vName = viewNames[idx] || 'view_front34';
       const segW = ex - sx + 1;
@@ -396,6 +406,7 @@ export class SoulDollSpriteFactory {
 
     const isBack = resolvedView === 'view_back' || resolvedView === 'view_back34';
     const isFront = resolvedView === 'view_front';
+    const isSide = resolvedView === 'view_side';
 
     return {
       anchor: [0.5, 1.0],
@@ -406,12 +417,14 @@ export class SoulDollSpriteFactory {
         ? { neck: 0.30, waist: 0.48 }
         : isFront
         ? { neck: 0.31, waist: 0.48, bust: { y0: 0.34, y1: 0.46, x0: 0.30, x1: 0.70 } }
+        : isSide
+        ? { neck: 0.30, waist: 0.48, bust: { y0: 0.33, y1: 0.46, x0: 0.22, x1: 0.65 } }
         : { neck: 0.30, waist: 0.48, bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 } },
     };
   }
 
   /**
-   * Aplica recoloreado de paleta elemental sobre el sprite base (vestido rojo/naranja -> color de la clase)
+   * Aplica recoloreado de paleta elemental sobre el sprite base (vestido/atuendo -> color de la clase)
    * manteniendo intactos la piel, ojos, madera del chasis y bordes oscuros.
    */
   private static applySpeciesPaletteShift(canvas: HTMLCanvasElement, speciesId: string): void {
@@ -423,7 +436,7 @@ export class SoulDollSpriteFactory {
     const imgData = ctx.getImageData(0, 0, w, h);
     const d = imgData.data;
 
-    // Mapa de tinte objetivo por clase para píxeles cálidos del atuendo/sombrero
+    // Mapa de tinte objetivo por clase para píxeles del atuendo/cabello/sombrero
     const tintMap: Record<string, [number, number, number]> = {
       archimaga: [220, 38, 38],
       sacerdotisa: [34, 197, 94],
@@ -446,23 +459,36 @@ export class SoulDollSpriteFactory {
     if (!target) return;
 
     const [tR, tG, tB] = target;
+    const headBottomY = Math.round(h * 0.25);
 
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i + 3] < 16) continue;
-      const r = d[i];
-      const g = d[i + 1];
-      const b = d[i + 2];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (d[i + 3] < 16) continue;
+        const r = d[i];
+        const g = d[i + 1];
+        const b = d[i + 2];
 
-      // Detectar píxeles de tela roja/escarlata/púrpura del atuendo sin tocar la piel clara (r>195, g>145, b>120)
-      const isSkin = r > 185 && g > 135 && b > 110 && r > g && g > b;
-      const isFabricRed = !isSkin && r > 110 && r > g * 1.35 && b < r * 0.75;
-      const isDarkHatOrCape = !isSkin && r > 60 && b > 55 && g < Math.min(r, b) * 0.85;
+        const isWarmSkin = r > 228 && g >= 132 && g <= 210 && b >= 80 && b <= 142 && r > g + 35 && g > b + 20;
+        const isTopHatCone = y < Math.round(h * 0.13);
+        if (isWarmSkin && !isTopHatCone) continue;
 
-      if (isFabricRed || isDarkHatOrCape) {
-        const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 180;
-        d[i] = Math.min(255, Math.max(0, Math.round(tR * lum)));
-        d[i + 1] = Math.min(255, Math.max(0, Math.round(tG * lum)));
-        d[i + 2] = Math.min(255, Math.max(0, Math.round(tB * lum)));
+        const isWhiteOrGreyGarment =
+          y >= headBottomY &&
+          r >= 135 &&
+          g >= 140 &&
+          b >= 135 &&
+          Math.abs(r - g) < 20 &&
+          Math.abs(g - b) < 20;
+        const isFabricRed = r > 165 && g < 122 && b < 105 && r > g * 1.55;
+        const isDarkHatOrCape = r > 60 && b > 55 && g < Math.min(r, b) * 0.85;
+
+        if (isWhiteOrGreyGarment || isFabricRed || isDarkHatOrCape || (isTopHatCone && isWarmSkin)) {
+          const lum = (0.299 * r + 0.587 * g + 0.114 * b) / (isWhiteOrGreyGarment ? 225 : 180);
+          d[i] = Math.min(255, Math.max(0, Math.round(tR * lum)));
+          d[i + 1] = Math.min(255, Math.max(0, Math.round(tG * lum)));
+          d[i + 2] = Math.min(255, Math.max(0, Math.round(tB * lum)));
+        }
       }
     }
 
@@ -483,7 +509,12 @@ export class SoulDollSpriteFactory {
     view: SpriteView
   ): void {
     const isBack = view === 'view_back' || view === 'view_back34' || view === 'back' || view === 'side_l';
-    const handX = view === 'view_front34' || view === 'side_r' ? Math.round(w * 0.78) : Math.round(w * 0.82);
+    const handX =
+      view === 'view_side'
+        ? Math.round(w * 0.72)
+        : view === 'view_front34' || view === 'side_r'
+        ? Math.round(w * 0.78)
+        : Math.round(w * 0.82);
     const handY = Math.round(h * 0.56);
     const headX = Math.round(w * 0.5);
     const headY = Math.round(h * 0.14);
@@ -623,7 +654,7 @@ export class SoulDollSpriteFactory {
     const mat = config.chassisMaterial || 'wood';
     const weaponId = config.equippedWeaponId || config.weaponId || 'default';
     const brokenKey = config.brokenParts
-      ? `${config.brokenParts.head}_${config.brokenParts.torso}_${config.brokenParts.arms}_${config.brokenParts.legs}`
+      ? `${config.brokenParts.head ?? 10}_${config.brokenParts.torso ?? 10}_${config.brokenParts.arms ?? 10}_${config.brokenParts.legs ?? 10}`
       : 'ok';
     const view = config.view || 'front';
     const frame = config.frame || 0;
@@ -665,9 +696,11 @@ export class SoulDollSpriteFactory {
 
       const sourceMap = hasDedicatedSheet ? spViewsMap! : this.keyedViewsCache;
 
-      // Req 2: Fallback si falta view_back34 -> view_back; si falta view_front34 -> view_front
+      // Req 2: Fallback si falta view_back34 -> view_back; si falta view_front34 -> view_front; si falta view_side -> view_front34
       let baseViewCanvas = sourceMap.get(targetView);
-      if (!baseViewCanvas && targetView === 'view_back34') {
+      if (!baseViewCanvas && targetView === 'view_side') {
+        baseViewCanvas = sourceMap.get('view_front34') || sourceMap.get('view_front');
+      } else if (!baseViewCanvas && targetView === 'view_back34') {
         baseViewCanvas = sourceMap.get('view_back');
       } else if (!baseViewCanvas && targetView === 'view_front34') {
         baseViewCanvas = sourceMap.get('view_front');
@@ -775,11 +808,13 @@ export class SoulDollSpriteFactory {
   public static generateSpriteSet(species: any, mat: ChassisMaterial = 'wood'): CreatureSpriteSet {
     const view_front34 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_front34' });
     const view_front = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_front' });
+    const view_side = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_side' });
     const view_back = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_back' });
     const view_back34 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_back34' });
     return {
       view_front34,
       view_front,
+      view_side,
       view_back,
       view_back34,
       front: view_front,
@@ -1130,6 +1165,7 @@ export class SoulDollSpriteFactory {
     broken: PartBlock,
     view: SpriteView
   ): void {
+    if (!broken) return;
     const cx = 32;
     const cy = 34;
 
@@ -1137,7 +1173,7 @@ export class SoulDollSpriteFactory {
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 1.5;
 
-    if (broken.head <= 0) {
+    if ((broken.head ?? 1) <= 0) {
       ctx.beginPath();
       ctx.moveTo(cx - 5, cy - 20);
       ctx.lineTo(cx + 2, cy - 14);
@@ -1145,7 +1181,7 @@ export class SoulDollSpriteFactory {
       ctx.stroke();
     }
 
-    if (broken.torso <= 0) {
+    if ((broken.torso ?? 1) <= 0) {
       ctx.beginPath();
       ctx.moveTo(cx - 8, cy + 2);
       ctx.lineTo(cx + 6, cy + 10);
@@ -1153,13 +1189,13 @@ export class SoulDollSpriteFactory {
       ctx.stroke();
     }
 
-    if (broken.arms <= 0) {
+    if ((broken.arms ?? 1) <= 0) {
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(cx - 15, cy + 2, 6, 2);
       ctx.fillRect(cx + 9, cy + 2, 6, 2);
     }
 
-    if (broken.legs <= 0) {
+    if ((broken.legs ?? 1) <= 0) {
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(cx - 8, cy + 26, 5, 2);
       ctx.fillRect(cx + 3, cy + 26, 5, 2);

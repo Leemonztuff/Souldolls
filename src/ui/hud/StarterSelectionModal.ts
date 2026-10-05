@@ -375,6 +375,10 @@ export class StarterSelectionModal extends Container {
     titleTxt.position.set(Math.round(titleAreaLeft + titleAreaW / 2), 6);
     header.addChild(titleTxt);
 
+    const subContainer = new Container();
+    subContainer.roundPixels = true;
+    header.addChild(subContainer);
+
     const subTxt = new Text({
       text: vm.step,
       style: new TextStyle({
@@ -387,7 +391,7 @@ export class StarterSelectionModal extends Container {
     subTxt.roundPixels = true;
     subTxt.anchor.set(0.5, 1);
     subTxt.position.set(Math.round(titleAreaLeft + titleAreaW / 2), headerH - 5);
-    header.addChild(subTxt);
+    subContainer.addChild(subTxt);
 
     // =========================================================================
     // 2. BARRA INFERIOR FIJA (Volver | Ver ficha | Elegir [nombre]) + PUNTOS DE PAGINACIÓN
@@ -1097,7 +1101,49 @@ export class StarterSelectionModal extends Container {
     curY += detailH + 8;
 
     // --- 2. TARJETA REGLA DE ORO (Frasco con el alma + Cuerpo de Madera = Souldoll) ---
-    const goldenH = 104;
+    // Usamos Nunito (FONTS.body) para que los paréntesis "(Alma)" jamás se rendericen como llaves
+    const diagY = 34;
+    const formulaTxt = new Text({
+      text: t.golden_rule_formula,
+      style: new TextStyle({
+        fontFamily: FONTS.body,
+        fontSize: 13,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.gold,
+        wordWrap: true,
+        wordWrapWidth: width - 108,
+      }),
+    });
+    formulaTxt.roundPixels = true;
+    formulaTxt.position.set(96, diagY + 1);
+
+    const formulaLines = formulaTxt.text.length > 30 || width < 380 ? 2 : 1;
+    const rewardsY = diagY + (formulaLines > 1 ? 32 : 18) + 6;
+
+    const rewardsGroup = new Container();
+    rewardsGroup.roundPixels = true;
+
+    const rewardsStr = t.golden_rule_rewards
+      .replace('{level}', String(vm.rewards.level))
+      .replace('{bodyName}', vm.rewards.bodyName)
+      .replace('{bottlesCount}', String(vm.rewards.bottlesCount))
+      .replace('{elixirCount}', String(vm.rewards.elixirCount));
+
+    const rewardsTxt = new Text({
+      text: rewardsStr,
+      style: new TextStyle({
+        fontFamily: FONTS.body,
+        fontSize: 13,
+        fill: COLOR_HEX.parchment,
+        wordWrap: true,
+        wordWrapWidth: width - 24,
+      }),
+    });
+    rewardsTxt.roundPixels = true;
+    rewardsTxt.position.set(14, rewardsY);
+    rewardsGroup.addChild(rewardsTxt);
+
+    const goldenH = Math.max(108, rewardsY + 28);
     const goldenCard = new KitCard({
       width,
       height: goldenH,
@@ -1108,7 +1154,6 @@ export class StarterSelectionModal extends Container {
     this.scrollRoot.addChild(goldenCard);
 
     // Diagrama de iconos: [Soul Bottle] + [Cuerpo de Madera] = [Souldoll]
-    const diagY = 34;
     const bottleIc = IconRegistry.create('soul_bottle', 20);
     bottleIc.position.set(14, diagY);
     goldenCard.addChild(bottleIc);
@@ -1121,41 +1166,8 @@ export class StarterSelectionModal extends Container {
     orbIc.position.set(70, diagY);
     goldenCard.addChild(orbIc);
 
-    // Usamos Nunito (FONTS.body) para que los paréntesis "(Alma)" jamás se rendericen como llaves
-    const formulaTxt = new Text({
-      text: t.golden_rule_formula,
-      style: new TextStyle({
-        fontFamily: FONTS.body,
-        fontSize: 14,
-        fontWeight: 'bold',
-        fill: COLOR_HEX.gold,
-        wordWrap: true,
-        wordWrapWidth: width - 108,
-      }),
-    });
-    formulaTxt.roundPixels = true;
-    formulaTxt.position.set(96, diagY + 1);
     goldenCard.addChild(formulaTxt);
-
-    const rewardsStr = t.golden_rule_rewards
-      .replace('{level}', String(vm.rewards.level))
-      .replace('{bodyName}', vm.rewards.bodyName)
-      .replace('{bottlesCount}', String(vm.rewards.bottlesCount))
-      .replace('{elixirCount}', String(vm.rewards.elixirCount));
-
-    const rewardsTxt = new Text({
-      text: rewardsStr,
-      style: new TextStyle({
-        fontFamily: FONTS.body,
-        fontSize: 14,
-        fill: COLOR_HEX.parchment,
-        wordWrap: true,
-        wordWrapWidth: width - 24,
-      }),
-    });
-    rewardsTxt.roundPixels = true;
-    rewardsTxt.position.set(14, 62);
-    goldenCard.addChild(rewardsTxt);
+    goldenCard.addChild(rewardsGroup);
 
     curY += goldenH + 8;
 

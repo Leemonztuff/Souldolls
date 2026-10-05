@@ -46,7 +46,14 @@ export class CreatureDetailScene implements IScene {
 
   private currentIndex = 0;
   private customList: Souldoll[] | null = null;
-  private pedestalView: 'view_front34' | 'view_back34' = 'view_front34';
+  private pedestalView: 'view_front' | 'view_front34' | 'view_side' | 'view_back34' | 'view_back' = 'view_front34';
+  private static readonly PEDESTAL_VIEWS: Array<'view_front' | 'view_front34' | 'view_side' | 'view_back34' | 'view_back'> = [
+    'view_front',
+    'view_front34',
+    'view_side',
+    'view_back34',
+    'view_back',
+  ];
   private activeIdleMesh: BattleIdleMesh | null = null;
   private activeSilhouette: HumanoidPartSilhouette | null = null;
   private activeEquipModalSlot: 'weapon' | 'relic' | 'accessory' | null = null;
@@ -145,7 +152,9 @@ export class CreatureDetailScene implements IScene {
   }
 
   private togglePedestalView(): void {
-    this.pedestalView = this.pedestalView === 'view_front34' ? 'view_back34' : 'view_front34';
+    const idx = CreatureDetailScene.PEDESTAL_VIEWS.indexOf(this.pedestalView);
+    const nextIdx = (idx + 1) % CreatureDetailScene.PEDESTAL_VIEWS.length;
+    this.pedestalView = CreatureDetailScene.PEDESTAL_VIEWS[nextIdx];
     GlobalAudioService.playSfx('select');
     this.renderSheet();
   }
@@ -909,16 +918,16 @@ export class CreatureDetailScene implements IScene {
     if (bodyInfo.hasBody) {
       silhouette.updateParts(
         {
-          head: vm.parts.head.cur,
-          torso: vm.parts.torso.cur,
-          arms: vm.parts.arms.cur,
-          legs: vm.parts.legs.cur,
+          head: vm.parts?.head?.cur ?? 0,
+          torso: vm.parts?.torso?.cur ?? 0,
+          arms: vm.parts?.arms?.cur ?? 0,
+          legs: vm.parts?.legs?.cur ?? 0,
         },
         {
-          head: vm.parts.head.max,
-          torso: vm.parts.torso.max,
-          arms: vm.parts.arms.max,
-          legs: vm.parts.legs.max,
+          head: vm.parts?.head?.max ?? 1,
+          torso: vm.parts?.torso?.max ?? 1,
+          arms: vm.parts?.arms?.max ?? 1,
+          legs: vm.parts?.legs?.max ?? 1,
         }
       );
     } else {
@@ -937,10 +946,10 @@ export class CreatureDetailScene implements IScene {
     const barsStartX = isCompact ? 56 : 74;
     const barsW = w - barsStartX - 8;
     const partRows: Array<{ key: BodyPart; label: string; data: SheetPartEntryVM }> = [
-      { key: 'head', label: t.part_head, data: vm.parts.head },
-      { key: 'torso', label: t.part_torso, data: vm.parts.torso },
-      { key: 'arms', label: t.part_arms, data: vm.parts.arms },
-      { key: 'legs', label: t.part_legs, data: vm.parts.legs },
+      { key: 'head', label: t.part_head, data: vm.parts?.head || { cur: 0, max: 1, state: 'broken' } },
+      { key: 'torso', label: t.part_torso, data: vm.parts?.torso || { cur: 0, max: 1, state: 'broken' } },
+      { key: 'arms', label: t.part_arms, data: vm.parts?.arms || { cur: 0, max: 1, state: 'broken' } },
+      { key: 'legs', label: t.part_legs, data: vm.parts?.legs || { cur: 0, max: 1, state: 'broken' } },
     ];
 
     const startY = isCompact ? 21 : 25;
@@ -1238,10 +1247,10 @@ export class CreatureDetailScene implements IScene {
     const viewToRender: SpriteView = this.pedestalView;
     const brokenParts = vm.body.hasBody
       ? {
-          head: vm.parts.head.cur,
-          torso: vm.parts.torso.cur,
-          arms: vm.parts.arms.cur,
-          legs: vm.parts.legs.cur,
+          head: vm.parts?.head?.cur ?? 10,
+          torso: vm.parts?.torso?.cur ?? 10,
+          arms: vm.parts?.arms?.cur ?? 10,
+          legs: vm.parts?.legs?.cur ?? 10,
         }
       : { head: 10, torso: 10, arms: 10, legs: 10 };
 
@@ -1293,19 +1302,23 @@ export class CreatureDetailScene implements IScene {
     this.activeIdleMesh = idleMesh;
     panel.addChild(idleMesh);
 
-    // Top-right button to rotate/toggle 3/4 Front <-> 3/4 Back view
-    const toggleLabel =
-      this.pedestalView === 'view_front34'
-        ? t.pedestal_view_front
-        : t.pedestal_view_back;
+    // Top-right button to rotate through all 5 views (Frontal -> 3/4 Frontal -> Perfil -> 3/4 Espalda -> Espalda)
+    const viewLabelMap: Record<string, string> = {
+      view_front: t.pedestal_view_front_full || 'FRONTAL (1/5)',
+      view_front34: t.pedestal_view_front34_full || t.pedestal_view_front,
+      view_side: t.pedestal_view_side_full || 'PERFIL (3/5)',
+      view_back34: t.pedestal_view_back34_full || t.pedestal_view_back,
+      view_back: t.pedestal_view_back_full || 'ESPALDA (5/5)',
+    };
+    const toggleLabel = viewLabelMap[this.pedestalView] || t.pedestal_view_front;
     const viewBtn = new BrassButton({
-      width: isCompact ? 104 : 122,
+      width: isCompact ? 114 : 134,
       height: isCompact ? 24 : 26,
       label: toggleLabel,
-      fontSize: isCompact ? 8.5 : 9.5,
+      fontSize: isCompact ? 8 : 9,
       onClick: () => this.togglePedestalView(),
     });
-    viewBtn.position.set(w - (isCompact ? 110 : 130), 6);
+    viewBtn.position.set(w - (isCompact ? 120 : 140), 6);
     panel.addChild(viewBtn);
 
     // Swipe gesture on pedestal to navigate between Souldolls

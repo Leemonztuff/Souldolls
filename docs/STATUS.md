@@ -11,11 +11,11 @@ Estado vivo del repositorio conforme a **SOULDOLLS HARNESS v1.0**.
 | B2 | Modelo de datos y contenido base | 1 | COMPLETO | 2026-10-04, `DataValidator.validateAll()` | 14 almas, 8 cuerpos, 30 movimientos |
 | B3 | Sprites procedurales y sistema de assets | 1, 2 | COMPLETO | 2026-10-04, `AssetRegistry.ts` | — |
 | B4 | Mundo 3D explorable (Three.js) | 1, 3 | COMPLETO | 2026-10-04, `OverworldScene.ts`, `MapRenderer.ts` | — |
-| B5 | Mundo de mapas conectados y transiciones | 2, 4 | COMPLETO | 2026-10-04, `WorldGraph.validateConnections()` | 6 exteriores + 4 interiores |
+| B5 | Mundo de mapas conectados y transiciones | 2, 4 | COMPLETO | 2026-10-05, `src/tests/transition.test.ts` (3/3 OK), `ScreenWipeTransition.ts` | 6 exteriores + 4 interiores + Transición de barrido de pantalla PixiJS (Diagonal Slash / Diamond Shards / Radial Iris / Curtain) para conectar Overworld 3D y Combate 2D |
 | B6 | Diálogos, NPCs y sistema de quests | 5 | COMPLETO | 2026-10-04, `DialogueSystem.ts`, `QuestSystem.ts` | — |
 | B7 | Motor de batalla (lógica pura) | 2 | COMPLETO | 2026-10-04, `src/tests/battle.test.ts` | Determinista por seed |
-| B8 | Escena de batalla y efectos de habilidades (Pixi) | 3, 7 | COMPLETO | 2026-10-04, `BattleScene.ts` | — |
-| B9 | Equipo, inventario, menús y captura integrada | 6, 7, 8 | COMPLETO | 2026-10-04, `PartyScene.ts`, `BagScene.ts` | — |
+| B8 | Escena de batalla y efectos de habilidades (Pixi) | 3, 7 | COMPLETO | 2026-10-05, `src/tests/vfx.test.ts` (4/4 OK), `VFXSystem.ts`, `BattleScene.ts` | Sistema de partículas ampliado (chispas angulares, estrellas, anillos de choque, succión etérea, sacudidas y auras para críticos, captura de almas y buffs/debuffs) |
+| B9 | Equipo, inventario, menús y captura integrada | 6, 7, 8 | COMPLETO | 2026-10-05, `src/tests/party-management.test.ts` (4/4 OK), `PartyScene.ts` | Roster con reordenación interactiva (▲/▼, swap, líder), estadísticas completas de 6 atributos y partes |
 | B10 | Sistema de evolución (Ascenso) | 7, 9 | COMPLETO | 2026-10-04, `src/tests/evolution.test.ts` | — |
 | B11 | Códice de Almas (Pokédex) | 9, 10 | COMPLETO | 2026-10-04, `PokedexScene.ts`, `SoulCodexSystem.ts` | — |
 | B12 | Servicios (curación, tienda) e inicial | 6, 9, 11 | COMPLETO | 2026-10-04, `WorkshopScene.ts`, `ShopScene.ts` | — |

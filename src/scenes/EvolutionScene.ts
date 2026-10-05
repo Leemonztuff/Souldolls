@@ -133,18 +133,35 @@ export class EvolutionScene implements IScene {
     this.screenFrame.setContentTotalHeight(cardH + 16);
     UIKitLinter.inspectTree(this.screenFrame, 'EvolutionScene');
 
-    // Run Ascension Sequence
-    await this.sleep(1000);
+    // Run Ascension Sequence with 5-view 360° turnaround (front -> front34 -> side -> back34 -> back)
+    await this.sleep(900);
     this.phase = 'flashing';
 
-    const newTex = GlobalAssetRegistry.getCreatureSpritePixi(targetSpeciesId, 'front');
-    for (let i = 0; i < 8; i++) {
+    const turnaroundViews: Array<'view_front' | 'view_front34' | 'view_side' | 'view_back34' | 'view_back'> = [
+      'view_front',
+      'view_front34',
+      'view_side',
+      'view_back34',
+      'view_back',
+      'view_back34',
+      'view_side',
+      'view_front34',
+      'view_front',
+    ];
+
+    for (let i = 0; i < turnaroundViews.length; i++) {
+      const v = turnaroundViews[i];
       GlobalAudioService.playSfx('select');
-      this.sprite.texture = i % 2 === 0 ? newTex : oldTex;
+      const useNew = i >= 4 || i % 2 === 1;
+      this.sprite.texture = GlobalAssetRegistry.getCreatureSpritePixi(
+        useNew ? targetSpeciesId : creature.speciesId,
+        v
+      );
       this.sprite.tint = i % 2 === 0 ? COLOR_NUM.gold : COLOR_NUM.white;
-      await this.sleep(160);
+      await this.sleep(150);
     }
 
+    const newTex = GlobalAssetRegistry.getCreatureSpritePixi(targetSpeciesId, 'view_front34');
     this.phase = 'complete';
     this.sprite.texture = newTex;
     this.sprite.tint = COLOR_NUM.white;

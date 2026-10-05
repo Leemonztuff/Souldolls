@@ -1,11 +1,12 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "totalSpecies": 14,
   "defaultViews": [
-    "view_front34",
     "view_front",
-    "view_back",
-    "view_back34"
+    "view_front34",
+    "view_side",
+    "view_back34",
+    "view_back"
   ],
   "species": {
     "maga": {
@@ -15,14 +16,15 @@
       "sheetPath": "/assets/souldolls/maga_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/maga_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -33,14 +35,15 @@
       "sheetPath": "/assets/souldolls/archimaga_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/archimaga_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -51,14 +54,15 @@
       "sheetPath": "/assets/souldolls/sacerdotisa_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/sacerdotisa_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -69,14 +73,15 @@
       "sheetPath": "/assets/souldolls/hierofante_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/hierofante_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -87,14 +92,15 @@
       "sheetPath": "/assets/souldolls/gladiadora_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/gladiadora_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -105,14 +111,15 @@
       "sheetPath": "/assets/souldolls/titanide_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/titanide_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -123,14 +130,15 @@
       "sheetPath": "/assets/souldolls/bruja_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/bruja_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -141,14 +149,15 @@
       "sheetPath": "/assets/souldolls/hechicera_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/hechicera_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -159,14 +168,15 @@
       "sheetPath": "/assets/souldolls/hidromante_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/hidromante_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -177,14 +187,15 @@
       "sheetPath": "/assets/souldolls/cantora_marea_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/cantora_marea_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -195,14 +206,15 @@
       "sheetPath": "/assets/souldolls/monje_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/monje_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -213,14 +225,15 @@
       "sheetPath": "/assets/souldolls/maestro_trueno_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/maestro_trueno_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -231,14 +244,15 @@
       "sheetPath": "/assets/souldolls/asesina_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/asesina_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     },
@@ -249,14 +263,15 @@
       "sheetPath": "/assets/souldolls/espectro_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/espectro_battle_atlas.json",
       "size": [
-        268,
+        305,
         162
       ],
       "views": [
-        "view_front34",
         "view_front",
-        "view_back",
-        "view_back34"
+        "view_front34",
+        "view_side",
+        "view_back34",
+        "view_back"
       ],
       "idleSupported": true
     }

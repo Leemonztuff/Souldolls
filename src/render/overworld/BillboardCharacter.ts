@@ -62,14 +62,18 @@ export class BillboardCharacter {
       initialTex.needsUpdate = true;
     }
 
-    this.spriteMaterial = new THREE.MeshBasicMaterial({
-      map: initialTex || undefined,
+    const matConfig: THREE.MeshBasicMaterialParameters = {
       transparent: true,
       alphaTest: 0.5,
       side: THREE.DoubleSide,
       depthWrite: true,
       fog: false,
-    });
+    };
+    if (initialTex) {
+      matConfig.map = initialTex;
+    }
+
+    this.spriteMaterial = new THREE.MeshBasicMaterial(matConfig);
 
     this.spriteMesh = new THREE.Mesh(spriteGeo, this.spriteMaterial);
     this.spriteMesh.position.y = 0.02; // slight raise to avoid ground z-fighting

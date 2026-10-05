@@ -75,7 +75,7 @@ export interface SoulSpriteConfig {
   sheetPath: string;
   atlasPath: string;
   size: [number, number];
-  views: Array<'view_front34' | 'view_front' | 'view_back' | 'view_back34'>;
+  views: Array<'view_front34' | 'view_front' | 'view_side' | 'view_back' | 'view_back34'>;
   idleSupported: boolean;
 }
 

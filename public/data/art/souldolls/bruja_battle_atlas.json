@@ -4,56 +4,27 @@
   "element": "Neutro",
   "image": "/assets/souldolls/bruja_battle_sheet.png",
   "size": [
-    268,
+    305,
     162
   ],
   "nativeTargetHeightPx": 160,
   "mirrorSafe": false,
   "asymmetryNote": "El brazo del guantelete cambia de lado al espejar horizontalmente (flipX: true).",
   "frames": {
-    "view_front34": {
+    "view_front": {
       "x": 0,
       "y": 0,
-      "w": 68,
+      "w": 62,
       "h": 162,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        87,
-        74,
-        583,
-        1411
-      ],
-      "mirrorSafe": false,
-      "native": false,
-      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
-      "idle": {
-        "neck": 0.3,
-        "waist": 0.48,
-        "bust": {
-          "y0": 0.33,
-          "y1": 0.46,
-          "x0": 0.28,
-          "x1": 0.72
-        }
-      }
-    },
-    "view_front": {
-      "x": 70,
-      "y": 0,
-      "w": 59,
-      "h": 162,
-      "anchor": [
-        0.5,
-        1
-      ],
-      "sourceRect": [
-        768,
-        74,
-        505,
-        1412
+        24,
+        1,
+        96,
+        255
       ],
       "mirrorSafe": false,
       "native": false,
@@ -69,20 +40,78 @@
         }
       }
     },
-    "view_back": {
-      "x": 131,
+    "view_front34": {
+      "x": 64,
       "y": 0,
-      "w": 71,
+      "w": 61,
       "h": 162,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        1434,
-        74,
-        607,
-        1406
+        172,
+        1,
+        94,
+        255
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.3,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.33,
+          "y1": 0.46,
+          "x0": 0.28,
+          "x1": 0.72
+        }
+      }
+    },
+    "view_side": {
+      "x": 127,
+      "y": 0,
+      "w": 53,
+      "h": 162,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        319,
+        1,
+        82,
+        255
+      ],
+      "mirrorSafe": false,
+      "native": false,
+      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "idle": {
+        "neck": 0.3,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.33,
+          "y1": 0.46,
+          "x0": 0.22,
+          "x1": 0.65
+        }
+      }
+    },
+    "view_back34": {
+      "x": 182,
+      "y": 0,
+      "w": 58,
+      "h": 162,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        457,
+        1,
+        90,
+        255
       ],
       "mirrorSafe": false,
       "native": false,
@@ -92,20 +121,20 @@
         "waist": 0.48
       }
     },
-    "view_back34": {
-      "x": 204,
+    "view_back": {
+      "x": 242,
       "y": 0,
-      "w": 64,
+      "w": 63,
       "h": 162,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        2151,
-        74,
-        544,
-        1411
+        600,
+        1,
+        97,
+        255
       ],
       "mirrorSafe": false,
       "native": false,

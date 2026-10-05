@@ -132,7 +132,10 @@ export class BattlePlayer {
       }
 
       case 'CRITICAL_HIT': {
+        const defenderPos = this.scene.getSpritePosition(side);
         GlobalAudioService.playSfx('hit_super');
+        GlobalVFXSystem.emitCriticalHitFeedback(defenderPos.x, defenderPos.y);
+        await this.sleep(300);
         break;
       }
 
@@ -153,16 +156,8 @@ export class BattlePlayer {
         const pos = this.scene.getSpritePosition(side);
         const stages = event.stages || 1;
         GlobalAudioService.playSfx(stages > 0 ? 'levelUp' : 'cancel');
-        GlobalVFXSystem.spawnStatChangeArrow(pos.x, pos.y - 20, event.stat || 'atk', stages);
-        await GlobalVFXSystem.playPresetVfx(
-          'aura',
-          pos.x,
-          pos.y,
-          pos.x,
-          pos.y,
-          stages > 0 ? '#4ade80' : '#f43f5e',
-          '#ffffff'
-        );
+        GlobalVFXSystem.emitStatChangeFeedback(pos.x, pos.y, event.stat || 'atk', stages);
+        await this.sleep(450);
         break;
       }
 
