@@ -1,4 +1,4 @@
-# Pokémon 2.5D HD-2D RPG — Arquitectura y Guía de Desarrollo
+# SoulDolls 2.5D HD-2D RPG — Arquitectura y Guía de Desarrollo
 
 Un motor de juego RPG de captura de criaturas estilo 2.5D (perspectiva isométrica-inclinada con sprites billboard sobre terreno 3D low-poly), desarrollado con **TypeScript**, **Three.js** y **PixiJS (v8)** sobre **Vite**.
 
