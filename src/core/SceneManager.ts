@@ -34,6 +34,10 @@ export class SceneManager {
     this.sceneFactories.set(name, factory);
   }
 
+  public hasScene(name: string): boolean {
+    return this.sceneFactories.has(name);
+  }
+
   private enqueue(op: () => Promise<void>): Promise<void> {
     this.transitionQueue = this.transitionQueue.then(op).catch((err) => {
       console.error('[SceneManager] Error in transition queue:', err);

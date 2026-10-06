@@ -15,6 +15,7 @@ import { PokedexScene } from '../scenes/PokedexScene';
 import { ShopScene } from '../scenes/ShopScene';
 import { StorageBoxScene } from '../scenes/StorageBoxScene';
 import { CreditsScene } from '../scenes/CreditsScene';
+import { DebugScene } from '../scenes/DebugScene';
 import { CreatureDetailScene } from '../scenes/CreatureDetailScene';
 import { PartyScene } from '../scenes/PartyScene';
 import { BagScene } from '../scenes/BagScene';
@@ -123,6 +124,7 @@ export class Game {
     GlobalSceneManager.registerScene('GachaResonance', () => new GachaResonanceScene());
     GlobalSceneManager.registerScene('Options', () => new OptionsScene());
     GlobalSceneManager.registerScene('Credits', () => new CreditsScene());
+    GlobalSceneManager.registerScene('Debug', () => new DebugScene());
 
     // 7. Debug Toggle Shortcut Handler (Bloque 43 Req. 2: Dynamic import only when DEBUG is active)
     GlobalEventBus.on('debug:toggle', async () => {

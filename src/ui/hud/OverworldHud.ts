@@ -42,6 +42,13 @@ export class OverworldHud extends Container {
   private interactBadgeText!: Text;
   private currentInteractLabel: string | null = null;
 
+  // Souls Captured HUD element fields (Bloque 47)
+  private soulsCounterContainer: Container = new Container();
+  private soulsCounterBg: Graphics = new Graphics();
+  private soulsCounterText!: Text;
+  private lastSoulsCount = -1;
+  private soulsPulseScale = 1.0;
+
   private inactivityTimer = 3.5; // Starts at base opacity 0.35
   private readonly baseAlpha = 0.35;
   private readonly activeAlpha = 0.8;
@@ -144,6 +151,10 @@ export class OverworldHud extends Container {
     if (settings.showTouchControls !== false) {
       this.buildTouchControls(width, height, scale, settings.touchPosition || 'normal', safeSide, safeBottom);
     }
+
+    // souls Captured HUD element (Bloque 47)
+    const soulsCounterY = settings.showCameraButton !== false ? safeTop + btnSize + 8 : safeTop;
+    this.buildSoulsCounter(safeSide, soulsCounterY);
 
     UIKitLinter.inspectTree(this, 'OverworldHud');
   }
@@ -498,12 +509,78 @@ export class OverworldHud extends Container {
     this.objectiveContainer.position.set(Math.round((width - pillW) / 2), 16);
   }
 
+  private buildSoulsCounter(safeSide: number, yPos: number): void {
+    this.soulsCounterContainer = new Container();
+    this.soulsCounterContainer.roundPixels = true;
+
+    const cardW = 76;
+    const cardH = 30;
+
+    // Set pivot to center for beautiful pulse scaling from exact center
+    this.soulsCounterContainer.pivot.set(cardW / 2, cardH / 2);
+    this.soulsCounterContainer.position.set(safeSide + cardW / 2, yPos + cardH / 2);
+    this.addChild(this.soulsCounterContainer);
+
+    this.soulsCounterBg = new Graphics();
+    this.soulsCounterBg.roundRect(0, 0, cardW, cardH, 6);
+    this.soulsCounterBg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.90 });
+    this.soulsCounterBg.stroke({ color: COLOR_NUM.gold, width: 1.5 });
+    this.soulsCounterContainer.addChild(this.soulsCounterBg);
+
+    // Soul Orb Icon
+    const icon = IconRegistry.create('soul_orb', 14);
+    icon.position.set(8, Math.round((cardH - 14) / 2));
+    this.soulsCounterContainer.addChild(icon);
+
+    this.soulsCounterText = new Text({
+      text: '0',
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: 12,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.parchment,
+      }),
+    });
+    this.soulsCounterText.roundPixels = true;
+    this.soulsCounterText.anchor.set(0, 0.5);
+    this.soulsCounterText.position.set(26, Math.round(cardH / 2));
+    this.soulsCounterContainer.addChild(this.soulsCounterText);
+
+    // Initial count
+    const state = GlobalSaveService.getCurrentState();
+    const currentCount = (state.party || []).length + (state.storage || []).length;
+    this.lastSoulsCount = currentCount;
+    this.soulsCounterText.text = String(currentCount);
+  }
+
   public notifyTouchActivity(): void {
     this.inactivityTimer = 0;
     this.padLayerContainer.alpha = this.activeAlpha;
   }
 
   public updateHud(dt: number): void {
+    // 1. Check & Animate Souls Captured counter with gentle pulse
+    const state = GlobalSaveService.getCurrentState();
+    const currentCount = (state.party || []).length + (state.storage || []).length;
+
+    if (this.lastSoulsCount !== -1 && currentCount > this.lastSoulsCount) {
+      this.soulsPulseScale = 1.40; // Pulse up on capture!
+      GlobalAudioService.playSfx('confirm');
+    }
+    this.lastSoulsCount = currentCount;
+
+    if (this.soulsCounterText) {
+      this.soulsCounterText.text = String(currentCount);
+    }
+
+    // Decay pulse back to 1.0
+    if (this.soulsPulseScale > 1.0) {
+      this.soulsPulseScale += (1.0 - this.soulsPulseScale) * Math.min(1, dt * 10);
+    } else {
+      this.soulsPulseScale = 1.0;
+    }
+    this.soulsCounterContainer.scale.set(this.soulsPulseScale);
+
     // Also wake up pad opacity if any directional or action input is pressed
     if (
       this.activeDirections.size > 0 ||
@@ -522,8 +599,8 @@ export class OverworldHud extends Container {
 
     const targetAlpha =
       this.inactivityTimer < this.fadeDelaySec || this. currentInteractLabel
-        ? this.activeAlpha
-        : this.baseAlpha;
+          ? this.activeAlpha
+          : this.baseAlpha;
 
     // Smoothly interpolate alpha
     const diff = targetAlpha - this.padLayerContainer.alpha;

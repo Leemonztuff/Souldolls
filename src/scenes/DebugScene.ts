@@ -105,6 +105,7 @@ export class DebugScene implements IScene {
   }
 
   private buildUI(): void {
+    this.container.removeChildren();
     const width = GlobalPixiRenderer.width;
     const height = GlobalPixiRenderer.height;
 

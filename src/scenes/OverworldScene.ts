@@ -27,6 +27,8 @@ import { StarterLabSystem } from '../systems/lab/StarterLabSystem';
 import { SOUL_SPECIES_DATA } from '../data/souldolls/souls';
 import { isDebugEnabled } from '../core/DebugGate';
 import { GlobalOverworldDecor } from '../render/overworld/DecorRenderer';
+import { SoulMetaballSystem } from '../systems/overworld/SoulMetaballSystem';
+import { GlobalTileRenderer } from '../render/overworld/TileRenderer';
 import {
   ScreenFrame,
   KitCard,
@@ -49,6 +51,7 @@ export class OverworldScene implements IScene {
   private player: OverworldPlayer;
   private currentMap!: MapData;
   private npcs: Map<string, { character: BillboardCharacter; data: MapNPC }> = new Map();
+  private soulMetaballSystem: SoulMetaballSystem | null = null;
 
   // Ambient Lighting
   private ambientLight!: THREE.AmbientLight;
@@ -256,6 +259,7 @@ export class OverworldScene implements IScene {
   public async enter(params?: any): Promise<void> {
     GlobalPixiRenderer.clearAllLayers();
     GlobalThreeRenderer.clearScene();
+    GlobalTileRenderer.setAuthoringStage(0);
 
     const scene = GlobalThreeRenderer.scene;
 
@@ -428,7 +432,25 @@ export class OverworldScene implements IScene {
       });
     }
 
-    // 6. Setup Camera Bounds & Target strictly aligned to player 3D coordinates
+    // 6. Spawn wandering Soul Metaball entities over grass/cave areas (Bloque 47)
+    if (this.soulMetaballSystem) {
+      this.soulMetaballSystem.clear();
+    }
+    this.soulMetaballSystem = new SoulMetaballSystem(scene);
+    if (this.currentMap.encounters && this.currentMap.encounters.length > 0) {
+      const colors: Array<'violet' | 'cyan' | 'gold' | 'bronze'> = ['cyan', 'violet', 'gold', 'bronze'];
+      const count = 4;
+      for (let i = 0; i < count; i++) {
+        const rx = Math.floor(Math.random() * (this.currentMap.width - 4)) + 2;
+        const rz = Math.floor(Math.random() * (this.currentMap.height - 4)) + 2;
+        if (this.currentMap.collision[rz] && !this.currentMap.collision[rz][rx]) {
+          const col = colors[i % colors.length];
+          this.soulMetaballSystem.spawnEntity(`soul_${this.currentMap.id}_${i}`, rx, rz, 3.0, col);
+        }
+      }
+    }
+
+    // 7. Setup Camera Bounds & Target strictly aligned to player 3D coordinates
     this.cameraController.setBounds(0, this.currentMap.width, 0, this.currentMap.height);
     this.cameraController.recenterOnPlayer(this.player.character.worldX, this.player.character.worldZ, instantCamera);
 
@@ -986,6 +1008,7 @@ export class OverworldScene implements IScene {
 
     // 2. Update Map Animations, Lighting & Camera
     this.mapRenderer.update(dt, this.cameraController.currentYaw, 0.72, px, pz);
+    this.soulMetaballSystem?.update(dt, px, pz);
     this.mapRenderer.updateOcclusion(px, pz, GlobalThreeRenderer.camera.position);
     if (this.atlasDebugOverlay) {
       this.atlasDebugOverlay.setMapContext(this.currentMap, Math.round(px), Math.round(pz));
@@ -1779,6 +1802,8 @@ export class OverworldScene implements IScene {
       this.cameraDebugOverlay = null;
     }
     this.mapRenderer.clear();
+    this.soulMetaballSystem?.clear();
+    this.soulMetaballSystem = null;
 
     this.staminaBar = null;
     if (this.hudContainer && !this.hudContainer.destroyed) {

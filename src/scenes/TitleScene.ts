@@ -146,8 +146,12 @@ export class TitleScene implements IScene {
         id: 'debug',
         label: 'GALERÍA Y DEBUG (F2)',
         iconId: 'workshop_anvil',
-        action: () => {
+        action: async () => {
           GlobalAudioService.playSfx('confirm');
+          if (!GlobalSceneManager.hasScene('Debug')) {
+            const mod = await import('./DebugScene');
+            GlobalSceneManager.registerScene('Debug', () => new mod.DebugScene());
+          }
           GlobalSceneManager.pushScene('Debug');
         },
       });
@@ -401,37 +405,40 @@ export class TitleScene implements IScene {
     this.logoSprite.position.set(Math.round(width / 2), logoY);
     this.container.addChild(this.logoSprite);
 
-    // 2. Subtitle & Age Badge inside a compact KitCard
-    const cardW = Math.min(420, width - 24);
-    const btnCount = this.menuItems.length;
-    const btnH = isShortScreen ? 38 : 44;
-    const stepY = isShortScreen ? 44 : 50;
-    const startY = isShortScreen ? 54 : 64;
-    const cardH = startY + btnCount * stepY + 12;
-
-    const cardX = Math.round((width - cardW) / 2);
+    // 2. Subtitle & Age Badge directly on screen (Frameless Layout)
     const logoHalfH = Math.round((this.logoSprite.height || 80) / 2);
     const logoBottom = logoY + logoHalfH;
-    const cardY = Math.max(
-      logoBottom + 10,
-      Math.min(height - cardH - 20, Math.round((height - cardH) / 2 + 24))
-    );
 
-    const menuCard = new KitCard({
-      width: cardW,
-      height: cardH,
-      variant: 'inkCrypt',
-      title: esText.app.subtitle,
+    const subTitle = new Text({
+      text: esText.app.subtitle,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: 13,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.gold,
+        letterSpacing: 2,
+      }),
     });
-    menuCard.position.set(cardX, cardY);
-    this.container.addChild(menuCard);
+    subTitle.roundPixels = true;
+    subTitle.anchor.set(0.5, 0);
+    subTitle.position.set(Math.round(width / 2), logoBottom + 8);
+    this.container.addChild(subTitle);
 
     const ageBadge = new KitBadge(esText.app.age_warning, 'element', 'fuego');
     const badgeW = (ageBadge as any).badgeWidth || ageBadge.width || 200;
-    ageBadge.position.set(Math.round((cardW - badgeW) / 2), 34);
-    menuCard.addChild(ageBadge);
+    const badgeY = subTitle.y + 24;
+    ageBadge.position.set(Math.round((width - badgeW) / 2), badgeY);
+    this.container.addChild(ageBadge);
 
-    const btnW = cardW - 32;
+    // 3. Menu Buttons — ALL EXACT SAME UNIFORM WIDTH, Frameless Layout
+    const btnW = Math.min(340, width - 48);
+    const btnH = isShortScreen ? 38 : 44;
+    const stepY = isShortScreen ? 44 : 50;
+    const startY = badgeY + 34;
+
+    const menuContainer = new Container();
+    menuContainer.roundPixels = true;
+    this.container.addChild(menuContainer);
 
     this.menuItems.forEach((item, idx) => {
       const isEnabled = item.enabled !== false;
@@ -447,8 +454,10 @@ export class TitleScene implements IScene {
           item.action();
         },
       });
-      btn.position.set(16, startY + idx * stepY);
-      menuCard.addChild(btn);
+      const btnX = Math.round((width - btnW) / 2);
+      const btnY = startY + idx * stepY;
+      btn.position.set(btnX, btnY);
+      menuContainer.addChild(btn);
 
       this.focusManager.register({
         container: btn,
@@ -478,7 +487,7 @@ export class TitleScene implements IScene {
     verText.position.set(Math.round(width / 2), height - 10);
     this.container.addChild(verText);
 
-    UIKitLinter.inspectTree(menuCard, 'TitleScene');
+    UIKitLinter.inspectTree(menuContainer, 'TitleScene');
   }
 
   // =========================================================================
@@ -981,17 +990,48 @@ export class TitleScene implements IScene {
 
       this.logoThreadGraphics.clear();
 
-      // Golden marionette strings descending from the top of the screen to the logo
+      // Pulsing Ki energy factor based on time
+      const kiPulse = Math.sin(this.timeElapsed * 5.0) * 0.25 + 0.75;
+      const glowAlpha = 0.40 * kiPulse;
+      const coreAlpha = 0.90 * kiPulse;
+
+      // Originating from inside/top edge of the logo body extending upward behind the logo
+      const stringLen = 65;
+      const topY = letterTopY - stringLen;
+
+      const bX1 = this.logoSprite.x - span * 0.5;
+      const bX2 = this.logoSprite.x - span * 0.2;
+      const bX3 = this.logoSprite.x + span * 0.2;
+      const bX4 = this.logoSprite.x + span * 0.5;
+
+      const topX1 = this.logoSprite.x - span * 0.35;
+      const topX2 = this.logoSprite.x - span * 0.15;
+      const topX3 = this.logoSprite.x + span * 0.15;
+      const topX4 = this.logoSprite.x + span * 0.35;
+
+      // 1. Cyan Ki Glow Pass (Behind)
       this.logoThreadGraphics
-        .moveTo(width / 2 - span, 0)
-        .lineTo(tX1, letterTopY)
-        .moveTo(width / 2 - span * 0.35, 0)
-        .lineTo(tX2, letterTopY)
-        .moveTo(width / 2 + span * 0.35, 0)
-        .lineTo(tX3, letterTopY)
-        .moveTo(width / 2 + span, 0)
-        .lineTo(tX4, letterTopY)
-        .stroke({ color: COLOR_NUM.gold, width: 1.5, alpha: 0.48 });
+        .moveTo(topX1, topY)
+        .lineTo(bX1, letterTopY + 4)
+        .moveTo(topX2, topY)
+        .lineTo(bX2, letterTopY + 4)
+        .moveTo(topX3, topY)
+        .lineTo(bX3, letterTopY + 4)
+        .moveTo(topX4, topY)
+        .lineTo(bX4, letterTopY + 4)
+        .stroke({ color: COLOR_NUM.cyan, width: 4.5, alpha: glowAlpha });
+
+      // 2. Soul Violet Core Pass (On top of glow)
+      this.logoThreadGraphics
+        .moveTo(topX1, topY)
+        .lineTo(bX1, letterTopY + 4)
+        .moveTo(topX2, topY)
+        .lineTo(bX2, letterTopY + 4)
+        .moveTo(topX3, topY)
+        .lineTo(bX3, letterTopY + 4)
+        .moveTo(topX4, topY)
+        .lineTo(bX4, letterTopY + 4)
+        .stroke({ color: COLOR_NUM.soulViolet, width: 2.0, alpha: coreAlpha });
     }
 
     if (this.activeScreenFrame) {

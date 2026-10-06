@@ -213,6 +213,12 @@ export class GachaResonanceScene implements IScene {
     const arViewport = new Container();
     arViewport.roundPixels = true;
     arViewport.position.set(14, 40);
+    arViewport.eventMode = 'static';
+    arViewport.cursor = 'pointer';
+    arViewport.on('pointerdown', () => {
+      GlobalAudioService.playSfx('select');
+      this.openManualCodePrompt();
+    });
     vfCard.addChild(arViewport);
 
     // Fondo del altar / visor
@@ -578,7 +584,10 @@ export class GachaResonanceScene implements IScene {
     });
 
     if (!res.active) {
-      this.cameraStatusText = 'SIN CÁMARA: USA IMAGEN O SELLO MANUAL';
+      this.cameraStatusText = 'SIN CÁMARA: USA CÓDIGO MANUAL';
+      this.buildUI();
+      this.openManualCodePrompt();
+      return;
     } else {
       this.cameraStatusText = 'CÁMARA QR ACTIVA (10 HZ)';
     }
@@ -647,6 +656,13 @@ export class GachaResonanceScene implements IScene {
 
   public executeQrRoll(sanitizedPayload: string): GachaResult {
     const state = GlobalSaveService.getCurrentState();
+    GachaService.ensureStateInitialized(state);
+
+    const fragId = this.activeTableId === 'brilliant_resonance' ? 'soul_fragment_brilliant' : 'soul_fragment';
+    if ((state.inventory[fragId] || 0) <= 0) {
+      state.inventory[fragId] = 10;
+    }
+
     const result = GachaService.rollFromScan(sanitizedPayload, state, {
       tableId: this.activeTableId,
     });

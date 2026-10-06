@@ -293,7 +293,7 @@ export class TileRenderer {
       for (let x = 0; x < W; x++) {
         const rawCell = map.ground[y]?.[x] || 'grass';
         const hasEncounterGrass = map.encounters?.[y]?.[x] === 'tall_grass';
-        const effectiveRaw = hasEncounterGrass && rawCell === 'grass' ? 'tall_grass' : rawCell;
+        const effectiveRaw = (hasEncounterGrass || rawCell === 'tall_grass') ? 'grass' : rawCell;
         row.push(GlobalTileRegistry.resolveTile(String(effectiveRaw), 'ground', map.category));
       }
       resolvedGround.push(row);
