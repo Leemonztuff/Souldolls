@@ -24,6 +24,7 @@
     "test:transition": "tsx src/tests/transition.test.ts",
     "test:all": "npm run test:data && npm run test:battle && npm run test:evolution && npm run test:party && npm run test:gacha && npm run test:vfx && npm run test:transition && npm run validate:maps && npm run validate:tilesets",
     "test:e2e": "playwright test",
+    "perf:scenarios": "tsx scripts/perf-scenarios.ts",
     "pack:atlas": "tsx scripts/pack-atlas.ts",
     "test:balance": "tsx scripts/simulate-battles.ts",
     "prepare:atlas": "tsx tools/prepare_atlas.ts",

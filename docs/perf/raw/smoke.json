@@ -1,0 +1,295 @@
+{
+  "label": "smoke",
+  "when": "2026-10-06T18:28:17.198Z",
+  "server": "http://127.0.0.1:4173",
+  "viewport": "1280x720",
+  "options": {
+    "walkSecs": 30,
+    "battles": 5,
+    "dev": false
+  },
+  "groups": {
+    "menus": [
+      {
+        "scenario": "menu_Party",
+        "durationSec": 6.29,
+        "frames": 4,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1891.58,
+          "p50": 1666.6,
+          "p95": 2566.6,
+          "p99": 2566.6,
+          "max": 2566.6
+        },
+        "three": {
+          "callsMean": 518,
+          "callsMax": 518,
+          "trisMax": 16212,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 28,
+          "callsMax": 36,
+          "objectsMax": 6
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Bag",
+        "durationSec": 5.24,
+        "frames": 4,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1666.6,
+          "p50": 1416.6,
+          "p95": 2016.6,
+          "p99": 2016.6,
+          "max": 2016.6
+        },
+        "three": {
+          "callsMean": 518,
+          "callsMax": 518,
+          "trisMax": 16212,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 33,
+          "callsMax": 46,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Pokedex",
+        "durationSec": 3.5,
+        "frames": 3,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1683.27,
+          "p50": 1533.3,
+          "p95": 2349.9,
+          "p99": 2349.9,
+          "max": 2349.9
+        },
+        "three": {
+          "callsMean": 518,
+          "callsMax": 518,
+          "trisMax": 16212,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 31.3,
+          "callsMax": 54,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_QuestLog",
+        "durationSec": 8.12,
+        "frames": 4,
+        "fps": {
+          "mean": 0.5,
+          "min": 0.2
+        },
+        "frameMs": {
+          "mean": 2345.73,
+          "p50": 1566.6,
+          "p95": 4049.8,
+          "p99": 4049.8,
+          "max": 4049.8
+        },
+        "three": {
+          "callsMean": 518,
+          "callsMax": 518,
+          "trisMax": 16212,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 23,
+          "callsMax": 26,
+          "objectsMax": 289
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Shop",
+        "durationSec": 6.29,
+        "frames": 4,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1904.1,
+          "p50": 1633.3,
+          "p95": 2449.9,
+          "p99": 2449.9,
+          "max": 2449.9
+        },
+        "three": {
+          "callsMean": 518,
+          "callsMax": 518,
+          "trisMax": 16212,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 50,
+          "callsMax": 80,
+          "objectsMax": 732
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Workshop",
+        "durationSec": 5.08,
+        "frames": 4,
+        "fps": {
+          "mean": 0.7,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1566.6,
+          "p50": 1166.7,
+          "p95": 2033.2,
+          "p99": 2033.2,
+          "max": 2033.2
+        },
+        "three": {
+          "callsMean": 516,
+          "callsMax": 516,
+          "trisMax": 16208,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 38,
+          "callsMax": 56,
+          "objectsMax": 732
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_StorageBox",
+        "durationSec": 5.49,
+        "frames": 4,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1679.08,
+          "p50": 1299.9,
+          "p95": 2199.9,
+          "p99": 2199.9,
+          "max": 2199.9
+        },
+        "three": {
+          "callsMean": 516,
+          "callsMax": 516,
+          "trisMax": 16208,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 34,
+          "callsMax": 48,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Options",
+        "durationSec": 6.05,
+        "frames": 4,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1816.6,
+          "p50": 1200,
+          "p95": 2649.9,
+          "p99": 2649.9,
+          "max": 2649.9
+        },
+        "three": {
+          "callsMean": 516,
+          "callsMax": 516,
+          "trisMax": 16208,
+          "geometries": 275,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 62,
+          "callsMax": 104,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 16.3,
+          "endMB": 16.3,
+          "maxMB": 16.3
+        },
+        "allocPerFrameKB": 0,
+        "opened": true
+      }
+    ]
+  }
+}

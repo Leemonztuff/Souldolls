@@ -1,0 +1,580 @@
+{
+  "label": "baseline",
+  "when": "2026-10-06T19:01:25.926Z",
+  "server": "http://127.0.0.1:4173",
+  "viewport": "1280x720",
+  "options": {
+    "walkSecs": 30,
+    "battles": 3,
+    "dev": false
+  },
+  "groups": {
+    "boot": {
+      "scenario": "boot_4g_cpu4x",
+      "bootMsToTitle": 12354,
+      "wallMs": 12697,
+      "bytesByType": {
+        "other": 3404,
+        "js": 568878,
+        "css": 3190,
+        "json": 17696,
+        "png": 7709461,
+        "woff2": 81953
+      },
+      "totalBytesSansPerfChunk": 8384582,
+      "perfChunkBytes": 5453,
+      "meta": {
+        "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+        "dpr": 1,
+        "viewport": "1280x720",
+        "mode": "prod",
+        "url": "?perf=1"
+      }
+    },
+    "walk": [
+      {
+        "scenario": "walk_ruta_claro",
+        "durationSec": 75.54,
+        "frames": 107,
+        "fps": {
+          "mean": 1.5,
+          "min": 0.9
+        },
+        "frameMs": {
+          "mean": 711.97,
+          "p50": 683.2,
+          "p95": 1066.6,
+          "p99": 1116.6,
+          "max": 1166.6
+        },
+        "three": {
+          "callsMean": 539.1,
+          "callsMax": 666,
+          "trisMax": 23538,
+          "geometries": 487,
+          "textures": 15
+        },
+        "pixi": {
+          "callsMean": 20.3,
+          "callsMax": 24,
+          "objectsMax": 62
+        },
+        "heap": {
+          "startMB": 36.8,
+          "endMB": 45.7,
+          "maxMB": 46.4
+        },
+        "allocPerFrameKB": 2246.24
+      },
+      {
+        "scenario": "walk_bosque_eco",
+        "durationSec": 75.41,
+        "frames": 65,
+        "fps": {
+          "mean": 0.9,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1187.9,
+          "p50": 1166.6,
+          "p95": 1399.9,
+          "p99": 1916.6,
+          "max": 1916.6
+        },
+        "three": {
+          "callsMean": 691.4,
+          "callsMax": 761,
+          "trisMax": 28524,
+          "geometries": 436,
+          "textures": 17
+        },
+        "pixi": {
+          "callsMean": 20,
+          "callsMax": 20,
+          "objectsMax": 62
+        },
+        "heap": {
+          "startMB": 42.1,
+          "endMB": 67.8,
+          "maxMB": 73.7
+        },
+        "allocPerFrameKB": 3425.49
+      },
+      {
+        "scenario": "walk_villa_brote",
+        "durationSec": 32.04,
+        "frames": 108,
+        "fps": {
+          "mean": 4.1,
+          "min": 0.6
+        },
+        "frameMs": {
+          "mean": 308.94,
+          "p50": 250,
+          "p95": 1283.3,
+          "p99": 1516.6,
+          "max": 1616.7
+        },
+        "three": {
+          "callsMean": 120.8,
+          "callsMax": 531,
+          "trisMax": 16236,
+          "geometries": 41,
+          "textures": 19
+        },
+        "pixi": {
+          "callsMean": 20.3,
+          "callsMax": 24,
+          "objectsMax": 62
+        },
+        "heap": {
+          "startMB": 66.9,
+          "endMB": 44,
+          "maxMB": 77.1
+        },
+        "allocPerFrameKB": 778.56
+      }
+    ],
+    "battle": {
+      "stats": {
+        "scenario": "battle_vfx_x3",
+        "durationSec": 194.27,
+        "frames": 394,
+        "fps": {
+          "mean": 4.5,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 495.24,
+          "p50": 333.4,
+          "p95": 1516.6,
+          "p99": 1866.6,
+          "max": 2233.2
+        },
+        "three": {
+          "callsMean": 489.7,
+          "callsMax": 490,
+          "trisMax": 22978,
+          "geometries": 207,
+          "textures": 11
+        },
+        "pixi": {
+          "callsMean": 14,
+          "callsMax": 40,
+          "objectsMax": 495
+        },
+        "heap": {
+          "startMB": 33.1,
+          "endMB": 35,
+          "maxMB": 46.1
+        },
+        "allocPerFrameKB": 285.28
+      },
+      "perBattle": [
+        {
+          "i": 1,
+          "species": "sacerdotisa",
+          "moves": 2,
+          "ms": 84883
+        },
+        {
+          "i": 2,
+          "species": "sacerdotisa",
+          "moves": 1,
+          "ms": 40765
+        },
+        {
+          "i": 3,
+          "species": "hidromante",
+          "moves": 2,
+          "ms": 68592
+        }
+      ],
+      "baselineAfterBattles": {
+        "geometries": 207,
+        "textures": 11,
+        "pixiObjects": 471,
+        "heapMB": 35.29,
+        "threeCalls": 490,
+        "pixiCalls": 10,
+        "scene": "Overworld"
+      }
+    },
+    "menus": [
+      {
+        "scenario": "menu_Party",
+        "durationSec": 21.34,
+        "frames": 12,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1886.03,
+          "p50": 1816.6,
+          "p95": 2633.2,
+          "p99": 2633.2,
+          "max": 2633.2
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 33.3,
+          "callsMax": 36,
+          "objectsMax": 210
+        },
+        "heap": {
+          "startMB": 29.3,
+          "endMB": 38.4,
+          "maxMB": 39.6
+        },
+        "allocPerFrameKB": 2410.24,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Bag",
+        "durationSec": 21.37,
+        "frames": 12,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1877.7,
+          "p50": 1966.6,
+          "p95": 2249.9,
+          "p99": 2249.9,
+          "max": 2249.9
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 41.7,
+          "callsMax": 46,
+          "objectsMax": 210
+        },
+        "heap": {
+          "startMB": 33.2,
+          "endMB": 37.9,
+          "maxMB": 41.3
+        },
+        "allocPerFrameKB": 2861.11,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Pokedex",
+        "durationSec": 20.4,
+        "frames": 10,
+        "fps": {
+          "mean": 0.5,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 2169.91,
+          "p50": 2249.9,
+          "p95": 2583.3,
+          "p99": 2583.3,
+          "max": 2583.3
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 47.2,
+          "callsMax": 54,
+          "objectsMax": 289
+        },
+        "heap": {
+          "startMB": 32.4,
+          "endMB": 35.4,
+          "maxMB": 43.7
+        },
+        "allocPerFrameKB": 3076.47,
+        "opened": true
+      },
+      {
+        "scenario": "menu_QuestLog",
+        "durationSec": 22.62,
+        "frames": 11,
+        "fps": {
+          "mean": 0.5,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 2177.18,
+          "p50": 2349.9,
+          "p95": 2649.8,
+          "p99": 2649.8,
+          "max": 2649.8
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 24.9,
+          "callsMax": 26,
+          "objectsMax": 302
+        },
+        "heap": {
+          "startMB": 30.3,
+          "endMB": 34.1,
+          "maxMB": 46.2
+        },
+        "allocPerFrameKB": 2571.13,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Shop",
+        "durationSec": 20.25,
+        "frames": 11,
+        "fps": {
+          "mean": 0.5,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1962.05,
+          "p50": 2099.9,
+          "p95": 2233.2,
+          "p99": 2233.2,
+          "max": 2233.2
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 69.1,
+          "callsMax": 80,
+          "objectsMax": 732
+        },
+        "heap": {
+          "startMB": 44.3,
+          "endMB": 39.4,
+          "maxMB": 48.7
+        },
+        "allocPerFrameKB": 2799.27,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Workshop",
+        "durationSec": 19.26,
+        "frames": 11,
+        "fps": {
+          "mean": 0.6,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1862.05,
+          "p50": 1966.6,
+          "p95": 2133.3,
+          "p99": 2133.3,
+          "max": 2133.3
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 49.5,
+          "callsMax": 56,
+          "objectsMax": 732
+        },
+        "heap": {
+          "startMB": 49.6,
+          "endMB": 50.1,
+          "maxMB": 66.4
+        },
+        "allocPerFrameKB": 3038.7,
+        "opened": true
+      },
+      {
+        "scenario": "menu_StorageBox",
+        "durationSec": 18.19,
+        "frames": 10,
+        "fps": {
+          "mean": 0.5,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 1949.91,
+          "p50": 1983.2,
+          "p95": 2449.9,
+          "p99": 2449.9,
+          "max": 2449.9
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 42.4,
+          "callsMax": 48,
+          "objectsMax": 161
+        },
+        "heap": {
+          "startMB": 60.2,
+          "endMB": 57.8,
+          "maxMB": 67.8
+        },
+        "allocPerFrameKB": 2998.35,
+        "opened": true
+      },
+      {
+        "scenario": "menu_Options",
+        "durationSec": 18.99,
+        "frames": 9,
+        "fps": {
+          "mean": 0.5,
+          "min": 0.4
+        },
+        "frameMs": {
+          "mean": 2253.62,
+          "p50": 2416.5,
+          "p95": 2749.9,
+          "p99": 2749.9,
+          "max": 2749.9
+        },
+        "three": {
+          "callsMean": 530,
+          "callsMax": 530,
+          "trisMax": 16236,
+          "geometries": 276,
+          "textures": 12
+        },
+        "pixi": {
+          "callsMean": 85.3,
+          "callsMax": 104,
+          "objectsMax": 226
+        },
+        "heap": {
+          "startMB": 68,
+          "endMB": 43.6,
+          "maxMB": 68
+        },
+        "allocPerFrameKB": 2633.29,
+        "opened": true
+      }
+    ],
+    "transitions": {
+      "stats": {
+        "scenario": "transitions_x6",
+        "durationSec": 50.75,
+        "frames": 46,
+        "fps": {
+          "mean": 1,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1126.77,
+          "p50": 1083.3,
+          "p95": 1916.6,
+          "p99": 2116.5,
+          "max": 2116.5
+        },
+        "three": {
+          "callsMean": 511.4,
+          "callsMax": 532,
+          "trisMax": 22988,
+          "geometries": 276,
+          "textures": 14
+        },
+        "pixi": {
+          "callsMean": 21.6,
+          "callsMax": 24,
+          "objectsMax": 62
+        },
+        "heap": {
+          "startMB": 38.7,
+          "endMB": 50.8,
+          "maxMB": 79.5
+        },
+        "allocPerFrameKB": 3418.77
+      },
+      "warps": [
+        {
+          "to": "ruta_claro",
+          "ok": true,
+          "ms": 5547
+        },
+        {
+          "to": "villa_brote",
+          "ok": true,
+          "ms": 6003
+        },
+        {
+          "to": "ruta_claro",
+          "ok": true,
+          "ms": 5370
+        },
+        {
+          "to": "villa_brote",
+          "ok": true,
+          "ms": 7987
+        },
+        {
+          "to": "ruta_claro",
+          "ok": true,
+          "ms": 9135
+        },
+        {
+          "to": "villa_brote",
+          "ok": true,
+          "ms": 8382
+        }
+      ],
+      "leak": {
+        "before": {
+          "geometries": 277,
+          "textures": 13,
+          "pixiObjects": 56,
+          "heapMB": 31.64,
+          "threeCalls": 532,
+          "pixiCalls": 20,
+          "scene": "Overworld"
+        },
+        "after": {
+          "geometries": 277,
+          "textures": 15,
+          "pixiObjects": 56,
+          "heapMB": 32.52,
+          "threeCalls": 530,
+          "pixiCalls": 20,
+          "scene": "Overworld"
+        },
+        "delta": {
+          "geometries": 0,
+          "textures": 2,
+          "pixiObjects": 0,
+          "heapMB": 0.88
+        }
+      }
+    }
+  }
+}

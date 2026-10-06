@@ -1,0 +1,83 @@
+{
+  "label": "p1base",
+  "when": "2026-10-06T19:28:11.210Z",
+  "server": "http://127.0.0.1:4173",
+  "viewport": "1280x720",
+  "options": {
+    "walkSecs": 25,
+    "battles": 5,
+    "dev": false
+  },
+  "groups": {
+    "walk": [
+      {
+        "scenario": "walk_villa_brote",
+        "durationSec": 27.01,
+        "frames": 123,
+        "fps": {
+          "mean": 5.5,
+          "min": 0.8
+        },
+        "frameMs": {
+          "mean": 229.53,
+          "p50": 183.3,
+          "p95": 349.9,
+          "p99": 1216.6,
+          "max": 1316.7
+        },
+        "three": {
+          "callsMean": 118.9,
+          "callsMax": 531,
+          "trisMax": 16236,
+          "geometries": 41,
+          "textures": 19
+        },
+        "pixi": {
+          "callsMean": 20.3,
+          "callsMax": 24,
+          "objectsMax": 62
+        },
+        "heap": {
+          "startMB": 41,
+          "endMB": 38.7,
+          "maxMB": 42.6
+        },
+        "allocPerFrameKB": 698.03
+      },
+      {
+        "scenario": "walk_bosque_eco",
+        "durationSec": 78.23,
+        "frames": 79,
+        "fps": {
+          "mean": 1.1,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 999.33,
+          "p50": 883.4,
+          "p95": 1499.9,
+          "p99": 1999.9,
+          "max": 1999.9
+        },
+        "three": {
+          "callsMean": 732.1,
+          "callsMax": 841,
+          "trisMax": 28316,
+          "geometries": 580,
+          "textures": 22
+        },
+        "pixi": {
+          "callsMean": 20.2,
+          "callsMax": 24,
+          "objectsMax": 62
+        },
+        "heap": {
+          "startMB": 44.5,
+          "endMB": 54.9,
+          "maxMB": 60.8
+        },
+        "allocPerFrameKB": 3895.82
+      }
+    ]
+  }
+}

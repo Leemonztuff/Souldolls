@@ -48,6 +48,10 @@ export class TileRenderer {
 
   private activeMaterials: THREE.MeshStandardMaterial[] = [];
 
+  // B48 P1: lotes de sombras de contacto pendientes de fusionar en 1 malla por opacidad
+  private pendingContactShadows = new Map<number, THREE.BufferGeometry[]>();
+  private pendingContactShadowMaterials = new Set<THREE.Material>();
+
   private constructor() {
     this.initBakedTexture();
   }
@@ -282,6 +286,7 @@ export class TileRenderer {
 
     const billboardMeshes: THREE.Mesh[] = [];
     const occludableEntries: { x: number; z: number; meshes: THREE.Mesh[] }[] = [];
+    this.pendingContactShadows.clear();
 
     const W = map.width;
     const H = map.height;
@@ -532,9 +537,7 @@ export class TileRenderer {
             const shadowRadius = isTree
               ? scaleConfigJson.scales.tree.contactShadowRadius * canopyScaleVar
               : scaleConfigJson.scales.rock.contactShadowRadius;
-            const contactShadow = this.createContactShadowMesh(shadowRadius * 2, shadowRadius * 1.65, 0.36);
-            contactShadow.position.set(0, 0.012, 0);
-            propGroup.add(contactShadow);
+            this.addContactShadow(shadowRadius * 2, shadowRadius * 1.65, 0.36, x, 0.012, y);
           }
 
           const baseW = isTree
@@ -597,6 +600,8 @@ export class TileRenderer {
         }
       }
     }
+
+    this.flushContactShadows(facadeAndPropsGroup);
 
     return {
       groundGroup,
@@ -886,9 +891,7 @@ export class TileRenderer {
 
         // 1. Sombra de contacto bajo el edificio (Bloque 45 Req. 3)
         const shadowPad = scaleSpec.contactShadowPadding || 0.4;
-        const shadowMesh = this.createContactShadowMesh(bw + shadowPad * 2, bd + shadowPad * 2, 0.44);
-        shadowMesh.position.set(centerX, 0.01, centerZ);
-        houseGroup.add(shadowMesh);
+        this.addContactShadow(bw + shadowPad * 2, bd + shadowPad * 2, 0.44, centerX, 0.01, centerZ);
 
         // 2. Cuerpo de paredes (entramado cálido con vigas de madera)
         const wallColor = bw >= 7 ? 0xe2e8f0 : bw === 6 ? 0xf5ebd6 : 0xf3e5c8;
@@ -1013,21 +1016,86 @@ export class TileRenderer {
   }
 
   /**
-   * Crea una mancha de sombra de contacto elíptica suave en el suelo (Bloque 45 Req. 3)
+   * B48 P1 — Sombras de contacto (Bloque 45 Req. 3) fusionadas.
+   * Antes cada árbol/roca/casa creaba su propia `Mesh` + `MeshBasicMaterial`
+   * (hasta 144 draw calls por mapa y un material huérfano por warp).
+   * Ahora se acumulan las geometrías y se funden en UNA malla por opacidad.
    */
-  private createContactShadowMesh(width: number, depth: number, opacity = 0.36): THREE.Mesh {
+  private addContactShadow(
+    width: number,
+    depth: number,
+    opacity: number,
+    worldX: number,
+    worldY: number,
+    worldZ: number
+  ): void {
     const geo = new THREE.CircleGeometry(0.5, 20);
     geo.rotateX(-Math.PI / 2);
     geo.scale(width, 1, depth);
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x090d16,
-      transparent: true,
-      opacity,
-      depthWrite: false,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.renderOrder = 1;
-    return mesh;
+    geo.translate(worldX, worldY, worldZ);
+    const list = this.pendingContactShadows.get(opacity);
+    if (list) list.push(geo);
+    else this.pendingContactShadows.set(opacity, [geo]);
+  }
+
+  /** Fusiona los lotes pendientes y añade 1 malla por opacidad al grupo dado. */
+  private flushContactShadows(target: THREE.Group): void {
+    for (const [opacity, geos] of this.pendingContactShadows) {
+      if (geos.length === 0) continue;
+      const merged = this.mergeGeometries(geos);
+      for (const g of geos) g.dispose();
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x090d16,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+      });
+      this.pendingContactShadowMaterials.add(mat);
+      const mesh = new THREE.Mesh(merged, mat);
+      mesh.name = `ContactShadows_${String(opacity).replace('.', '')}`;
+      mesh.renderOrder = 1;
+      target.add(mesh);
+    }
+    this.pendingContactShadows.clear();
+  }
+
+  /** Fusión simple de geometrías con position/normal/uv + índice (todas círculos). */
+  private mergeGeometries(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
+    let vertexCount = 0;
+    let indexCount = 0;
+    for (const g of geos) {
+      vertexCount += g.attributes.position.count;
+      indexCount += g.index ? g.index.count : g.attributes.position.count;
+    }
+    const positions = new Float32Array(vertexCount * 3);
+    const normals = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
+    const indices = new Uint32Array(indexCount);
+    let vOff = 0;
+    let iOff = 0;
+    for (const g of geos) {
+      const p = g.attributes.position.array as Float32Array;
+      positions.set(p, vOff * 3);
+      if (g.attributes.normal) normals.set(g.attributes.normal.array as Float32Array, vOff * 3);
+      if (g.attributes.uv) uvs.set(g.attributes.uv.array as Float32Array, vOff * 2);
+      const count = g.attributes.position.count;
+      if (g.index) {
+        const src = g.index.array;
+        for (let i = 0; i < g.index.count; i++) indices[iOff + i] = src[i] + vOff;
+        iOff += g.index.count;
+      } else {
+        for (let i = 0; i < count; i++) indices[iOff + i] = vOff + i;
+        iOff += count;
+      }
+      vOff += count;
+    }
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    merged.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+    merged.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    merged.setIndex(new THREE.BufferAttribute(indices, 1));
+    merged.computeBoundingSphere();
+    return merged;
   }
 
   /**
@@ -1128,6 +1196,10 @@ export class TileRenderer {
       mat.dispose();
     }
     this.activeMaterials = [];
+    for (const mat of this.pendingContactShadowMaterials) {
+      mat.dispose();
+    }
+    this.pendingContactShadowMaterials.clear();
   }
 }
 
