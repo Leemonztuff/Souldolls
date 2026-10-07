@@ -281,7 +281,7 @@ export class SaveService {
       state.quests = {};
     }
 
-    // Schema v1 -> v2 Souldolls Migration
+    const isCurrentVersion = state.version === CURRENT_SAVE_VERSION;
     if (!state.bodies) {
       state.bodies = {};
     } else {
@@ -330,8 +330,8 @@ export class SaveService {
       pirolon: 'archimaga',
       brotin: 'sacerdotisa',
       frondoso: 'hierofante',
-      rocalin: 'paladin',
-      gravelon: 'templario',
+      rocalin: 'gladiadora',
+      gravelon: 'titanide',
       umbrito: 'asesina',
       noctarro: 'espectro',
       aquilo: 'hidromante',
@@ -362,19 +362,19 @@ export class SaveService {
     };
 
     if (Array.isArray(state.party)) {
-      state.party = state.party.map(convertCreatureToSouldoll);
+      state.party = isCurrentVersion ? state.party : state.party.map(convertCreatureToSouldoll);
     } else {
       state.party = [];
     }
 
     if (Array.isArray(state.storage)) {
-      state.storage = state.storage.map(convertCreatureToSouldoll);
+      state.storage = isCurrentVersion ? state.storage : state.storage.map(convertCreatureToSouldoll);
     } else {
       state.storage = [];
     }
 
     // If party is empty after migration, give initial starter
-    if (state.party.length === 0) {
+    if (!isCurrentVersion && state.party.length === 0) {
       const init = this.createInitialState(state.player.name);
       state.party = init.party;
       state.bodies = init.bodies;

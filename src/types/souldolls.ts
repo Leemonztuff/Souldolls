@@ -8,8 +8,6 @@ export type SoulClassId =
   | 'archimaga'
   | 'sacerdotisa'
   | 'hierofante'
-  | 'paladin'
-  | 'templario'
   | 'gladiadora'
   | 'titanide'
   | 'bruja'

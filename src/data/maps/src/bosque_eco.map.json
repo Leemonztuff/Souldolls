@@ -240,7 +240,7 @@
   "encounterRate": 0.18,
   "encounterTable": [
     { "speciesId": "asesina", "minLevel": 8, "maxLevel": 12, "weight": 30 },
-    { "speciesId": "paladin", "minLevel": 8, "maxLevel": 12, "weight": 25 },
+    { "speciesId": "monje", "minLevel": 8, "maxLevel": 12, "weight": 25 },
     { "speciesId": "sacerdotisa", "minLevel": 8, "maxLevel": 12, "weight": 20 },
     { "speciesId": "bruja", "minLevel": 8, "maxLevel": 10, "weight": 15 },
     { "speciesId": "espectro", "minLevel": 16, "maxLevel": 20, "weight": 5 },

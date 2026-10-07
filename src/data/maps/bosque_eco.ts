@@ -5498,7 +5498,7 @@ export const BOSQUE_ECO_MAP: MapData = {
       "weight": 30
     },
     {
-      "speciesId": "paladin",
+      "speciesId": "monje",
       "minLevel": 8,
       "maxLevel": 12,
       "weight": 25

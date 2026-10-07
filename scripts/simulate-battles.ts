@@ -26,8 +26,8 @@ export const COMPETITIVE_LEVEL_HANDICAPS: Record<string, number> = {
   archimaga: 28,
   sacerdotisa: 46,
   hierofante: 29,
-  paladin: 45,
-  templario: 29,
+  gladiadora: 45,
+  titanide: 29,
   bruja: 44,
   hechicera: 28,
   hidromante: 44,
@@ -167,4 +167,5 @@ export function runBattleSimulation(totalBattles = 1000, seed = 424242): { balan
 }
 
 // Direct Execution Entry Point
-runBattleSimulation(1000);
+const simulation = runBattleSimulation(1000);
+if (!simulation.balanced) process.exit(1);

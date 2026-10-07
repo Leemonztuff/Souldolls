@@ -365,14 +365,15 @@ export class WorkshopScene implements IScene {
       this.focusManager.register(purgeBtn.toFocusable());
     } else if (this.currentTab === 'upgrade' && activeMember && activeDoll) {
       const partKeys: BodyPart[] = ['head', 'torso', 'arms', 'legs'];
-      const partLabels = (esText as any).terms.parts;
+      const partLabels = (esText as any).terms.sheet;
+      const partLabel = (pk: BodyPart): string => partLabels[`part_${pk}`] || pk;
 
       partKeys.forEach((pk, idx) => {
         const pInfo = activeMember.parts[pk];
         const btn = new KitButton({
           width: rightW - 28,
           height: 36,
-          label: `${partLabels[pk]} (EV ${pInfo.ev}) · +16 EV (120 Oro)`,
+          label: `${partLabel(pk)} (EV ${pInfo.ev}) · +16 EV (120 Oro)`,
           variant: 'secondary',
           iconId: 'star',
           disabled: !activeMember.hasBody || pInfo.ev >= 128,
@@ -402,7 +403,7 @@ export class WorkshopScene implements IScene {
             }
             GlobalSaveService.save();
             GlobalAudioService.playSfx('levelUp');
-            this.statusMessage = `${partLabels[pk]} reforzada (+16 EV).`;
+            this.statusMessage = `${partLabel(pk)} reforzada (+16 EV).`;
             this.renderWorkshop();
           },
         });

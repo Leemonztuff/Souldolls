@@ -1,20 +1,20 @@
 # AGENTS.md
 
 SoulDolls: 2.5D creature-capture RPG. TypeScript + Three.js (3D overworld) + PixiJS v8 (HUD/battle) on Vite.
-**Not React** — `package.json` is still named `react-example` and lists `react`/`react-dom`/`@vitejs/plugin-react`, but there are zero `.tsx` files, no React imports, and no react plugin in `vite.config.ts`. UI = PixiJS scenes. Don't add React.
+**Not React** — `package.json` keeps the historical name `react-example` but no longer lists any React dependency; zero `.tsx` files, no React imports, no react plugin in `vite.config.ts`. UI = PixiJS scenes. Don't add React.
 
 ## Setup
 
-- Install: `npm install --legacy-peer-deps`. Plain `npm install` fails with ERESOLVE (devDep `esbuild@^0.25` vs `vite@8` wanting `^0.27/0.28`).
-- `bun.lock` is the committed lockfile; npm will generate an untracked `package-lock.json` — don't commit it.
+- Install: `npm install` (plain, sin ERESOLVE: se retiró el pin `esbuild@^0.25` que chocaba con `vite@8`).
+- `bun.lock` es el lockfile commiteado y **está desactualizado** (no hay bun en este entorno); npm genera un `package-lock.json` sin trackear — no commitearlo.
 - No CI, no pre-commit, no ESLint/Prettier. The only static check is `npm run lint` = `tsc --noEmit` (~2.5s, TypeScript 7 native).
 
 ## Commands (all verified in this repo)
 
 - `npm run dev` → http://localhost:3000 (port fixed; also the Playwright baseURL).
 - `npm run lint` → typecheck. `tsconfig.json` includes only `src/**/*`: `scripts/`, `tools/`, `e2e/`, `playwright.config.ts` are **not** typechecked.
-- `npm run test:all` → the full gate (~11s): data, battle, evolution, party, gacha, vfx, transition + `validate:maps` + `validate:tilesets`.
-- Single suite: `npm run test:data | test:battle | test:evolution | test:party | test:gacha | test:vfx | test:transition`.
+- `npm run test:all` → the full gate (~11s): data, battle, evolution, party, gacha, quests, vfx, transition + `validate:maps` + `validate:tilesets`.
+- Single suite: `npm run test:data | test:battle | test:evolution | test:party | test:gacha | test:quests | test:vfx | test:transition`.
 - `npm run build` = `validate-tilesets` → `mapgen` → `vite build` (~6s). `npm run clean` drops `dist/`.
 - E2E: `npm run test:e2e` (Playwright auto-starts the dev server on :3000). Browsers are not installed → `npx playwright install chromium`.
 
@@ -32,6 +32,7 @@ Recommended order: `npm run lint` → `npm run test:all`.
 - **Timestamp churn**: `validate:tilesets` (run by `test:all` and `build`) rewrites only the `generatedAt` field of `src/data/tilesets/assets_manifest.json`, leaving the tree dirty. Revert that noise; don't commit it.
 - **License gate**: `tools/validate-tilesets.mjs` fails the build if a tileset pack lacks `pack.json`/`LICENSE.txt`, isn't `approved: true`, or is a prohibited pack. It regenerates `docs/CREDITS.md`.
 - Art pipeline (see `docs/ART_GUIDE.md`): `prepare:atlas`, `prepare:sprites`, `bake:tilesets`, `convert:webp`, `pack:atlas`.
+- **WebP**: `convert:webp` solo genera `.webp` reales con `sharp` (devDependency) usando `lossless+exact` y verificación píxel a píxel; si falta `sharp` borra los `.webp` obsoletos y el manifest queda solo con PNG (nunca escribe contenedores falsos).
 
 ## Architecture
 
@@ -60,5 +61,6 @@ Recommended order: `npm run lint` → `npm run test:all`.
 - `src/perf/` = probe + overlay + `window.__perf` harness, loaded only with `?perf=1` or in DEV (hook in `src/main.ts`). Never let it allocate per frame or load in prod silently.
 - `npx tsx scripts/perf-scenarios.ts [boot|walk|stand|battle|menus|transitions|all] --label NAME [--maps a,b,c] [--no-build]` → `docs/perf/raw/<NAME>.json`. **`stand` is the deterministic group (player idle) — use it for before/after comparisons; `walk`/`battle` paths are fps-dependent and noisy.**
 - `npx tsx scripts/_dc.ts <map...>` = draw-call diagnosis per scene subtree (temp script; delete when B48 closes).
-- Headless Chromium runs on SwiftShader (no GPU): FPS absolutes are meaningless — compare draw calls, geometries/textures, bytes, heap and p95 deltas only. `--enable-precise-memory-info` is required for heap/alloc metrics.
+- Headless Chromium runs on SwiftShader (no GPU): FPS absolutes are meaningless — compare draw calls, geometries/textures, bytes, heap and p95 deltas only. `--enable-precise-memory-info` is required for heap/alloc metrics. For allocations use `allocPerSecondKB` (fps-independent); `allocPerFrameKB` is per browser frame, i.e. ≈ per second at SwiftShader speeds.
+- The harness saves its own state in slot 9 (`PERF_SLOT`); player slots 1-3 are never touched.
 

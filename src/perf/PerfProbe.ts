@@ -32,6 +32,7 @@ export interface PerfStats {
   pixi: { callsMean: number; callsMax: number; objectsMax: number };
   heap: { startMB: number; endMB: number; maxMB: number };
   allocPerFrameKB: number;
+  allocPerSecondKB: number;
 }
 
 export interface LiveInfo {
@@ -45,6 +46,7 @@ export interface LiveInfo {
   pixiObjects: number;
   heapMB: number;
   allocKB: number;
+  allocPerSecondKB: number;
   sceneName: string;
 }
 
@@ -53,9 +55,9 @@ const STRIDE = 9;
 const RING_FRAMES = 900; // ~15 s a 60 fps para el rolling window del overlay
 const SCEN_MAX_FRAMES = 60000; // ~16 min a 60 fps por escenario
 
-function percentile(sortedAsc: number[], p: number): number {
-  if (sortedAsc.length === 0) return 0;
-  const idx = Math.max(0, Math.min(sortedAsc.length - 1, Math.ceil(p * sortedAsc.length) - 1));
+function percentile(sortedAsc: ArrayLike<number>, p: number, len = sortedAsc.length): number {
+  if (len === 0) return 0;
+  const idx = Math.max(0, Math.min(len - 1, Math.ceil(p * len) - 1));
   return sortedAsc[idx];
 }
 
@@ -104,10 +106,12 @@ export class PerfProbe {
   private pixiObjectCache = 0;
   private pixiObjectFrameCounter = 0;
   private allocEMA = 0;
+  private allocRateEMA = 0;
   private lastLive: LiveInfo | null = null;
   private lastOverlayPaint = 0;
   private overlayPaint: ((live: LiveInfo, rolling: RollingStats) => void) | null = null;
   private readonly scratch = new Array<number>(STRIDE);
+  private readonly rollSort = new Float64Array(RING_FRAMES);
   private readonly objStack: any[] = [];
   private readonly liveBox: LiveInfo = {
     frameMs: 0,
@@ -120,6 +124,7 @@ export class PerfProbe {
     pixiObjects: 0,
     heapMB: 0,
     allocKB: 0,
+    allocPerSecondKB: 0,
     sceneName: '?',
   };
 
@@ -179,9 +184,16 @@ export class PerfProbe {
     for (const name of fns) {
       const orig = gl[name];
       if (typeof orig !== 'function') continue;
-      gl[name] = function patched(this: any, ...args: any[]) {
+      gl[name] = function patched(
+        a?: number,
+        b?: number,
+        c?: number,
+        d?: number,
+        e?: number,
+        f?: number
+      ) {
         gl.__perfCalls++;
-        return orig.apply(gl, args);
+        return orig.call(gl, a, b, c, d, e, f);
       };
     }
     this.pixiGl = gl;
@@ -234,6 +246,8 @@ export class PerfProbe {
       if (delta > 0) allocKB = delta / 1024;
       this.prevHeap = mem.usedJSHeapSize;
       this.allocEMA = this.allocEMA * 0.95 + allocKB * 0.05;
+      const rate = frameMs > 0 ? (allocKB * 1000) / frameMs : 0;
+      this.allocRateEMA = this.allocRateEMA * 0.95 + rate * 0.05;
     }
 
     // scratch reutilizable: la sonda NO debe asignar memoria por frame
@@ -271,6 +285,7 @@ export class PerfProbe {
     live.pixiObjects = pixiObjects;
     live.heapMB = heapMB;
     live.allocKB = this.allocEMA;
+    live.allocPerSecondKB = this.allocRateEMA;
     live.sceneName = this.currentSceneName();
     this.lastLive = live;
 
@@ -381,6 +396,7 @@ export class PerfProbe {
         maxMB: heap.length ? round(maxOf(heap), 1) : 0,
       },
       allocPerFrameKB: round(n ? allocSum / n : 0, 2),
+      allocPerSecondKB: round(durationSec > 0 ? allocSum / durationSec : 0, 1),
     };
   }
 
@@ -429,51 +445,58 @@ export class PerfProbe {
         pixiObjects: 0,
         heapMB: 0,
         allocKB: 0,
+        allocPerSecondKB: 0,
       };
     }
-    // el ring es circular: recopilar en orden cronológico
-    const ordered: number[] = [];
     const start = (this.ringWrite - n + RING_FRAMES) % RING_FRAMES;
-    for (let i = 0; i < n; i++) {
-      const idx = ((start + i) % RING_FRAMES) * STRIDE;
-      ordered.push(this.ring[idx]);
-    }
-    const sorted = [...ordered].sort((a, b) => a - b);
-    const threeCalls: number[] = [];
-    const threeTris: number[] = [];
-    const pixiCalls: number[] = [];
+    const sortBuf = this.rollSort;
+    let frameSum = 0;
+    let threeCalls = 0;
+    let threeTris = 0;
+    let pixiCalls = 0;
     let geo = 0;
     let tex = 0;
     let pixiObjs = 0;
     let heap = 0;
     let alloc = 0;
+    let allocSum = 0;
     for (let i = 0; i < n; i++) {
       const idx = ((start + i) % RING_FRAMES) * STRIDE;
-      threeCalls.push(this.ring[idx + 1]);
-      threeTris.push(this.ring[idx + 2]);
+      const f = this.ring[idx];
+      sortBuf[i] = f;
+      frameSum += f;
+      const c = this.ring[idx + 1];
+      if (c > threeCalls) threeCalls = c;
+      const t = this.ring[idx + 2];
+      if (t > threeTris) threeTris = t;
+      const p = this.ring[idx + 5];
+      if (p > pixiCalls) pixiCalls = p;
       geo = this.ring[idx + 3];
       tex = this.ring[idx + 4];
-      pixiCalls.push(this.ring[idx + 5]);
       pixiObjs = this.ring[idx + 6];
       heap = this.ring[idx + 7];
       alloc = this.ring[idx + 8];
+      allocSum += alloc;
     }
-    const meanMs = ordered.reduce((a, b) => a + b, 0) / n;
+    for (let i = n; i < RING_FRAMES; i++) sortBuf[i] = Number.POSITIVE_INFINITY;
+    sortBuf.sort();
+    const meanMs = frameSum / n;
     return {
       fps: meanMs > 0 ? 1000 / meanMs : 0,
       frameMs: {
         mean: round(meanMs, 2),
-        p95: round(percentile(sorted, 0.95), 2),
-        p99: round(percentile(sorted, 0.99), 2),
+        p95: round(percentile(sortBuf, 0.95, n), 2),
+        p99: round(percentile(sortBuf, 0.99, n), 2),
       },
-      threeCalls: maxOf(threeCalls),
-      threeTris: maxOf(threeTris),
+      threeCalls,
+      threeTris,
       geometries: geo,
       textures: tex,
-      pixiCalls: maxOf(pixiCalls),
+      pixiCalls,
       pixiObjects: pixiObjs,
       heapMB: round(heap, 1),
       allocKB: round(alloc, 2),
+      allocPerSecondKB: round(frameSum > 0 ? (allocSum * 1000) / frameSum : 0, 1),
     };
   }
 }
@@ -489,6 +512,7 @@ export interface RollingStats {
   pixiObjects: number;
   heapMB: number;
   allocKB: number;
+  allocPerSecondKB: number;
 }
 
 function mean(values: number[]): number {

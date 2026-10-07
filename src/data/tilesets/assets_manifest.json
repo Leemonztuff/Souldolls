@@ -1,6 +1,7 @@
 {
-  "generatedAt": "2026-10-06T02:58:27.049Z",
+  "generatedAt": "2026-10-07T18:06:49.013Z",
   "losslessOnly": true,
+  "webpGenerated": true,
   "assets": {
     "anima_core/Dungeon_A4": {
       "id": "anima_core/Dungeon_A4",
@@ -11,7 +12,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Dungeon_A4.webp",
-          "bytes": 2211860
+          "bytes": 121520
         },
         {
           "type": "png",
@@ -29,7 +30,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Dungeon_A5.webp",
-          "bytes": 1179668
+          "bytes": 92998
         },
         {
           "type": "png",
@@ -47,7 +48,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Inside_A5.webp",
-          "bytes": 1179668
+          "bytes": 97534
         },
         {
           "type": "png",
@@ -65,7 +66,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Inside_B.webp",
-          "bytes": 2359316
+          "bytes": 124912
         },
         {
           "type": "png",
@@ -83,7 +84,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Outside_A1.webp",
-          "bytes": 1769492
+          "bytes": 103192
         },
         {
           "type": "png",
@@ -101,7 +102,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Outside_A2.webp",
-          "bytes": 1769492
+          "bytes": 101296
         },
         {
           "type": "png",
@@ -119,7 +120,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Outside_A3.webp",
-          "bytes": 1179668
+          "bytes": 62426
         },
         {
           "type": "png",
@@ -137,7 +138,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Outside_A5.webp",
-          "bytes": 1179668
+          "bytes": 96714
         },
         {
           "type": "png",
@@ -155,7 +156,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/Outside_B.webp",
-          "bytes": 2359316
+          "bytes": 133548
         },
         {
           "type": "png",
@@ -173,7 +174,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/baked_atlas.webp",
-          "bytes": 8160020
+          "bytes": 1048438
         },
         {
           "type": "png",

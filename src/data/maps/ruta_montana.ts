@@ -4730,7 +4730,7 @@ export const RUTA_MONTANA_MAP: MapData = {
       "weight": 35
     },
     {
-      "speciesId": "paladin",
+      "speciesId": "gladiadora",
       "minLevel": 21,
       "maxLevel": 25,
       "weight": 30
@@ -4742,7 +4742,7 @@ export const RUTA_MONTANA_MAP: MapData = {
       "weight": 15
     },
     {
-      "speciesId": "templario",
+      "speciesId": "titanide",
       "minLevel": 24,
       "maxLevel": 28,
       "weight": 10
@@ -4794,12 +4794,12 @@ export const RUTA_MONTANA_MAP: MapData = {
       "y": 18,
       "direction": "left",
       "dialogueLines": [
-        "¡El aire aquí arriba vibra con ki puro! Los Paladines y Monjes prosperan en estas cumbres."
+        "¡El aire aquí arriba vibra con ki puro! Las Gladiadoras y los Monjes prosperan en estas cumbres."
       ],
       "isTrainer": true,
       "trainerData": {
         "trainerClass": "Montañero",
-        "creatureSpeciesId": "paladin",
+        "creatureSpeciesId": "gladiadora",
         "creatureLevel": 25
       }
     },

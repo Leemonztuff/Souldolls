@@ -145,7 +145,7 @@ export const TECHNIQUE_SCROLLS_DATA: Record<string, TechniqueScroll> = {
     moveId: 'impacto_telurico',
     rarity: 'rare',
     compatibility: {
-      classIds: ['paladin', 'templario', 'gladiadora', 'titanide', 'monje', 'maestro_trueno'],
+      classIds: ['gladiadora', 'titanide', 'monje', 'maestro_trueno'],
       types: ['Tierra'],
     },
     price: 2800,
@@ -169,7 +169,7 @@ export const TECHNIQUE_SCROLLS_DATA: Record<string, TechniqueScroll> = {
     moveId: 'juicio_sagrado',
     rarity: 'epic',
     compatibility: {
-      classIds: ['sacerdotisa', 'hierofante', 'paladin', 'templario', 'cantora_marea'],
+      classIds: ['sacerdotisa', 'hierofante', 'gladiadora', 'titanide', 'cantora_marea'],
       types: ['Planta', 'Tierra', 'Agua'],
     },
     price: 5000,

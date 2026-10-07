@@ -94,6 +94,16 @@ export function runAllEvolutionTests() {
     const magaTier2 = StatCalculator.createSouldoll('maga', 16, 'chassis_madera_reforzada_t2');
     const itemCheckT2 = GlobalEvolutionSystem.checkAscension(magaTier2, 'item', 'nucleo_resonancia');
     assert(itemCheckT2 !== null && itemCheckT2.bodyEligible === true, `Chasis Tier 2 permite el Ascenso a Archimaga`);
+
+    // Enforced gate: checkEvolution (used by the level-up hook) must refuse Tier 1
+    assert(
+      GlobalEvolutionSystem.checkEvolution(maga, 'item', 'nucleo_resonancia') === null,
+      `checkEvolution bloquea el Ascenso con Chasis Tier 1 (minBodyTier aplicado)`
+    );
+    assert(
+      GlobalEvolutionSystem.checkEvolution(magaTier2, 'item', 'nucleo_resonancia') !== null,
+      `checkEvolution permite el Ascenso con Chasis Tier 2`
+    );
   }
 }
 

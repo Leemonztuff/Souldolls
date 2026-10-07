@@ -69,6 +69,7 @@ export class AudioService {
   }
 
   public initAudioContext(): void {
+    if (typeof window === 'undefined') return;
     if (this.isUnlocked && this.ctx) {
       if (this.ctx.state === 'suspended') {
         this.ctx.resume();

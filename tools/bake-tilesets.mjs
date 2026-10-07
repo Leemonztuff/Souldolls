@@ -310,8 +310,8 @@ export function bakePackTileset(packId = 'anima_core') {
   const pngOutBuffer = PNG.sync.write(atlasPng);
   const assetAtlasPath = path.join(ROOT, `assets/tilesets/${packId}/baked_atlas.png`);
   const publicAtlasPath = path.join(ROOT, `public/assets/tilesets/${packId}/baked_atlas.png`);
-  fs.writeFileSync(assetAtlasPath, pngOutBuffer);
-  fs.writeFileSync(publicAtlasPath, pngOutBuffer);
+  writeIfDifferent(assetAtlasPath, pngOutBuffer);
+  writeIfDifferent(publicAtlasPath, pngOutBuffer);
 
   const bakedIndexJson = {
     packId,
@@ -326,9 +326,16 @@ export function bakePackTileset(packId = 'anima_core') {
   };
 
   const jsonOutPath = path.join(ROOT, `src/data/tilesets/${packId}_baked.json`);
-  fs.writeFileSync(jsonOutPath, JSON.stringify(bakedIndexJson, null, 2));
+  writeIfDifferent(jsonOutPath, JSON.stringify(bakedIndexJson, null, 2));
 
   return bakedIndexJson;
+}
+
+function writeIfDifferent(filePath, buf) {
+  const next = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+  if (fs.existsSync(filePath) && fs.readFileSync(filePath).equals(next)) return false;
+  fs.writeFileSync(filePath, next);
+  return true;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

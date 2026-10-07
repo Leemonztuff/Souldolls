@@ -193,12 +193,12 @@
       "y": 18,
       "direction": "left",
       "dialogueLines": [
-        "¡El aire aquí arriba vibra con ki puro! Los Paladines y Monjes prosperan en estas cumbres."
+        "¡El aire aquí arriba vibra con ki puro! Las Gladiadoras y los Monjes prosperan en estas cumbres."
       ],
       "isTrainer": true,
       "trainerData": {
         "trainerClass": "Montañero",
-        "creatureSpeciesId": "paladin",
+        "creatureSpeciesId": "gladiadora",
         "creatureLevel": 25
       }
     },
@@ -240,9 +240,9 @@
   "encounterRate": 0.22,
   "encounterTable": [
     { "speciesId": "monje", "minLevel": 20, "maxLevel": 24, "weight": 35 },
-    { "speciesId": "paladin", "minLevel": 21, "maxLevel": 25, "weight": 30 },
+    { "speciesId": "gladiadora", "minLevel": 21, "maxLevel": 25, "weight": 30 },
     { "speciesId": "maestro_trueno", "minLevel": 22, "maxLevel": 26, "weight": 15 },
-    { "speciesId": "templario", "minLevel": 24, "maxLevel": 28, "weight": 10 },
+    { "speciesId": "titanide", "minLevel": 24, "maxLevel": 28, "weight": 10 },
     { "speciesId": "archimaga", "minLevel": 24, "maxLevel": 28, "weight": 10 }
   ]
 }

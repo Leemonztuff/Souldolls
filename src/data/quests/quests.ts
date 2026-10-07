@@ -86,7 +86,7 @@ export const QUESTS_DATA: Record<string, QuestData> = {
     id: 'main_3_forest_boss',
     title: 'El eco del bosque',
     category: 'main',
-    giverNpcId: 'npc_hiker_marcos',
+    giverNpcId: 'npc_trainer_clara',
     turnInNpcId: 'npc_boss_guardian',
     summary: 'Explora el Bosque Eco y desafía al Guardián en la Grieta de Ki de la Cueva.',
     description:
@@ -185,8 +185,8 @@ export const QUESTS_DATA: Record<string, QuestData> = {
     id: 'side_collector',
     title: 'Coleccionista de almas',
     category: 'side',
-    giverNpcId: 'npc_clerk_outdoor',
-    turnInNpcId: 'npc_clerk_outdoor',
+    giverNpcId: 'npc_shop_clerk',
+    turnInNpcId: 'npc_shop_clerk',
     summary: 'Registra al menos 8 almas en tu Códice de Almas.',
     description:
       'El mercader del Mercado está impresionado con la diversidad de almas en Anima. Te recompensará si registras 8 almas distintas.',
@@ -455,19 +455,19 @@ export const QUESTS_DATA: Record<string, QuestData> = {
 
   side_rare_bird: {
     id: 'side_rare_bird',
-    title: 'El halcón de las cumbres',
+    title: 'El baile en las sombras',
     category: 'side',
     giverNpcId: 'npc_citizen_vera',
     turnInNpcId: 'npc_citizen_vera',
-    summary: 'Captura un ejemplar de la especie voladora Piropío o Plumaveloz.',
+    summary: 'Captura un ejemplar de la entidad etérea Espectro.',
     description:
-      'Vera desea estudiar las plumas aerodinámicas de las aves autóctonas de la cordillera.',
+      'Vera desea estudiar cómo la Espectro se desliza sin hacer ruido entre las copas del Bosque Eco.',
     objectives: [
       {
         id: 'catch_bird',
         type: 'catch_species',
-        description: 'Captura a Piropío en la naturaleza.',
-        targetId: 'piropio',
+        description: 'Captura a Espectro en el Bosque Eco.',
+        targetId: 'espectro',
         requiredCount: 1,
         currentCount: 0,
         isCompleted: false,
@@ -486,15 +486,15 @@ export const QUESTS_DATA: Record<string, QuestData> = {
     category: 'side',
     giverNpcId: 'npc_expert_dario',
     turnInNpcId: 'npc_expert_dario',
-    summary: 'Captura una criatura de hielo (Escarchín) para investigación.',
+    summary: 'Captura una criatura de agua glacial (Hidromante) para investigación.',
     description:
-      'Darío estudia la adaptación biológica al frío extremo en los ecosistemas de altura.',
+      'Darío estudia cómo las almas de agua regulan su temperatura en climas extremos.',
     objectives: [
       {
         id: 'catch_ice',
         type: 'catch_species',
-        description: 'Captura a Escarchín en la Ruta Escarpada.',
-        targetId: 'escarchin',
+        description: 'Captura a Hidromante en la naturaleza.',
+        targetId: 'hidromante',
         requiredCount: 1,
         currentCount: 0,
         isCompleted: false,

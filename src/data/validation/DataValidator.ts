@@ -6,7 +6,8 @@ import { SOUL_SPECIES_DATA } from '../souldolls/souls';
 import { BODY_CHASSIS_DATA } from '../bodies/chassis';
 import { LOOT_TABLES_DATA } from '../loot/lootTables';
 import { STATUS_EFFECT_RULES } from '../status/statusEffects';
-import { WorldGraph } from '../maps/worldGraph';
+import { WorldGraph, MAP_REGISTRY } from '../maps/worldGraph';
+import { ABILITIES_DATA } from '../abilities/abilities';
 import { QUESTS_DATA } from '../quests/quests';
 import {
   GACHA_CONFIG,
@@ -33,6 +34,9 @@ export class DataValidator {
   public static validateAll(): ValidationReport {
     const errors: string[] = [];
     const warnings: string[] = [];
+    const soulClassIds = new Set<string>(Object.values(SOUL_SPECIES_DATA).map((s) => s.classId));
+    const mapNpcIds = new Set<string>();
+    WorldGraph.getAllMaps().forEach((map) => map.npcs.forEach((npc) => mapNpcIds.add(npc.id)));
 
     // 1. Validate Type Chart
     ALL_ELEMENT_TYPES.forEach((atkType) => {
@@ -96,6 +100,9 @@ export class DataValidator {
       }
       if (item.category === 'weapon' && !item.weaponClass) {
         warnings.push(`[Items] Weapon "${itemId}" has no weaponClass specified.`);
+      }
+      if (item.weaponClass && !soulClassIds.has(item.weaponClass)) {
+        errors.push(`[Items] Weapon "${itemId}" references nonexistent classId: "${item.weaponClass}".`);
       }
     });
 
@@ -179,6 +186,20 @@ export class DataValidator {
           }
         });
       }
+
+      // Check abilities
+      if (!soul.abilityId || !ABILITIES_DATA[soul.abilityId]) {
+        warnings.push(
+          `[SoulSpecies] Species "${speciesId}" references nonexistent abilityId: "${soul.abilityId}"`
+        );
+      }
+      (soul.possibleAbilities || []).forEach((abilityId) => {
+        if (!ABILITIES_DATA[abilityId]) {
+          warnings.push(
+            `[SoulSpecies] Species "${speciesId}" references nonexistent possibleAbility: "${abilityId}"`
+          );
+        }
+      });
 
       // Check Evolution / Ascension & Body Tier Compatibility
       if (soul.evolution) {
@@ -304,6 +325,39 @@ export class DataValidator {
       if (!quest.objectives || quest.objectives.length === 0) {
         errors.push(`[Quests] Quest "${questId}" has no objectives.`);
       }
+      if (!mapNpcIds.has(quest.giverNpcId)) {
+        errors.push(`[Quests] Quest "${questId}" references nonexistent giverNpcId: "${quest.giverNpcId}".`);
+      }
+      if (!mapNpcIds.has(quest.turnInNpcId)) {
+        errors.push(`[Quests] Quest "${questId}" references nonexistent turnInNpcId: "${quest.turnInNpcId}".`);
+      }
+      (quest.rewards?.items || []).forEach((reward) => {
+        if (!ITEMS_DATA[reward.itemId]) {
+          errors.push(`[Quests] Quest "${questId}" rewards nonexistent item: "${reward.itemId}".`);
+        }
+      });
+      (quest.objectives || []).forEach((objective) => {
+        if (objective.type === 'catch_species' && objective.targetId && !SOUL_SPECIES_DATA[objective.targetId]) {
+          errors.push(
+            `[Quests] Quest "${questId}" objective "${objective.id}" references nonexistent species: "${objective.targetId}".`
+          );
+        }
+        if (objective.type === 'reach_map' && objective.targetId && !MAP_REGISTRY[objective.targetId]) {
+          errors.push(
+            `[Quests] Quest "${questId}" objective "${objective.id}" references nonexistent map: "${objective.targetId}".`
+          );
+        }
+        if (objective.type === 'talk_to' && objective.targetId && !mapNpcIds.has(objective.targetId)) {
+          errors.push(
+            `[Quests] Quest "${questId}" objective "${objective.id}" references nonexistent NPC: "${objective.targetId}".`
+          );
+        }
+        if (objective.type === 'collect_item' && objective.targetId && !ITEMS_DATA[objective.targetId]) {
+          errors.push(
+            `[Quests] Quest "${questId}" objective "${objective.id}" references nonexistent item: "${objective.targetId}".`
+          );
+        }
+      });
     });
 
     // 9. Validate Bloque 28A: Fragmentos de Alma y Gacha
@@ -339,6 +393,20 @@ export class DataValidator {
       if (scroll.price < 0 || !scroll.description) {
         errors.push(`[Gacha:Scroll] Scroll "${scrollId}" has invalid price or description.`);
       }
+      (scroll.compatibility?.classIds || []).forEach((classId) => {
+        if (!soulClassIds.has(classId)) {
+          errors.push(
+            `[Gacha:Scroll] Scroll "${scrollId}" references nonexistent classId: "${classId}".`
+          );
+        }
+      });
+      (scroll.compatibility?.types || []).forEach((elementType) => {
+        if (!ALL_ELEMENT_TYPES.includes(elementType)) {
+          errors.push(
+            `[Gacha:Scroll] Scroll "${scrollId}" references invalid element type: "${elementType}".`
+          );
+        }
+      });
     });
 
     Object.entries(GACHA_TABLES_DATA).forEach(([tableId, table]) => {
@@ -385,6 +453,39 @@ export class DataValidator {
       }
     });
 
+    // 10. Validate Map Encounter Tables & Trainer Parties
+    WorldGraph.getAllMaps().forEach((map) => {
+      (map.encounterTable || []).forEach((entry, idx) => {
+        if (!SOUL_SPECIES_DATA[entry.speciesId]) {
+          errors.push(
+            `[MapEncounters] Map "${map.id}" entry #${idx} references nonexistent species: "${entry.speciesId}".`
+          );
+        }
+        if (entry.weight <= 0) {
+          errors.push(
+            `[MapEncounters] Map "${map.id}" entry #${idx} has non-positive weight: ${entry.weight}.`
+          );
+        }
+        if (entry.minLevel < 1 || entry.maxLevel > 100 || entry.minLevel > entry.maxLevel) {
+          errors.push(
+            `[MapEncounters] Map "${map.id}" entry #${idx} has invalid level range ${entry.minLevel}-${entry.maxLevel}.`
+          );
+        }
+      });
+      (map.npcs || []).forEach((npc) => {
+        if (npc.trainerData && !SOUL_SPECIES_DATA[npc.trainerData.creatureSpeciesId]) {
+          errors.push(
+            `[MapTrainers] NPC "${npc.id}" in map "${map.id}" references nonexistent species: "${npc.trainerData.creatureSpeciesId}".`
+          );
+        }
+        if (npc.trainerData && (npc.trainerData.creatureLevel < 1 || npc.trainerData.creatureLevel > 100)) {
+          errors.push(
+            `[MapTrainers] NPC "${npc.id}" in map "${map.id}" has invalid creatureLevel: ${npc.trainerData.creatureLevel}.`
+          );
+        }
+      });
+    });
+
     const report: ValidationReport = {
       isValid: errors.length === 0,
       errors,
@@ -398,6 +499,11 @@ export class DataValidator {
         totalLootTables: Object.keys(LOOT_TABLES_DATA).length,
       },
     };
+
+    if (warnings.length > 0) {
+      console.warn(`⚠️ [DataValidator] ${warnings.length} advertencia(s):`);
+      warnings.forEach((warn) => console.warn(`  - ${warn}`));
+    }
 
     if (!report.isValid) {
       console.error('❌ [DataValidator] Data validation FAILED with errors:');

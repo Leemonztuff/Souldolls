@@ -102,7 +102,7 @@ export class PerfOverlay {
       `three      calls ${live.threeCalls}  tris ${fmt(live.threeTris)}`,
       `vivas      geo ${live.geometries}  tex ${live.textures}`,
       `pixi       calls ${rolling.pixiCalls}  objetos ${live.pixiObjects}`,
-      `JS heap    ${live.heapMB.toFixed(1)} MB  Δ ${live.allocKB.toFixed(2)} KB/frame`,
+      `JS heap    ${live.heapMB.toFixed(1)} MB  Δ ${live.allocKB.toFixed(2)} KB/frame · ${live.allocPerSecondKB.toFixed(1)} KB/s`,
     ].join('\n');
   }
 }

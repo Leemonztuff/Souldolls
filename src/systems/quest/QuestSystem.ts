@@ -253,12 +253,19 @@ export class QuestSystem {
     const state = GlobalSaveService.getCurrentState();
     Object.values(QUESTS_DATA).forEach((quest) => {
       const qState = state.quests[quest.id];
-      if (qState && qState.status === 'active') {
+      if (!qState) return;
+      const wasCompletable = qState.status === 'completable';
+      if (qState.status === 'active') {
         quest.objectives.forEach((obj) => {
           if (obj.type === 'talk_to' && obj.targetId === npcId) {
             this.advanceObjective(quest.id, obj.id, 1);
           }
         });
+      }
+      if (qState.status === 'available' && quest.giverNpcId === npcId) {
+        this.startQuest(quest.id);
+      } else if (wasCompletable && qState.status === 'completable' && quest.turnInNpcId === npcId) {
+        this.completeQuest(quest.id);
       }
     });
   }
@@ -302,14 +309,13 @@ export class QuestSystem {
     });
   }
 
-  private handleCreatureCaught(_speciesId: string): void {
+  private handleCreatureCaught(speciesId: string): void {
     const state = GlobalSaveService.getCurrentState();
-    // 1. Advance catch count
     Object.values(QUESTS_DATA).forEach((quest) => {
       const qState = state.quests[quest.id];
       if (qState && qState.status === 'active') {
         quest.objectives.forEach((obj) => {
-          if (obj.type === 'catch_species') {
+          if (obj.type === 'catch_species' && (!obj.targetId || obj.targetId === speciesId)) {
             this.advanceObjective(quest.id, obj.id, 1);
           }
           if (obj.type === 'dex_count') {

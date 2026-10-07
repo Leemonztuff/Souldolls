@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PNG } from 'pngjs';
-import { convertAllTilesetsToWebp } from './convert-webp.mjs';
+import { convertAllTilesetsToWebp, writeIfDifferent } from './convert-webp.mjs';
 
 const ROOT = process.cwd();
 
@@ -238,7 +238,7 @@ export async function runBloque44Validation() {
     );
   }
   creditsLines.push('');
-  fs.writeFileSync(path.join(docsDir, 'CREDITS.md'), creditsLines.join('\n'));
+  writeIfDifferent(path.join(docsDir, 'CREDITS.md'), creditsLines.join('\n'));
 
   if (errors.length > 0) {
     console.error('❌ [Bloque 44 Validation] FAILED with errors:');
@@ -246,8 +246,11 @@ export async function runBloque44Validation() {
     process.exit(1);
   }
 
+  const sheetsLabel = webpReport.webpGenerated
+    ? `${webpReport.filesConverted} PNG/WebP sheets`
+    : `${webpReport.filesConverted} PNG sheets (WebP omitido: sharp no instalado)`;
   console.log(
-    `✅ [Bloque 44 Validation] All license gates, ${webpReport.filesConverted} PNG/WebP sheets, tileRefs, baked atlases (<=2048px) and /docs/CREDITS.md verified successfully.`
+    `✅ [Bloque 44 Validation] All license gates, ${sheetsLabel}, tileRefs, baked atlases (<=2048px) and /docs/CREDITS.md verified successfully.`
   );
 }
 

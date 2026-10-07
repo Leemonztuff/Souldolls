@@ -167,6 +167,110 @@ export const ABILITIES_DATA: Record<string, AbilityDef> = {
       return null;
     },
   },
+  robustez: {
+    id: 'robustez',
+    name: 'Robustez',
+    description: 'Su compleción pétrea amortigua un 15% del daño recibido.',
+    onDamage: (ctx) => {
+      if (ctx.damage !== undefined && ctx.damage > 0) {
+        return { damageMultiplier: 0.85, message: `¡La Robustez de ${ctx.user.nickname || ctx.user.speciesId} amortigua el impacto!` };
+      }
+      return null;
+    },
+  },
+  adaptabilidad: {
+    id: 'adaptabilidad',
+    name: 'Adaptabilidad',
+    description: 'Se adapta a cualquier apertura y aumenta un 15% la potencia de sus ataques.',
+    onDamage: (ctx) => {
+      if (ctx.damage === undefined && ctx.move) {
+        return { damageMultiplier: 1.15, message: `¡La Adaptabilidad de ${ctx.user.nickname || ctx.user.speciesId} amplifica el ataque!` };
+      }
+      return null;
+    },
+  },
+  francotirador: {
+    id: 'francotirador',
+    name: 'Francotirador',
+    description: 'Remata con un 30% de daño extra cuando el rival está por debajo de la mitad de PS.',
+    onDamage: (ctx) => {
+      if (
+        ctx.damage === undefined &&
+        ctx.target &&
+        ctx.target.currentHp > 0 &&
+        ctx.target.currentHp <= ctx.target.maxHp / 2
+      ) {
+        return { damageMultiplier: 1.3, message: `¡${ctx.user.nickname || ctx.user.speciesId} remata con precisión de francotirador!` };
+      }
+      return null;
+    },
+  },
+  escudo_rocoso: {
+    id: 'escudo_rocoso',
+    name: 'Escudo Rocoso',
+    description: 'Reduce un 25% el daño recibido de movimientos físicos.',
+    onDamage: (ctx) => {
+      if (ctx.damage !== undefined && ctx.move && ctx.move.category === 'physical') {
+        return { damageMultiplier: 0.75, message: `¡El Escudo Rocoso de ${ctx.user.nickname || ctx.user.speciesId} rechaza el golpe!` };
+      }
+      return null;
+    },
+  },
+  cuerpo_ferreo: {
+    id: 'cuerpo_ferreo',
+    name: 'Cuerpo Férreo',
+    description: 'Reduce un 20% el daño recibido de movimientos especiales.',
+    onDamage: (ctx) => {
+      if (ctx.damage !== undefined && ctx.move && ctx.move.category === 'special') {
+        return { damageMultiplier: 0.8, message: `¡El Cuerpo Férreo de ${ctx.user.nickname || ctx.user.speciesId} disipa el impacto!` };
+      }
+      return null;
+    },
+  },
+  versatilidad: {
+    id: 'versatilidad',
+    name: 'Versatilidad',
+    description: 'Desconcerta al rival bajando su Ataque Especial al entrar en combate.',
+    onSwitchIn: (ctx) => {
+      return {
+        message: `¡La Versatilidad de ${ctx.user.nickname || ctx.user.speciesId} desconcierta al adversario!`,
+        statChanges: [{ target: 'target', stat: 'spAtk', stages: -1 }],
+      };
+    },
+  },
+  maestria_eter: {
+    id: 'maestria_eter',
+    name: 'Maestría Éter',
+    description: 'Potencia un 30% los movimientos de tipo Neutro.',
+    onDamage: (ctx) => {
+      if (ctx.damage === undefined && ctx.move && ctx.move.type === 'Neutro') {
+        return { damageMultiplier: 1.3, message: `¡La Maestría Éter de ${ctx.user.nickname || ctx.user.speciesId} purifica el ataque!` };
+      }
+      return null;
+    },
+  },
+  sombra_veloz: {
+    id: 'sombra_veloz',
+    name: 'Sombra Veloz',
+    description: 'Embiste con precisión fulminante: un 25% más de daño con movimientos físicos.',
+    onDamage: (ctx) => {
+      if (ctx.damage === undefined && ctx.move && ctx.move.category === 'physical') {
+        return { damageMultiplier: 1.25, message: `¡${ctx.user.nickname || ctx.user.speciesId} ataca con la velocidad de una sombra!` };
+      }
+      return null;
+    },
+  },
+  paso_espectral: {
+    id: 'paso_espectral',
+    name: 'Paso Espectral',
+    description: 'Anula los movimientos de tipo Sombra al desvanecerse entre planos.',
+    onDamage: (ctx) => {
+      if (ctx.damage !== undefined && ctx.move && ctx.move.type === 'Sombra') {
+        return { immune: true, message: `¡${ctx.user.nickname || ctx.user.speciesId} se desvanece esquivando la Sombra!` };
+      }
+      return null;
+    },
+  },
 };
 
 /**

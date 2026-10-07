@@ -83,14 +83,17 @@ export class EvolutionSystem {
     return null;
   }
 
-  // Alias for compatibility
+  /**
+   * Alias for compatibility. Returns null unless the body-tier requirement is met,
+   * so callers (level-up hook) never ascend into a species its chassis cannot hold.
+   */
   public checkEvolution(
     souldoll: Souldoll,
     trigger: 'level_up' | 'item' = 'level_up',
     itemId?: string
   ): { targetSpeciesId: string; requiredLevel: number } | null {
     const result = this.checkAscension(souldoll, trigger, itemId);
-    if (!result) return null;
+    if (!result || !result.bodyEligible) return null;
     return { targetSpeciesId: result.targetSpeciesId, requiredLevel: result.requiredLevel };
   }
 

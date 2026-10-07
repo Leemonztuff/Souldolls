@@ -49,6 +49,8 @@ const DEFAULT_MAPS_PARAMS: Record<string, any> = {
   Options: {},
 };
 
+const PERF_SLOT = 9;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -122,7 +124,8 @@ export function installPerfHarness(probe: PerfProbe): void {
       state.player.mapId = mapId;
       state.player.position = { x: spawn.x, y: 0.5, z: spawn.y };
       state.player.direction = spawn.direction;
-      GlobalSaveService.save(0, state);
+      GlobalSaveService.deleteSave(PERF_SLOT);
+      GlobalSaveService.save(PERF_SLOT, state);
       GlobalRng.setSeed(seed);
       await GlobalSceneManager.changeScene('Overworld', {
         mapId,

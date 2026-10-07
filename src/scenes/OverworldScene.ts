@@ -221,6 +221,10 @@ export class OverworldScene implements IScene {
         onBattleEnd: (_victory: boolean, capturedCreature?: CreatureInstance) => {
           if (capturedCreature) {
             PokedexSystem.markCaught(capturedCreature.speciesId);
+            GlobalEventBus.emit('creature:caught', {
+              speciesId: capturedCreature.speciesId,
+              level: capturedCreature.level,
+            });
             const alreadyInParty = saveState.party.some((c) => c.uid === capturedCreature.uid);
             const alreadyInStorage = (saveState.storage || []).some((c) => c.uid === capturedCreature.uid);
             if (!alreadyInParty && !alreadyInStorage) {
@@ -1116,7 +1120,7 @@ export class OverworldScene implements IScene {
             const bossParty = [
               StatCalculator.createCreatureInstance('umbrito', 16),
               StatCalculator.createCreatureInstance('noctarro', 18),
-              StatCalculator.createCreatureInstance('rocalin', 16),
+              StatCalculator.createCreatureInstance('titanide', 16),
             ];
             GlobalSceneManager.pushSceneWithTransition('Battle', {
               battleType: 'boss',
