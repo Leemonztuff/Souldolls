@@ -18,6 +18,7 @@ export class PixiRenderer {
   public height = 720;
   public resolution = 1;
   private isInitialized = false;
+  private resolutionScale = 1;
 
   private constructor() {}
 
@@ -34,7 +35,7 @@ export class PixiRenderer {
     this.container = container;
     this.width = Math.max(320, Math.round(width || window.innerWidth || 960));
     this.height = Math.max(240, Math.round(height || window.innerHeight || 720));
-    this.resolution = Math.min(window.devicePixelRatio || 1, 3);
+    this.resolution = Math.min(window.devicePixelRatio || 1, 3) * this.resolutionScale;
 
     // Configurar valores por defecto de texturas PixiJS v8 para pixel-art nítido
     TextureSource.defaultOptions.scaleMode = 'nearest';
@@ -49,6 +50,7 @@ export class PixiRenderer {
       autoDensity: true,
       antialias: false,
       roundPixels: true,
+      autoStart: false,
     });
 
     this.stage = this.app.stage;
@@ -90,9 +92,20 @@ export class PixiRenderer {
   public resize(width: number, height: number): void {
     this.width = Math.max(320, Math.round(width || window.innerWidth || 960));
     this.height = Math.max(240, Math.round(height || window.innerHeight || 720));
-    this.resolution = Math.min(window.devicePixelRatio || 1, 3);
+    this.resolution = Math.min(window.devicePixelRatio || 1, 3) * this.resolutionScale;
 
     if (this.app && this.app.renderer) {
+      this.app.renderer.resolution = this.resolution;
+      this.app.renderer.resize(this.width, this.height);
+    }
+  }
+
+  public setResolutionScale(scale: number): void {
+    const nextScale = Math.max(0.5, Math.min(1, scale));
+    if (nextScale === this.resolutionScale) return;
+    this.resolutionScale = nextScale;
+    this.resolution = Math.min(window.devicePixelRatio || 1, 3) * this.resolutionScale;
+    if (this.app?.renderer) {
       this.app.renderer.resolution = this.resolution;
       this.app.renderer.resize(this.width, this.height);
     }

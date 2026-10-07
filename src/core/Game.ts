@@ -44,6 +44,8 @@ export class Game {
   private targetWidth = 960;
   private targetHeight = 720;
   private isInitialized = false;
+  private resolutionScale = 1;
+  private readonly lostWebGLCanvases = new Set<HTMLCanvasElement>();
 
   private constructor() {}
 
@@ -154,12 +156,14 @@ export class Game {
     // 9. Setup Central Loop
     this.gameLoop = new GameLoop(
       (fixedDt) => this.onLogicUpdate(fixedDt),
-      (alpha) => this.onRender(alpha)
+      (alpha) => this.onRender(alpha),
+      (p95Ms) => this.adaptResolution(p95Ms)
     );
+    this.registerRendererLifecycleEvents();
 
     // 10. Start Initial Scene & GameLoop
     await GlobalSceneManager.changeScene('Boot');
-    this.gameLoop.start();
+    if (document.visibilityState === 'visible') this.gameLoop.start();
 
     this.isInitialized = true;
     console.log('[Game] Engine initialized successfully with procedural art assets.');
@@ -180,6 +184,53 @@ export class Game {
     GlobalSceneManager.render(alpha);
     GlobalThreeRenderer.render();
     GlobalPixiRenderer.render();
+  }
+
+  private adaptResolution(p95Ms: number): void {
+    const nextScale = p95Ms > 22
+      ? Math.max(0.5, this.resolutionScale - 0.1)
+      : p95Ms < 17
+      ? Math.min(1, this.resolutionScale + 0.05)
+      : this.resolutionScale;
+    if (nextScale === this.resolutionScale) return;
+
+    this.resolutionScale = nextScale;
+    GlobalThreeRenderer.setResolutionScale(nextScale);
+    GlobalPixiRenderer.setResolutionScale(nextScale);
+  }
+
+  private registerRendererLifecycleEvents(): void {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this.gameLoop.stop();
+      } else {
+        this.resumeGameLoopIfReady();
+      }
+    });
+
+    const canvases = [GlobalThreeRenderer.renderer.domElement, GlobalPixiRenderer.app.canvas];
+    for (const canvas of canvases) {
+      canvas.addEventListener('webglcontextlost', (event) => {
+        event.preventDefault();
+        this.lostWebGLCanvases.add(canvas);
+        this.gameLoop.stop();
+        console.warn('[WebGL] Context lost; game loop paused until the context is restored.');
+      });
+      canvas.addEventListener('webglcontextrestored', () => {
+        this.lostWebGLCanvases.delete(canvas);
+        if (this.lostWebGLCanvases.size === 0) {
+          this.handleResize();
+          this.resumeGameLoopIfReady();
+          console.info('[WebGL] Context restored; rendering resumed without a page reload.');
+        }
+      });
+    }
+  }
+
+  private resumeGameLoopIfReady(): void {
+    if (this.isInitialized && document.visibilityState === 'visible' && this.lostWebGLCanvases.size === 0) {
+      this.gameLoop.start();
+    }
   }
 
   /**

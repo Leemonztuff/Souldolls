@@ -1,0 +1,73 @@
+{
+  "label": "b48-p2-after",
+  "when": "2026-10-07T19:37:28.056Z",
+  "server": "http://127.0.0.1:4173",
+  "viewport": "1280x720",
+  "options": {
+    "walkSecs": 30,
+    "battles": 1,
+    "dev": false
+  },
+  "groups": {
+    "battle": {
+      "stats": {
+        "scenario": "battle_vfx_x1",
+        "durationSec": 57.56,
+        "frames": 104,
+        "fps": {
+          "mean": 1.9,
+          "min": 1.1
+        },
+        "frameMs": {
+          "mean": 558.79,
+          "p50": 533.2,
+          "p95": 800,
+          "p99": 866.7,
+          "max": 949.9
+        },
+        "three": {
+          "callsMean": 270,
+          "callsMax": 270,
+          "trisMax": 30068,
+          "geometries": 91,
+          "textures": 11,
+          "materials": 48
+        },
+        "pixi": {
+          "callsMean": 12,
+          "callsMax": 20,
+          "objectsMax": 486
+        },
+        "heap": {
+          "startMB": 41.4,
+          "endMB": 32.6,
+          "maxMB": 47.6
+        },
+        "resolution": {
+          "threeScale": 0.5,
+          "threePixelRatio": 0.5,
+          "pixiResolution": 0.5
+        },
+        "allocPerFrameKB": 1229.65,
+        "allocPerSecondKB": 2221.7
+      },
+      "perBattle": [
+        {
+          "i": 1,
+          "species": "sacerdotisa",
+          "moves": 1,
+          "ms": 57204
+        }
+      ],
+      "baselineAfterBattles": {
+        "geometries": 91,
+        "textures": 11,
+        "pixiObjects": 479,
+        "heapMB": 34.25,
+        "threeCalls": 272,
+        "pixiCalls": 10,
+        "scene": "Overworld"
+      }
+    }
+  }
+}

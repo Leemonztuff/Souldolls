@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { GlobalThreeRenderer } from '../render/ThreeRenderer';
 import { GlobalPixiRenderer } from '../render/PixiRenderer';
 import { GlobalSceneManager } from '../core/SceneManager';
@@ -28,9 +29,11 @@ export interface PerfStats {
     trisMax: number;
     geometries: number;
     textures: number;
+    materials: number;
   };
   pixi: { callsMean: number; callsMax: number; objectsMax: number };
   heap: { startMB: number; endMB: number; maxMB: number };
+  resolution: { threeScale: number; threePixelRatio: number; pixiResolution: number };
   allocPerFrameKB: number;
   allocPerSecondKB: number;
 }
@@ -113,6 +116,7 @@ export class PerfProbe {
   private readonly scratch = new Array<number>(STRIDE);
   private readonly rollSort = new Float64Array(RING_FRAMES);
   private readonly objStack: any[] = [];
+  private readonly threeMaterialSet = new Set<THREE.Material>();
   private readonly liveBox: LiveInfo = {
     frameMs: 0,
     fps: 0,
@@ -326,6 +330,20 @@ export class PerfProbe {
     }
   }
 
+  private countThreeMaterials(): number {
+    const scene = GlobalThreeRenderer.scene;
+    if (!scene) return 0;
+
+    const materials = this.threeMaterialSet;
+    materials.clear();
+    scene.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of meshMaterials) materials.add(material);
+    });
+    return materials.size;
+  }
+
   // -------------------------------------------------------------- scenarios
 
   public begin(scenario: string): void {
@@ -384,6 +402,7 @@ export class PerfProbe {
         trisMax: maxOf(threeTris),
         geometries: geo.length ? geo[geo.length - 1] : 0,
         textures: tex.length ? tex[tex.length - 1] : 0,
+        materials: this.countThreeMaterials(),
       },
       pixi: {
         callsMean: round(mean(pixiCalls), 1),
@@ -394,6 +413,11 @@ export class PerfProbe {
         startMB: round(heap.length ? heap[0] : 0, 1),
         endMB: round(heap.length ? heap[heap.length - 1] : 0, 1),
         maxMB: heap.length ? round(maxOf(heap), 1) : 0,
+      },
+      resolution: {
+        threeScale: GlobalThreeRenderer.getResolutionScale(),
+        threePixelRatio: GlobalThreeRenderer.renderer?.getPixelRatio() ?? 1,
+        pixiResolution: GlobalPixiRenderer.resolution,
       },
       allocPerFrameKB: round(n ? allocSum / n : 0, 2),
       allocPerSecondKB: round(durationSec > 0 ? allocSum / durationSec : 0, 1),

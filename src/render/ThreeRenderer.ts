@@ -8,6 +8,7 @@ export class ThreeRenderer {
   public camera!: THREE.PerspectiveCamera;
   public container!: HTMLElement;
   private resizeObserver: ResizeObserver | null = null;
+  private resolutionScale = 1;
 
   private constructor() {}
 
@@ -41,7 +42,7 @@ export class ThreeRenderer {
       alpha: false,
     });
     this.renderer.setSize(w, h, true);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * this.resolutionScale);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -76,8 +77,22 @@ export class ThreeRenderer {
     if (this.camera && this.renderer && width > 0 && height > 0) {
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2) * this.resolutionScale);
       this.renderer.setSize(width, height, true);
     }
+  }
+
+  public setResolutionScale(scale: number): void {
+    const nextScale = Math.max(0.5, Math.min(1, scale));
+    if (nextScale === this.resolutionScale) return;
+    this.resolutionScale = nextScale;
+    if (this.renderer) {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2) * this.resolutionScale);
+    }
+  }
+
+  public getResolutionScale(): number {
+    return this.resolutionScale;
   }
 
   public render(): void {

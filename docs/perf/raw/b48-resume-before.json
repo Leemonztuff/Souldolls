@@ -1,0 +1,120 @@
+{
+  "label": "b48-resume-before",
+  "when": "2026-10-07T18:44:16.938Z",
+  "server": "http://127.0.0.1:4173",
+  "viewport": "1280x720",
+  "options": {
+    "walkSecs": 30,
+    "battles": 5,
+    "dev": false
+  },
+  "groups": {
+    "stand": [
+      {
+        "scenario": "stand_ruta_claro",
+        "durationSec": 45.15,
+        "frames": 37,
+        "fps": {
+          "mean": 0.8,
+          "min": 0.7
+        },
+        "frameMs": {
+          "mean": 1260.31,
+          "p50": 1233.3,
+          "p95": 1483.3,
+          "p99": 1533.2,
+          "max": 1533.2
+        },
+        "three": {
+          "callsMean": 445,
+          "callsMax": 447,
+          "trisMax": 26898,
+          "geometries": 172,
+          "textures": 11
+        },
+        "pixi": {
+          "callsMean": 20,
+          "callsMax": 20,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 37.7,
+          "endMB": 27.6,
+          "maxMB": 42.3
+        },
+        "allocPerFrameKB": 1050.82,
+        "allocPerSecondKB": 861.1
+      },
+      {
+        "scenario": "stand_bosque_eco",
+        "durationSec": 45,
+        "frames": 36,
+        "fps": {
+          "mean": 0.8,
+          "min": 0.6
+        },
+        "frameMs": {
+          "mean": 1297.64,
+          "p50": 1250,
+          "p95": 1649.9,
+          "p99": 1700,
+          "max": 1700
+        },
+        "three": {
+          "callsMean": 562.5,
+          "callsMax": 567,
+          "trisMax": 30426,
+          "geometries": 227,
+          "textures": 13
+        },
+        "pixi": {
+          "callsMean": 20,
+          "callsMax": 20,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 35.4,
+          "endMB": 29.7,
+          "maxMB": 42.3
+        },
+        "allocPerFrameKB": 1885.79,
+        "allocPerSecondKB": 1508.5
+      },
+      {
+        "scenario": "stand_villa_brote",
+        "durationSec": 44.76,
+        "frames": 31,
+        "fps": {
+          "mean": 0.7,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 1491.87,
+          "p50": 1449.9,
+          "p95": 1833.3,
+          "p99": 1933.3,
+          "max": 1933.3
+        },
+        "three": {
+          "callsMean": 474,
+          "callsMax": 477,
+          "trisMax": 18232,
+          "geometries": 237,
+          "textures": 17
+        },
+        "pixi": {
+          "callsMean": 20,
+          "callsMax": 20,
+          "objectsMax": 56
+        },
+        "heap": {
+          "startMB": 45.2,
+          "endMB": 25.7,
+          "maxMB": 48.9
+        },
+        "allocPerFrameKB": 1288.94,
+        "allocPerSecondKB": 892.7
+      }
+    ]
+  }
+}

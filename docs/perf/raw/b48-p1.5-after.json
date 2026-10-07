@@ -1,0 +1,114 @@
+{
+  "label": "b48-p1.5-after",
+  "when": "2026-10-07T19:42:16.248Z",
+  "server": "http://127.0.0.1:4173",
+  "viewport": "1280x720",
+  "options": {
+    "walkSecs": 30,
+    "battles": 5,
+    "dev": false
+  },
+  "groups": {
+    "transitions": {
+      "stats": {
+        "scenario": "transitions_x6",
+        "durationSec": 32.49,
+        "frames": 47,
+        "fps": {
+          "mean": 1.7,
+          "min": 0.5
+        },
+        "frameMs": {
+          "mean": 703.52,
+          "p50": 566.6,
+          "p95": 1716.6,
+          "p99": 2016.6,
+          "max": 2016.6
+        },
+        "three": {
+          "callsMean": 193.5,
+          "callsMax": 273,
+          "trisMax": 30148,
+          "geometries": 71,
+          "textures": 15,
+          "materials": 55
+        },
+        "pixi": {
+          "callsMean": 11.1,
+          "callsMax": 12,
+          "objectsMax": 63
+        },
+        "heap": {
+          "startMB": 26.1,
+          "endMB": 33.9,
+          "maxMB": 72.1
+        },
+        "resolution": {
+          "threeScale": 0.5,
+          "threePixelRatio": 0.5,
+          "pixiResolution": 0.5
+        },
+        "allocPerFrameKB": 2727.5,
+        "allocPerSecondKB": 3946
+      },
+      "warps": [
+        {
+          "to": "ruta_claro",
+          "ok": true,
+          "ms": 4164
+        },
+        {
+          "to": "villa_brote",
+          "ok": true,
+          "ms": 4848
+        },
+        {
+          "to": "ruta_claro",
+          "ok": true,
+          "ms": 3863
+        },
+        {
+          "to": "villa_brote",
+          "ok": true,
+          "ms": 5015
+        },
+        {
+          "to": "ruta_claro",
+          "ok": true,
+          "ms": 3698
+        },
+        {
+          "to": "villa_brote",
+          "ok": true,
+          "ms": 4735
+        }
+      ],
+      "leak": {
+        "before": {
+          "geometries": 71,
+          "textures": 13,
+          "pixiObjects": 62,
+          "heapMB": 23.71,
+          "threeCalls": 145,
+          "pixiCalls": 10,
+          "scene": "Overworld"
+        },
+        "after": {
+          "geometries": 72,
+          "textures": 16,
+          "pixiObjects": 56,
+          "heapMB": 25.88,
+          "threeCalls": 145,
+          "pixiCalls": 10,
+          "scene": "Overworld"
+        },
+        "delta": {
+          "geometries": 1,
+          "textures": 3,
+          "pixiObjects": -6,
+          "heapMB": 2.17
+        }
+      }
+    }
+  }
+}

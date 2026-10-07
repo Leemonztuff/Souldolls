@@ -187,7 +187,7 @@ async function openApp(server: Server, opts: Options, browser: Browser): Promise
     deviceScaleFactor: 1,
   });
   const page = await ctx.newPage();
-  page.on('pageerror', (e) => console.error('[pageerror]', e.message));
+  page.on('pageerror', (e) => console.error('[pageerror]', e.stack || e.message));
   await page.goto(`${server.url}/?perf=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !!(window as any).__perf?.ready, null, { timeout: 40000 });
   // esperar a que Game.init() termine (Title registrado y en pantalla)

@@ -168,6 +168,12 @@ export class AssetLoader {
   public getAllLoadedTextures(): THREE.Texture[] {
     return Array.from(this.textureCache.values());
   }
+
+  public disposeTextures(): void {
+    for (const texture of this.textureCache.values()) texture.dispose();
+    this.textureCache.clear();
+    this.canvasCache.clear();
+  }
 }
 
 export const GlobalAssetLoader = AssetLoader.getInstance();

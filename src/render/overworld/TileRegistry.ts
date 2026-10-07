@@ -354,6 +354,12 @@ export class TileRegistry {
     this.fallbackThreeTextures.set(key, tex);
     return tex;
   }
+
+  public disposeFallbackTextures(): void {
+    for (const texture of this.fallbackThreeTextures.values()) texture.dispose();
+    this.fallbackThreeTextures.clear();
+    this.fallbackCanvases.clear();
+  }
 }
 
 export const GlobalTileRegistry = TileRegistry.getInstance();

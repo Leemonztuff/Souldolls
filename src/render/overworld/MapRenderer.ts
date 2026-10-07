@@ -4,14 +4,8 @@ import { GlobalTallerAtlas } from './TallerAtlas';
 import { GlobalMercadoAtlas } from './MercadoAtlas';
 import { GlobalLabAtlas } from './LabAtlas';
 import { GlobalOverworldDecor } from './DecorRenderer';
-import { GlobalTileRenderer } from './TileRenderer';
+import { GlobalTileRenderer, OccludableEntry } from './TileRenderer';
 import { GlobalSaveService } from '../../services/SaveService';
-
-interface DecorEntry {
-  x: number;
-  z: number;
-  meshes: THREE.Mesh[];
-}
 
 interface AnimatedLantern {
   mesh: THREE.Mesh;
@@ -34,12 +28,13 @@ export class MapRenderer {
   private lastScene: THREE.Scene | null = null;
 
   private tallGrassGroup: THREE.Group = new THREE.Group();
-  private decorEntries: DecorEntry[] = [];
+  private decorEntries: OccludableEntry[] = [];
   private billboardProps: THREE.Mesh[] = [];
   private animatedSouls: { mesh: THREE.Mesh; baseY: number; phase: number }[] = [];
   private animatedLanterns: AnimatedLantern[] = [];
   private animatedSigns: AnimatedSign[] = [];
   private animTimer = 0;
+  private readonly ownedMaterials = new Set<THREE.Material>();
 
   constructor() {
     this.mapGroup = new THREE.Group();
@@ -72,7 +67,6 @@ export class MapRenderer {
     this.mapGroup.add(tileMapResult.groundGroup);
     this.mapGroup.add(tileMapResult.facadeAndPropsGroup);
     this.mapGroup.add(tileMapResult.starOverlayGroup);
-    this.billboardProps.push(...tileMapResult.billboardMeshes);
     this.decorEntries.push(...tileMapResult.occludableEntries);
 
     // --- COEXISTENCE WITH CUSTOM ATLASES (BLOQUES 33 / 34 / 36) ---
@@ -147,6 +141,7 @@ export class MapRenderer {
       emissiveIntensity: 1.4,
       roughness: 0.1,
     });
+    this.ownedMaterials.add(soulOrbMat);
     const soulOrb = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 12), soulOrbMat);
     soulOrb.position.set(2.8, 1.7, 1.2);
     this.mapGroup.add(soulOrb);
@@ -659,11 +654,26 @@ export class MapRenderer {
       const isBlocking = isBetween && distToPlayerX < 1.5 && distToPlayerZ > -0.5 && distToPlayerZ < 6.0;
       const targetOpacity = isBlocking ? 0.25 : 1.0;
 
+      entry.fadeRanges?.forEach((range) => {
+        const opacity = range.opacity + (targetOpacity - range.opacity) * 0.25;
+        if (Math.abs(opacity - range.opacity) < 0.001) return;
+        range.opacity = opacity;
+        const fade = range.mesh.geometry.getAttribute('aFade');
+        if (!fade) return;
+        for (let i = range.start; i < range.start + range.count; i++) {
+          fade.setX(i, opacity);
+        }
+        fade.needsUpdate = true;
+      });
+
       entry.meshes.forEach((m) => {
         const mat = m.material as THREE.MeshStandardMaterial;
         if (mat && mat.transparent !== undefined) {
+          const currentOpacity = typeof m.userData.occlusionOpacity === 'number' ? m.userData.occlusionOpacity : 1;
+          const opacity = currentOpacity + (targetOpacity - currentOpacity) * 0.25;
+          m.userData.occlusionOpacity = opacity;
           mat.transparent = true;
-          mat.opacity += (targetOpacity - mat.opacity) * 0.25;
+          if (!m.userData.sharedOcclusionMaterial) mat.opacity = opacity;
         }
       });
     });
@@ -683,6 +693,8 @@ export class MapRenderer {
 
     disposeHierarchy(this.mapGroup);
     this.mapGroup.clear();
+    for (const material of this.ownedMaterials) material.dispose();
+    this.ownedMaterials.clear();
     this.decorEntries = [];
     this.billboardProps = [];
     this.animatedSouls = [];

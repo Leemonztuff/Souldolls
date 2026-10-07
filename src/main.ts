@@ -45,18 +45,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       GlobalSaveService.save();
     });
 
-    // WebGL Context Loss Recovery Handler
-    const threeContainer = document.getElementById('three-container');
-    threeContainer?.addEventListener('webglcontextlost', (e) => {
-      e.preventDefault();
-      console.warn('[WebGL] Context lost. Attempting recovery...');
-    }, false);
-
-    threeContainer?.addEventListener('webglcontextrestored', () => {
-      console.log('[WebGL] Context restored. Reinitializing renderers...');
-      window.location.reload();
-    }, false);
-
   } catch (err) {
     console.error('[Main] Critical error during game initialization:', err);
   }

@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { BitmapFont, BitmapText, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { GlobalPixiRenderer } from '../PixiRenderer';
 import { COLOR_HEX, COLOR_NUM, FONTS } from '../../ui/styles';
 
@@ -299,8 +299,18 @@ interface VFXOverlay {
   update(dt: number): boolean;
 }
 
+interface FloatingDamageText {
+  text: BitmapText;
+  life: number;
+  maxLife: number;
+  originY: number;
+  velocityY: number;
+  active: boolean;
+}
+
 export class VFXSystem {
   private static instance: VFXSystem;
+  private static readonly DAMAGE_FONT = 'SouldollsDamage';
   public vfxLayer: Container = new Container();
   public particlePool!: ParticlePool;
 
@@ -310,6 +320,8 @@ export class VFXSystem {
   private origStageY = 0;
   private weatherTimer = 0;
   private activeOverlays: VFXOverlay[] = [];
+  private floatingDamageTexts: FloatingDamageText[] = [];
+  private damageFontInstalled = false;
 
   private constructor() {}
 
@@ -326,10 +338,16 @@ export class VFXSystem {
     this.vfxLayer.zIndex = 800;
     parentLayer.addChild(this.vfxLayer);
     this.particlePool = new ParticlePool(this.vfxLayer, 350);
+    this.floatingDamageTexts = [];
+    if (typeof document !== 'undefined') {
+      this.installDamageFont();
+      for (let i = 0; i < 24; i++) this.addFloatingDamageText();
+    }
   }
 
   public update(dt: number): void {
     this.particlePool.update(dt);
+    this.updateFloatingDamageTexts(dt);
 
     // Update active overlays
     for (let i = this.activeOverlays.length - 1; i >= 0; i--) {
@@ -952,39 +970,71 @@ export class VFXSystem {
   // =========================================================================
 
   public spawnDamageText(x: number, y: number, damage: number, isCritical = false): void {
-    const textStr = isCritical ? `💥 ${damage}!` : `${damage}`;
-    const txt = new Text({
-      text: textStr,
-      style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: isCritical ? 34 : 26,
-        fontWeight: '900',
-        fill: isCritical ? '#facc15' : '#ffffff',
-        stroke: { color: '#000000', width: 5 },
-      }),
-    });
-    txt.anchor.set(0.5);
-    txt.roundPixels = true;
-    txt.position.set(x, y);
-    this.vfxLayer.addChild(txt);
+    const entry = this.floatingDamageTexts.find((candidate) => !candidate.active) || this.addFloatingDamageText();
+    entry.text.text = isCritical ? `💥 ${damage}!` : `${damage}`;
+    entry.text.style.fontSize = isCritical ? 34 : 26;
+    entry.text.style.fill = isCritical ? '#facc15' : '#ffffff';
+    entry.text.position.set(x, y);
+    entry.text.alpha = 1;
+    entry.text.visible = true;
+    entry.life = 0;
+    entry.maxLife = 0.85;
+    entry.originY = y;
+    entry.velocityY = -1.6;
+    entry.active = true;
+  }
 
-    let life = 0;
-    const maxLife = 0.85;
-    this.activeOverlays.push({
-      container: txt,
-      x,
-      y,
-      vy: -1.6,
-      life,
-      maxLife,
-      update: (dt: number) => {
-        life += dt;
-        txt.position.y += -1.6 * dt * 60;
-        const progress = life / maxLife;
-        txt.alpha = Math.max(0, 1 - progress);
-        return life < maxLife;
+  private installDamageFont(): void {
+    if (this.damageFontInstalled) return;
+    BitmapFont.install({
+      name: VFXSystem.DAMAGE_FONT,
+      style: {
+        fontFamily: FONTS.damage,
+        fontSize: 34,
+        fontWeight: '900',
+        fill: '#ffffff',
+        stroke: { color: '#000000', width: 5 },
       },
+      chars: ['0123456789!💥'],
+      textureStyle: { scaleMode: 'nearest' },
     });
+    this.damageFontInstalled = true;
+  }
+
+  private addFloatingDamageText(): FloatingDamageText {
+    const text = new BitmapText({
+      text: '',
+      style: { fontFamily: VFXSystem.DAMAGE_FONT, fontSize: 26, align: 'center' },
+    });
+    text.anchor.set(0.5);
+    text.roundPixels = true;
+    text.visible = false;
+    this.vfxLayer.addChild(text);
+    const entry: FloatingDamageText = {
+      text,
+      life: 0,
+      maxLife: 0.85,
+      originY: 0,
+      velocityY: -1.6,
+      active: false,
+    };
+    this.floatingDamageTexts.push(entry);
+    return entry;
+  }
+
+  private updateFloatingDamageTexts(dt: number): void {
+    for (let i = 0; i < this.floatingDamageTexts.length; i++) {
+      const entry = this.floatingDamageTexts[i];
+      if (!entry.active) continue;
+      entry.life += dt;
+      if (entry.life >= entry.maxLife) {
+        entry.active = false;
+        entry.text.visible = false;
+        continue;
+      }
+      entry.text.position.y = entry.originY + entry.velocityY * entry.life * 60;
+      entry.text.alpha = 1 - entry.life / entry.maxLife;
+    }
   }
 
   public spawnEffectivenessBadge(

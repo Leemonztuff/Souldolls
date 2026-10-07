@@ -8,12 +8,41 @@ import { resolveGridAutotileShape47, resolveGridWallShape16 } from '../../system
 
 export type AuthoringStageNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+export interface BillboardFadeRange {
+  mesh: THREE.Mesh;
+  start: number;
+  count: number;
+  opacity: number;
+}
+
+export interface OccludableEntry {
+  x: number;
+  z: number;
+  meshes: THREE.Mesh[];
+  fadeRanges?: BillboardFadeRange[];
+}
+
+interface BillboardBatch {
+  materialKind: 'prop' | 'star';
+  renderOrder: number;
+  castShadow: boolean;
+  receiveShadow: boolean;
+  positions: number[];
+  normals: number[];
+  uvs: number[];
+  animStrides: number[];
+  pivots: number[];
+  tilts: number[];
+  fades: number[];
+  indices: number[];
+  ranges: { source: THREE.Mesh; start: number; count: number }[];
+}
+
 export interface BuiltTileMapResult {
   groundGroup: THREE.Group;
   facadeAndPropsGroup: THREE.Group;
   starOverlayGroup: THREE.Group;
-  billboardMeshes: THREE.Mesh[];
-  occludableEntries: { x: number; z: number; meshes: THREE.Mesh[] }[];
+  occludableEntries: OccludableEntry[];
   chunkCount: number;
 }
 
@@ -43,14 +72,22 @@ export class TileRenderer {
 
   // Shared shader uniforms updated once per frame (zero CPU geometry rebuild)
   public readonly waterTimeUniform = { value: 0 };
+  public readonly cameraYawUniform = { value: 0 };
   public readonly biomeTintColorUniform = { value: new THREE.Color('#fff8eb') };
   public readonly biomeTintStrengthUniform = { value: 0.08 };
 
   private activeMaterials: THREE.MeshStandardMaterial[] = [];
+  private readonly ownedMaterials = new Set<THREE.Material>();
+  private readonly billboardWorldPosition = new THREE.Vector3();
 
   // B48 P1: lotes de sombras de contacto pendientes de fusionar en 1 malla por opacidad
   private pendingContactShadows = new Map<number, THREE.BufferGeometry[]>();
   private pendingContactShadowMaterials = new Set<THREE.Material>();
+
+  private trackOwnedMaterial<T extends THREE.Material>(material: T): T {
+    this.ownedMaterials.add(material);
+    return material;
+  }
 
   private constructor() {
     this.initBakedTexture();
@@ -209,6 +246,7 @@ export class TileRenderer {
     polygonOffsetFactor?: number;
     polygonOffsetUnits?: number;
     depthWrite?: boolean;
+    billboardYaw?: boolean;
   } = {}): THREE.MeshStandardMaterial {
     const tex = options.texture || this.getBakedAtlasTexture();
     AssetLoader.applyPixelArtTextureSettings(tex);
@@ -230,14 +268,58 @@ export class TileRenderer {
       shader.uniforms.uWaterTime = this.waterTimeUniform;
       shader.uniforms.uBiomeTint = this.biomeTintColorUniform;
       shader.uniforms.uBiomeTintStrength = this.biomeTintStrengthUniform;
+      if (options.billboardYaw) shader.uniforms.uCameraYaw = this.cameraYawUniform;
 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
         `#include <common>
         attribute float aAnimStrideU;
         uniform float uWaterTime;
-        varying float vAnimOffsetU;`
+        varying float vAnimOffsetU;
+        ${options.billboardYaw ? `
+        attribute vec3 aPivot;
+        attribute float aTiltX;
+        attribute float aFade;
+        uniform float uCameraYaw;
+        varying float vPropFade;` : ''}`
       );
+
+      if (options.billboardYaw) {
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <beginnormal_vertex>',
+          `#include <beginnormal_vertex>
+          float billboardCosYaw = cos(uCameraYaw);
+          float billboardSinYaw = sin(uCameraYaw);
+          vec3 yawNormal = vec3(
+            billboardCosYaw * objectNormal.x + billboardSinYaw * objectNormal.z,
+            objectNormal.y,
+            -billboardSinYaw * objectNormal.x + billboardCosYaw * objectNormal.z
+          );
+          float billboardCosTilt = cos(aTiltX);
+          float billboardSinTilt = sin(aTiltX);
+          objectNormal = vec3(
+            yawNormal.x,
+            billboardCosTilt * yawNormal.y - billboardSinTilt * yawNormal.z,
+            billboardSinTilt * yawNormal.y + billboardCosTilt * yawNormal.z
+          );`
+        );
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          vec3 billboardLocal = position - aPivot;
+          vec3 billboardYawed = vec3(
+            billboardCosYaw * billboardLocal.x + billboardSinYaw * billboardLocal.z,
+            billboardLocal.y,
+            -billboardSinYaw * billboardLocal.x + billboardCosYaw * billboardLocal.z
+          );
+          transformed = aPivot + vec3(
+            billboardYawed.x,
+            billboardCosTilt * billboardYawed.y - billboardSinTilt * billboardYawed.z,
+            billboardSinTilt * billboardYawed.y + billboardCosTilt * billboardYawed.z
+          );
+          vPropFade = aFade;`
+        );
+      }
 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <uv_vertex>',
@@ -262,9 +344,22 @@ export class TileRenderer {
           diffuseColor *= sampledDiffuseColor;
         #endif`
       );
+      if (options.billboardYaw) {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          `#include <common>
+          varying float vPropFade;`
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <alphatest_fragment>',
+          `diffuseColor.a *= vPropFade;
+          #include <alphatest_fragment>`
+        );
+      }
     };
 
     this.activeMaterials.push(mat);
+    this.trackOwnedMaterial(mat);
     return mat;
   }
 
@@ -285,7 +380,7 @@ export class TileRenderer {
     starOverlayGroup.name = 'TileRenderer_StarOverlay';
 
     const billboardMeshes: THREE.Mesh[] = [];
-    const occludableEntries: { x: number; z: number; meshes: THREE.Mesh[] }[] = [];
+    const occludableEntries: OccludableEntry[] = [];
     this.pendingContactShadows.clear();
 
     const W = map.width;
@@ -412,12 +507,17 @@ export class TileRenderer {
     if (this.authoringStage === 1 || this.authoringStage === 2) {
       this.buildAuthoringBlockoutOverlay(map, groundGroup, facadeAndPropsGroup);
       if (this.authoringStage === 1 || this.authoringStage === 2) {
+        const finalizedOccludables = this.flushMergedBillboards(
+          billboardMeshes,
+          facadeAndPropsGroup,
+          starOverlayGroup,
+          occludableEntries
+        );
         return {
           groundGroup,
           facadeAndPropsGroup,
           starOverlayGroup,
-          billboardMeshes,
-          occludableEntries,
+          occludableEntries: finalizedOccludables,
           chunkCount,
         };
       }
@@ -515,7 +615,7 @@ export class TileRenderer {
             wallMesh.renderOrder = resolved.flags.star ? 25 : 5;
 
             billboardMeshes.push(wallMesh);
-            occludableEntries.push({ x, z: y, meshes: [wallMesh] });
+            occludableEntries.push({ x, z: y, meshes: [wallMesh], fadeRanges: [] });
             (resolved.flags.star ? starOverlayGroup : facadeAndPropsGroup).add(wallMesh);
             continue;
           }
@@ -595,20 +695,25 @@ export class TileRenderer {
             }
           }
 
-          occludableEntries.push({ x, z: y, meshes: groupMeshes });
+          occludableEntries.push({ x, z: y, meshes: groupMeshes, fadeRanges: [] });
           facadeAndPropsGroup.add(propGroup);
         }
       }
     }
 
     this.flushContactShadows(facadeAndPropsGroup);
+    const finalizedOccludables = this.flushMergedBillboards(
+      billboardMeshes,
+      facadeAndPropsGroup,
+      starOverlayGroup,
+      occludableEntries
+    );
 
     return {
       groundGroup,
       facadeAndPropsGroup,
       starOverlayGroup,
-      billboardMeshes,
-      occludableEntries,
+      occludableEntries: finalizedOccludables,
       chunkCount,
     };
   }
@@ -780,12 +885,12 @@ export class TileRenderer {
     foamGeo.setIndex(indices);
     foamGeo.computeBoundingSphere();
 
-    const foamMat = new THREE.MeshBasicMaterial({
+    const foamMat = this.trackOwnedMaterial(new THREE.MeshBasicMaterial({
       color: 0xe0f7fe,
       transparent: true,
       opacity: 0.62,
       depthWrite: false,
-    });
+    }));
     const foamMesh = new THREE.Mesh(foamGeo, foamMat);
     foamMesh.name = 'WaterShoreFoam';
     foamMesh.renderOrder = 2;
@@ -807,7 +912,7 @@ export class TileRenderer {
     map: MapData,
     facadeAndPropsGroup: THREE.Group,
     starOverlayGroup: THREE.Group,
-    occludableEntries: { x: number; z: number; meshes: THREE.Mesh[] }[]
+    occludableEntries: OccludableEntry[]
   ): Set<string> {
     const handled = new Set<string>();
     if (map.indoor || !map.decor || this.classicFlatMode) return handled;
@@ -815,6 +920,16 @@ export class TileRenderer {
     const W = map.width;
     const H = map.height;
     const visited = Array.from({ length: H }, () => Array.from({ length: W }, () => false));
+    const houseMaterials = new Map<string, THREE.MeshStandardMaterial>();
+    const getHouseMaterial = (key: string, params: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial => {
+      let material = houseMaterials.get(key);
+      if (!material) {
+        material = this.trackOwnedMaterial(new THREE.MeshStandardMaterial(params));
+        houseMaterials.set(key, material);
+        this.activeMaterials.push(material);
+      }
+      return material;
+    };
 
     const isBuildingTile = (x: number, y: number) => {
       const d = map.decor?.[y]?.[x];
@@ -895,7 +1010,7 @@ export class TileRenderer {
 
         // 2. Cuerpo de paredes (entramado cálido con vigas de madera)
         const wallColor = bw >= 7 ? 0xe2e8f0 : bw === 6 ? 0xf5ebd6 : 0xf3e5c8;
-        const wallMat = new THREE.MeshStandardMaterial({
+        const wallMat = getHouseMaterial(`wall:${wallColor}`, {
           color: wallColor,
           roughness: 0.85,
           metalness: 0.04,
@@ -910,7 +1025,7 @@ export class TileRenderer {
         occludableMeshes.push(wallMesh);
 
         // Zócalo de piedra inferior y vigas de madera
-        const plinthMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.9 });
+        const plinthMat = getHouseMaterial('plinth', { color: 0x64748b, roughness: 0.9 });
         const plinthGeo = new THREE.BoxGeometry(bw + 0.06, 0.32, bd + 0.06);
         plinthGeo.translate(0, 0.16, 0);
         const plinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
@@ -920,7 +1035,7 @@ export class TileRenderer {
 
         // 3. Tejado inclinado a dos aguas con aleros (overhang) en grupo starOverlay para pasar sobre el jugador detrás
         const roofColor = bw >= 7 ? 0x1e40af : bw === 6 ? 0x1e7a6d : 0xb45309;
-        const roofMat = new THREE.MeshStandardMaterial({
+        const roofMat = getHouseMaterial(`roof:${roofColor}`, {
           color: roofColor,
           roughness: 0.72,
           metalness: 0.08,
@@ -948,7 +1063,7 @@ export class TileRenderer {
         occludableMeshes.push(backSlope);
 
         // Cumbrera de madera/bronce en el vértice del tejado
-        const ridgeMat = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.8 });
+        const ridgeMat = getHouseMaterial('ridge', { color: 0x5c3a1e, roughness: 0.8 });
         const ridgeGeo = new THREE.BoxGeometry(roofW + 0.08, 0.18, 0.22);
         const ridgeMesh = new THREE.Mesh(ridgeGeo, ridgeMat);
         ridgeMesh.position.set(centerX, wallH + roofH + 0.04, centerZ);
@@ -958,7 +1073,7 @@ export class TileRenderer {
 
         // 4. Chimenea de ladrillo/piedra en el tejado (Bloque 45 Diagnóstico & Req. 3)
         if (scaleSpec.hasChimney) {
-          const chimMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.88 });
+          const chimMat = getHouseMaterial('chimney', { color: 0x7c2d12, roughness: 0.88 });
           const chimGeo = new THREE.BoxGeometry(0.55, 0.95, 0.55);
           const chimMesh = new THREE.Mesh(chimGeo, chimMat);
           chimMesh.position.set(maxX - 0.7, wallH + roofH * 0.75, minY + 0.8);
@@ -972,8 +1087,8 @@ export class TileRenderer {
         const frontZ = maxY + 0.51;
         const effectiveDoorX = doorX >= 0 ? doorX : Math.round(centerX);
 
-        const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8 });
-        const doorLeafMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.75 });
+        const doorFrameMat = getHouseMaterial('door-frame', { color: 0x451a03, roughness: 0.8 });
+        const doorLeafMat = getHouseMaterial('door-leaf', { color: 0x78350f, roughness: 0.75 });
         const doorW = scaleConfigJson.scales.door.widthTiles;
         const doorH = scaleConfigJson.scales.door.heightTiles;
 
@@ -990,7 +1105,7 @@ export class TileRenderer {
 
         // Ventanas cálidas a ambos lados de la puerta
         if (scaleSpec.hasWindows) {
-          const winGlassMat = new THREE.MeshStandardMaterial({
+          const winGlassMat = getHouseMaterial('window-glass', {
             color: 0xfef08a,
             emissive: 0xf59e0b,
             emissiveIntensity: 0.65,
@@ -1008,7 +1123,20 @@ export class TileRenderer {
         }
 
         facadeAndPropsGroup.add(houseGroup);
-        occludableEntries.push({ x: Math.round(centerX), z: maxY, meshes: occludableMeshes });
+        for (const mesh of occludableMeshes) {
+          mesh.userData.occlusionOpacity = 1;
+          mesh.userData.sharedOcclusionMaterial = true;
+          mesh.onBeforeRender = () => {
+            const material = mesh.material;
+            if (!Array.isArray(material)) material.opacity = mesh.userData.occlusionOpacity ?? 1;
+          };
+        }
+        occludableEntries.push({
+          x: Math.round(centerX),
+          z: maxY,
+          meshes: occludableMeshes,
+          fadeRanges: [],
+        });
       }
     }
 
@@ -1128,7 +1256,7 @@ export class TileRenderer {
 
         const tileGeo = new THREE.PlaneGeometry(0.96, 0.96);
         tileGeo.rotateX(-Math.PI / 2);
-        const tileMat = new THREE.MeshBasicMaterial({ color });
+        const tileMat = this.trackOwnedMaterial(new THREE.MeshBasicMaterial({ color }));
         const tileMesh = new THREE.Mesh(tileGeo, tileMat);
         tileMesh.position.set(x, 0.04, y);
         groundGroup.add(tileMesh);
@@ -1138,10 +1266,10 @@ export class TileRenderer {
           const boxH = d === 'roof' || d === 'building_wall' ? 1.6 : 0.9;
           const boxGeo = new THREE.BoxGeometry(0.92, boxH, 0.92);
           boxGeo.translate(0, boxH / 2, 0);
-          const boxMat = new THREE.MeshStandardMaterial({
+          const boxMat = this.trackOwnedMaterial(new THREE.MeshStandardMaterial({
             color: d === 'roof' || d === 'building_wall' ? 0xcbd5e1 : 0x475569,
             roughness: 0.9,
-          });
+          }));
           const boxMesh = new THREE.Mesh(boxGeo, boxMat);
           boxMesh.position.set(x, 0.04, y);
           facadeAndPropsGroup.add(boxMesh);
@@ -1154,12 +1282,150 @@ export class TileRenderer {
       for (const s of map.signs || []) {
         const beacon = new THREE.Mesh(
           new THREE.CylinderGeometry(0.28, 0.28, 2.2, 12),
-          new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+          this.trackOwnedMaterial(new THREE.MeshBasicMaterial({ color: 0x38bdf8 }))
         );
         beacon.position.set(s.x, 1.1, s.y);
         facadeAndPropsGroup.add(beacon);
       }
     }
+  }
+
+  private flushMergedBillboards(
+    sources: THREE.Mesh[],
+    facadeGroup: THREE.Group,
+    starGroup: THREE.Group,
+    occludableEntries: OccludableEntry[]
+  ): OccludableEntry[] {
+    const batches = new Map<string, BillboardBatch>();
+    const materials = new Map<BillboardBatch['materialKind'], THREE.MeshStandardMaterial>();
+    const rangesBySource = new Map<THREE.Mesh, BillboardFadeRange>();
+
+    for (const source of sources) {
+      const geometry = source.geometry;
+      const positions = geometry.getAttribute('position');
+      const normals = geometry.getAttribute('normal');
+      const uvs = geometry.getAttribute('uv');
+      if (positions.count !== 4 || !normals || !uvs) {
+        throw new Error(`Billboard ${source.name || '(sin nombre)'} no es un quad compatible con la fusión`);
+      }
+
+      source.getWorldPosition(this.billboardWorldPosition);
+      const pivot = this.billboardWorldPosition;
+      const renderOrder = source.renderOrder;
+      const materialKind = renderOrder >= 25 ? 'star' : 'prop';
+      const chunkX = Math.floor(pivot.x / 16);
+      const chunkZ = Math.floor(pivot.z / 16);
+      const key = `${chunkX}_${chunkZ}:${materialKind}:${renderOrder}:${Number(source.castShadow)}:${Number(source.receiveShadow)}`;
+      let batch = batches.get(key);
+      if (!batch) {
+        batch = {
+          materialKind,
+          renderOrder,
+          castShadow: source.castShadow,
+          receiveShadow: source.receiveShadow,
+          positions: [],
+          normals: [],
+          uvs: [],
+          animStrides: [],
+          pivots: [],
+          tilts: [],
+          fades: [],
+          indices: [],
+          ranges: [],
+        };
+        batches.set(key, batch);
+      }
+
+      const start = batch.positions.length / 3;
+      for (let i = 0; i < positions.count; i++) {
+        batch.positions.push(
+          positions.getX(i) + pivot.x,
+          positions.getY(i) + pivot.y,
+          positions.getZ(i) + pivot.z
+        );
+        batch.normals.push(normals.getX(i), normals.getY(i), normals.getZ(i));
+        batch.uvs.push(uvs.getX(i), uvs.getY(i));
+        batch.animStrides.push(geometry.getAttribute('aAnimStrideU')?.getX(i) ?? 0);
+        batch.pivots.push(pivot.x, pivot.y, pivot.z);
+        batch.tilts.push(source.rotation.x);
+        batch.fades.push(1);
+      }
+
+      const index = geometry.getIndex();
+      if (index) {
+        for (let i = 0; i < index.count; i++) batch.indices.push(start + index.getX(i));
+      } else {
+        for (let i = 0; i < positions.count; i++) batch.indices.push(start + i);
+      }
+      batch.ranges.push({ source, start, count: positions.count });
+      source.parent?.remove(source);
+      geometry.dispose();
+    }
+
+    for (const [key, batch] of batches) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(batch.positions, 3));
+      geometry.setAttribute('normal', new THREE.Float32BufferAttribute(batch.normals, 3));
+      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(batch.uvs, 2));
+      geometry.setAttribute('aAnimStrideU', new THREE.Float32BufferAttribute(batch.animStrides, 1));
+      geometry.setAttribute('aPivot', new THREE.Float32BufferAttribute(batch.pivots, 3));
+      geometry.setAttribute('aTiltX', new THREE.Float32BufferAttribute(batch.tilts, 1));
+      geometry.setAttribute('aFade', new THREE.Float32BufferAttribute(batch.fades, 1));
+      geometry.setIndex(batch.indices);
+      geometry.computeBoundingSphere();
+
+      const sphere = geometry.boundingSphere!;
+      const positions = geometry.getAttribute('position');
+      const pivots = geometry.getAttribute('aPivot');
+      let dynamicRadius = sphere.radius;
+      for (let i = 0; i < positions.count; i++) {
+        const pivotDistance = Math.hypot(
+          pivots.getX(i) - sphere.center.x,
+          pivots.getY(i) - sphere.center.y,
+          pivots.getZ(i) - sphere.center.z
+        );
+        const vertexDistance = Math.hypot(
+          positions.getX(i) - pivots.getX(i),
+          positions.getY(i) - pivots.getY(i),
+          positions.getZ(i) - pivots.getZ(i)
+        );
+        dynamicRadius = Math.max(dynamicRadius, pivotDistance + vertexDistance);
+      }
+      sphere.radius = dynamicRadius;
+
+      let material = materials.get(batch.materialKind);
+      if (!material) {
+        material = this.createTileMaterial({
+          polygonOffsetFactor: batch.materialKind === 'star' ? -2 : -1,
+          polygonOffsetUnits: batch.materialKind === 'star' ? -2 : -1,
+          depthWrite: batch.materialKind !== 'star',
+          billboardYaw: true,
+        });
+        materials.set(batch.materialKind, material);
+      }
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = `BillboardBatch_${key}`;
+      mesh.renderOrder = batch.renderOrder;
+      mesh.castShadow = batch.castShadow;
+      mesh.receiveShadow = batch.receiveShadow;
+      (batch.renderOrder >= 25 ? starGroup : facadeGroup).add(mesh);
+
+      for (const range of batch.ranges) {
+        rangesBySource.set(range.source, { mesh, start: range.start, count: range.count, opacity: 1 });
+      }
+    }
+
+    return occludableEntries.map((entry) => {
+      const meshes: THREE.Mesh[] = [];
+      const fadeRanges = [...(entry.fadeRanges || [])];
+      for (const source of entry.meshes) {
+        const range = rangesBySource.get(source);
+        if (range) fadeRanges.push(range);
+        else meshes.push(source);
+      }
+      return { ...entry, meshes, fadeRanges };
+    });
   }
 
   private createQuadGeometryWithUV(
@@ -1189,16 +1455,24 @@ export class TileRenderer {
 
   public update(dt: number, cameraYaw: number): void {
     this.waterTimeUniform.value += dt;
+    this.cameraYawUniform.value = cameraYaw;
   }
 
   public clearMaterials(): void {
-    for (const mat of this.activeMaterials) {
-      mat.dispose();
-    }
+    for (const mat of this.ownedMaterials) mat.dispose();
+    this.ownedMaterials.clear();
     this.activeMaterials = [];
     for (const mat of this.pendingContactShadowMaterials) {
       mat.dispose();
     }
+    this.pendingContactShadowMaterials.clear();
+  }
+
+  public disposeMapTexture(): void {
+    this.bakedAtlasTexture?.dispose();
+    this.bakedAtlasTexture = null;
+    this.activeMaterials = [];
+    this.ownedMaterials.clear();
     this.pendingContactShadowMaterials.clear();
   }
 }
