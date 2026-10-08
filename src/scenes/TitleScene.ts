@@ -71,15 +71,24 @@ export class TitleScene implements IScene {
     this.container.roundPixels = true;
     GlobalPixiRenderer.menuLayer.addChild(this.container);
 
-    try {
-      await Assets.load('/assets/SoulDollslogo.png');
-    } catch {
-      // Ignored if fallback is used
-    }
-
     this.setupThreeDiorama();
     this.refreshMenuDefinitions();
     this.buildCurrentView();
+
+    if (!Assets.cache.has('/assets/SoulDollslogo.png')) {
+      Assets.load('/assets/SoulDollslogo.png')
+        .then((tex: Texture) => {
+          if (tex && this.logoSprite && !this.logoSprite.destroyed) {
+            const width = GlobalPixiRenderer.width || 960;
+            const height = GlobalPixiRenderer.height || 720;
+            this.logoSprite.texture = tex;
+            this.logoSprite.scale.set(
+              this.calculateLogoScale(width, height, tex.width || 2043, tex.height || 770)
+            );
+          }
+        })
+        .catch(() => {});
+    }
 
     GlobalAudioService.playTitleBgm();
   }
@@ -148,11 +157,15 @@ export class TitleScene implements IScene {
         iconId: 'workshop_anvil',
         action: async () => {
           GlobalAudioService.playSfx('confirm');
-          if (!GlobalSceneManager.hasScene('Debug')) {
-            const mod = await import('./DebugScene');
-            GlobalSceneManager.registerScene('Debug', () => new mod.DebugScene());
+          try {
+            if (!GlobalSceneManager.hasScene('Debug')) {
+              const mod = await import('./DebugScene');
+              GlobalSceneManager.registerScene('Debug', () => new mod.DebugScene());
+            }
+            GlobalSceneManager.pushScene('Debug');
+          } catch (err) {
+            console.warn('[TitleScene] Optional DebugScene could not be loaded:', err);
           }
-          GlobalSceneManager.pushScene('Debug');
         },
       });
     }
@@ -371,8 +384,6 @@ export class TitleScene implements IScene {
     try {
       if (Assets.cache.has('/assets/SoulDollslogo.png')) {
         logoTexture = Assets.get('/assets/SoulDollslogo.png');
-      } else {
-        logoTexture = Texture.from('/assets/SoulDollslogo.png');
       }
     } catch {
       logoTexture = null;

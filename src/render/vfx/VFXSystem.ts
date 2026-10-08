@@ -1,6 +1,21 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { GlobalPixiRenderer } from '../PixiRenderer';
 import { COLOR_HEX, COLOR_NUM, FONTS } from '../../ui/styles';
+import {
+  CombatFXSystem,
+  EnergyRingFX,
+  SpiralRibbonFX,
+  TrailFX,
+  ParticleBurstFX,
+  EnergySphereFX,
+  ShockwaveFX,
+  AuraFX,
+  ExplosionFX,
+  VortexFX,
+  ProjectileFX,
+  RadialImpactFX,
+  ELEMENT_FX_PALETTES,
+} from './CombatFXSystem';
 
 export type ParticleShape =
   | 'circle'
@@ -90,6 +105,7 @@ export class Particle {
 
   public drawGraphic(): void {
     const g = this.graphic;
+    if (!g || g.destroyed) return;
     g.clear();
 
     const sz = this.size;
@@ -196,6 +212,10 @@ export class Particle {
 
   public update(dt: number): boolean {
     if (!this.active) return false;
+    if (!this.graphic || this.graphic.destroyed) {
+      this.active = false;
+      return false;
+    }
 
     this.life += dt;
     if (this.life >= this.maxLife) {
@@ -247,9 +267,19 @@ export class ParticlePool {
   }
 
   public getParticle(): Particle | null {
+    if (!this.container || this.container.destroyed) {
+      return null;
+    }
     for (let i = 0; i < this.pool.length; i++) {
-      if (!this.pool[i].active) {
-        return this.pool[i];
+      const p = this.pool[i];
+      if (!p.active) {
+        if (!p.graphic || p.graphic.destroyed) {
+          const g = new Graphics();
+          g.visible = false;
+          this.container.addChild(g);
+          p.graphic = g;
+        }
+        return p;
       }
     }
     // Dynamic expansion if pool is exhausted under heavy VFX load
@@ -266,13 +296,14 @@ export class ParticlePool {
 
   public emit(cfg: ParticleConfig): Particle | null {
     const p = this.getParticle();
-    if (p) {
+    if (p && p.graphic && !p.graphic.destroyed) {
       p.init(cfg);
     }
     return p;
   }
 
   public update(dt: number): void {
+    if (!this.container || this.container.destroyed) return;
     for (let i = 0; i < this.pool.length; i++) {
       if (this.pool[i].active) {
         this.pool[i].update(dt);
@@ -283,7 +314,9 @@ export class ParticlePool {
   public clear(): void {
     for (let i = 0; i < this.pool.length; i++) {
       this.pool[i].active = false;
-      this.pool[i].graphic.visible = false;
+      if (this.pool[i].graphic && !this.pool[i].graphic.destroyed) {
+        this.pool[i].graphic.visible = false;
+      }
     }
   }
 }
@@ -303,6 +336,7 @@ export class VFXSystem {
   private static instance: VFXSystem;
   public vfxLayer: Container = new Container();
   public particlePool!: ParticlePool;
+  public combatFX: CombatFXSystem | null = null;
 
   private shakeTimer = 0;
   private shakeIntensity = 0;
@@ -321,22 +355,40 @@ export class VFXSystem {
   }
 
   public init(parentLayer: Container): void {
+    this.activeOverlays = [];
     this.vfxLayer = new Container();
     this.vfxLayer.roundPixels = true;
     this.vfxLayer.zIndex = 800;
     parentLayer.addChild(this.vfxLayer);
     this.particlePool = new ParticlePool(this.vfxLayer, 350);
+    this.combatFX = new CombatFXSystem(this.vfxLayer, undefined, (intensity, duration) => {
+      this.screenShake(intensity, duration);
+    });
+  }
+
+  public attachCombatFX(combatFX: CombatFXSystem): void {
+    this.combatFX = combatFX;
   }
 
   public update(dt: number): void {
-    this.particlePool.update(dt);
+    if (!this.vfxLayer || this.vfxLayer.destroyed) return;
+    this.particlePool?.update(dt);
+    if (this.combatFX && this.combatFX.root === this.vfxLayer) {
+      this.combatFX.update(dt);
+    }
 
     // Update active overlays
     for (let i = this.activeOverlays.length - 1; i >= 0; i--) {
       const ov = this.activeOverlays[i];
+      if (!ov.container || ov.container.destroyed) {
+        this.activeOverlays.splice(i, 1);
+        continue;
+      }
       const alive = ov.update(dt);
       if (!alive) {
-        ov.container.destroy({ children: true });
+        if (!ov.container.destroyed) {
+          ov.container.destroy({ children: true });
+        }
         this.activeOverlays.splice(i, 1);
       }
     }
@@ -368,6 +420,10 @@ export class VFXSystem {
 
   public screenFlash(colorHex = 0xffffff, durationMs = 150): Promise<void> {
     return new Promise((resolve) => {
+      if (!this.vfxLayer || this.vfxLayer.destroyed) {
+        resolve();
+        return;
+      }
       const flashG = new Graphics();
       const w = GlobalPixiRenderer.width || 800;
       const h = GlobalPixiRenderer.height || 600;
@@ -376,7 +432,9 @@ export class VFXSystem {
       this.vfxLayer.addChild(flashG);
 
       setTimeout(() => {
-        flashG.destroy();
+        if (!flashG.destroyed) {
+          flashG.destroy();
+        }
         resolve();
       }, durationMs);
     });
@@ -390,8 +448,44 @@ export class VFXSystem {
    * Emite un estallido radial de chispas doradas/ámbar, anillo de choque y banner de impacto crítico.
    */
   public emitCriticalHitFeedback(x: number, y: number): void {
-    this.screenShake(14, 0.35);
-    this.screenFlash(0xfef08a, 120);
+    this.screenShake(15, 0.38);
+    this.screenFlash(0xfef08a, 130);
+
+    if (this.combatFX) {
+      this.combatFX.spawnFX('radial_impact', {
+        position: { x, y },
+        color: 0xfacc15,
+        secondaryColor: 0xffffff,
+        scale: 1.45,
+        duration: 0.42,
+        layer: 'impactFX',
+      });
+      this.combatFX.spawnFX('shockwave', {
+        position: { x, y: y + 8 },
+        color: 0xf97316,
+        secondaryColor: 0xfacc15,
+        scale: 1.35,
+        duration: 0.44,
+        layer: 'backFX',
+      });
+      this.combatFX.spawnFX('energy_ring', {
+        position: { x, y },
+        color: 0xfacc15,
+        secondaryColor: 0xffffff,
+        scale: 1.25,
+        duration: 0.38,
+        layer: 'frontFX',
+      });
+      this.combatFX.spawnFX('particles', {
+        position: { x, y },
+        color: 0xfacc15,
+        secondaryColor: 0xffffff,
+        scale: 1.3,
+        count: 42,
+        duration: 0.58,
+        layer: 'impactFX',
+      });
+    }
 
     // 1. Expanding Shockwave Ring
     this.particlePool.emit({
@@ -509,7 +603,51 @@ export class VFXSystem {
   /**
    * Emite el torbellino de succión etérea desde la criatura hacia la Soul Bottle.
    */
-  public emitSoulCaptureStream(fromX: number, fromY: number, toX: number, toY: number, count = 16): void {
+  public emitSoulCaptureStream(fromX: number, fromY: number, toX: number, toY: number, count = 24): void {
+    if (this.combatFX) {
+      // 1. Swirling ethereal vortex at target Soul Bottle mouth
+      this.combatFX.spawnFX('vortex', {
+        position: { x: toX, y: toY },
+        color: COLOR_NUM.cyan,
+        secondaryColor: COLOR_NUM.soulViolet,
+        scale: 0.9,
+        duration: 0.65,
+        layer: 'backFX',
+      });
+
+      // 2. High-speed spiraling ribbon connecting soul to bottle
+      this.combatFX.spawnFX('spiral', {
+        position: { x: (fromX + toX) / 2, y: (fromY + toY) / 2 },
+        color: COLOR_NUM.cyan,
+        secondaryColor: COLOR_NUM.gold,
+        scale: 0.95,
+        duration: 0.6,
+        layer: 'frontFX',
+      });
+
+      // 3. Luminous beam / trail from soul into the bottle
+      this.combatFX.spawnFX('trail', {
+        from: { x: fromX, y: fromY },
+        to: { x: toX, y: toY },
+        color: COLOR_NUM.cyan,
+        secondaryColor: 0xffffff,
+        scale: 1.15,
+        duration: 0.45,
+        layer: 'projectileFX',
+      });
+
+      // 4. Converging soul sparks burst
+      this.combatFX.spawnFX('particles', {
+        position: { x: toX, y: toY },
+        color: COLOR_NUM.cyan,
+        secondaryColor: COLOR_NUM.soulViolet,
+        scale: 0.95,
+        count: 28,
+        duration: 0.52,
+        layer: 'impactFX',
+      });
+    }
+
     for (let i = 0; i < count; i++) {
       const t = Math.random();
       const spread = (Math.random() - 0.5) * 36;
@@ -544,6 +682,39 @@ export class VFXSystem {
    * Emite ondas de resonancia y chispas ascendentes en cada sacudida de la Soul Bottle.
    */
   public emitSoulCaptureShake(x: number, y: number, shakeIndex: number): void {
+    const col = shakeIndex >= 3 ? COLOR_NUM.gold : COLOR_NUM.cyan;
+    const secCol = shakeIndex >= 3 ? 0xffffff : COLOR_NUM.soulViolet;
+
+    if (this.combatFX) {
+      this.combatFX.spawnFX('energy_ring', {
+        position: { x, y },
+        color: col,
+        secondaryColor: secCol,
+        scale: 0.7 + shakeIndex * 0.22,
+        duration: 0.35,
+        layer: 'frontFX',
+      });
+
+      this.combatFX.spawnFX('radial_impact', {
+        position: { x, y },
+        color: col,
+        secondaryColor: 0xffffff,
+        scale: 0.65 + shakeIndex * 0.15,
+        duration: 0.3,
+        layer: 'impactFX',
+      });
+
+      this.combatFX.spawnFX('particles', {
+        position: { x, y: y - 6 },
+        color: col,
+        secondaryColor: 0xffffff,
+        scale: 0.8 + shakeIndex * 0.15,
+        count: 14 + shakeIndex * 6,
+        duration: 0.45,
+        layer: 'impactFX',
+      });
+    }
+
     // Pulse resonance ring
     this.particlePool.emit({
       x,
@@ -581,8 +752,69 @@ export class VFXSystem {
    * Emite la apoteosis celestial cuando la Soul Bottle sella exitosamente el alma.
    */
   public emitSoulCaptureSuccess(x: number, y: number): void {
-    this.screenFlash(0xfacc15, 250);
-    this.screenShake(10, 0.3);
+    this.screenFlash(0xfacc15, 260);
+    this.screenShake(14, 0.45);
+
+    if (this.combatFX) {
+      // 1. Dual Concentric Golden Resonance Rings
+      this.combatFX.spawnFX('energy_ring', {
+        position: { x, y },
+        color: COLOR_NUM.gold,
+        secondaryColor: 0xffffff,
+        scale: 1.45,
+        duration: 0.52,
+        layer: 'frontFX',
+      });
+      this.combatFX.spawnFX('energy_ring', {
+        position: { x, y },
+        color: COLOR_NUM.cyan,
+        secondaryColor: COLOR_NUM.gold,
+        scale: 1.05,
+        duration: 0.42,
+        layer: 'frontFX',
+      });
+
+      // 2. Massive Ground Shockwave
+      this.combatFX.spawnFX('shockwave', {
+        position: { x, y: y + 8 },
+        color: COLOR_NUM.gold,
+        secondaryColor: COLOR_NUM.cyan,
+        scale: 1.55,
+        duration: 0.54,
+        layer: 'backFX',
+      });
+
+      // 3. Celestial Starburst with additive blend
+      this.combatFX.spawnFX('radial_impact', {
+        position: { x, y },
+        color: COLOR_NUM.gold,
+        secondaryColor: 0xffffff,
+        scale: 1.4,
+        duration: 0.46,
+        layer: 'impactFX',
+      });
+
+      // 4. Massive 360-degree particle burst
+      this.combatFX.spawnFX('particles', {
+        position: { x, y },
+        color: COLOR_NUM.gold,
+        secondaryColor: 0xffffff,
+        scale: 1.45,
+        count: 54,
+        duration: 0.72,
+        layer: 'impactFX',
+      });
+
+      // 5. Ascending celestial spiral ribbon
+      this.combatFX.spawnFX('spiral', {
+        position: { x, y },
+        color: COLOR_NUM.gold,
+        secondaryColor: COLOR_NUM.cyan,
+        scale: 1.25,
+        duration: 0.68,
+        layer: 'frontFX',
+      });
+    }
 
     // 1. Dual Concentric Golden Resonance Rings
     this.particlePool.emit({
@@ -707,7 +939,35 @@ export class VFXSystem {
    */
   public emitSoulCaptureFail(x: number, y: number): void {
     this.screenFlash(0xf43f5e, 140);
-    this.screenShake(6, 0.2);
+    this.screenShake(7, 0.22);
+
+    if (this.combatFX) {
+      this.combatFX.spawnFX('explosion', {
+        position: { x, y },
+        color: 0xf43f5e,
+        secondaryColor: 0x9333ea,
+        scale: 1.15,
+        duration: 0.45,
+        layer: 'impactFX',
+      });
+      this.combatFX.spawnFX('shockwave', {
+        position: { x, y: y + 6 },
+        color: 0xf43f5e,
+        secondaryColor: 0x475569,
+        scale: 1.15,
+        duration: 0.4,
+        layer: 'backFX',
+      });
+      this.combatFX.spawnFX('particles', {
+        position: { x, y },
+        color: 0x64748b,
+        secondaryColor: 0xf43f5e,
+        scale: 1.05,
+        count: 32,
+        duration: 0.55,
+        layer: 'impactFX',
+      });
+    }
 
     // 1. Billowy Grey Dispersal Smoke
     for (let i = 0; i < 18; i++) {
@@ -819,6 +1079,62 @@ export class VFXSystem {
       evasion: 'EVAS',
     };
     const label = statLabels[statKey] || statKey.toUpperCase();
+
+    if (this.combatFX) {
+      if (isBuff) {
+        this.combatFX.spawnFX('spiral', {
+          position: { x, y },
+          color: 0x4ade80,
+          secondaryColor: 0xfacc15,
+          scale: 1.05,
+          duration: 0.58,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('energy_ring', {
+          position: { x, y: y + 8 },
+          color: 0x4ade80,
+          secondaryColor: 0xffffff,
+          scale: 0.95,
+          duration: 0.42,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('particles', {
+          position: { x, y },
+          color: 0x4ade80,
+          secondaryColor: 0xfacc15,
+          scale: 1.05,
+          count: 26,
+          duration: 0.52,
+          layer: 'impactFX',
+        });
+      } else {
+        this.combatFX.spawnFX('shockwave', {
+          position: { x, y: y + 14 },
+          color: 0xf43f5e,
+          secondaryColor: 0x9333ea,
+          scale: 1.2,
+          duration: 0.46,
+          layer: 'backFX',
+        });
+        this.combatFX.spawnFX('vortex', {
+          position: { x, y },
+          color: 0xf43f5e,
+          secondaryColor: 0x4c1d95,
+          scale: 1.0,
+          duration: 0.52,
+          layer: 'backFX',
+        });
+        this.combatFX.spawnFX('particles', {
+          position: { x, y },
+          color: 0x9333ea,
+          secondaryColor: 0xf43f5e,
+          scale: 1.05,
+          count: 26,
+          duration: 0.52,
+          layer: 'impactFX',
+        });
+      }
+    }
 
     if (isBuff) {
       // 1. Upward Rising Energy Ring
@@ -1076,64 +1392,83 @@ export class VFXSystem {
   public updateWeatherVFX(dt: number, weather: import('../../types/weather').WeatherType): void {
     if (!weather || weather === 'none') return;
     this.weatherTimer += dt;
-    if (this.weatherTimer < 0.05) return;
+    if (this.weatherTimer < 0.04) return;
     this.weatherTimer = 0;
 
     const width = GlobalPixiRenderer.width || 800;
     const height = GlobalPixiRenderer.height || 600;
 
     if (weather === 'rain') {
+      const rainX = Math.random() * (width + 240) - 120;
+      const rainY = -20;
       this.particlePool.emit({
-        x: Math.random() * (width + 200) - 100,
-        y: -20,
-        vx: -3,
-        vy: 12 + Math.random() * 4,
+        x: rainX,
+        y: rainY,
+        vx: -3.5,
+        vy: 14 + Math.random() * 5,
         shape: 'slash_spark',
-        size: 4,
+        size: 4 + Math.random() * 2,
         color: 0x38bdf8,
-        maxLife: 1.2,
-        alpha: 0.7,
+        maxLife: 1.1,
+        alpha: 0.75,
       });
+
+      if (Math.random() < 0.35) {
+        const splashX = Math.random() * width;
+        const splashY = height * 0.6 + Math.random() * (height * 0.35);
+        this.particlePool.emit({
+          x: splashX,
+          y: splashY,
+          shape: 'ring',
+          color: 0x7dd3fc,
+          size: 6,
+          scale: 0.3,
+          scaleSpeed: 2.2,
+          alpha: 0.6,
+          maxLife: 0.25,
+        });
+      }
     } else if (weather === 'sun') {
       this.particlePool.emit({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: -0.5 - Math.random() * 0.5,
-        shape: 'circle',
-        size: 3 + Math.random() * 3,
-        color: 0xfef08a,
-        maxLife: 1.5,
-        alpha: 0.5,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: -0.6 - Math.random() * 0.6,
+        shape: 'spark',
+        size: 3.5 + Math.random() * 3,
+        color: Math.random() < 0.5 ? 0xfef08a : 0xf97316,
+        maxLife: 1.8,
+        alpha: 0.65,
       });
     } else if (weather === 'sandstorm') {
       this.particlePool.emit({
         x: -20,
         y: Math.random() * height,
-        vx: 8 + Math.random() * 4,
-        vy: (Math.random() - 0.5) * 2,
-        shape: 'square',
-        size: 3,
-        color: 0xd97706,
-        maxLife: 1.5,
-        alpha: 0.6,
+        vx: 10 + Math.random() * 6,
+        vy: (Math.random() - 0.5) * 2.5,
+        shape: 'slash_spark',
+        size: 3 + Math.random() * 2,
+        color: Math.random() < 0.6 ? 0xd97706 : 0xfbbf24,
+        maxLife: 1.3,
+        alpha: 0.7,
       });
     } else if (weather === 'snow') {
       this.particlePool.emit({
         x: Math.random() * width,
         y: -10,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: 2 + Math.random() * 2,
-        shape: 'circle',
-        size: 2.5 + Math.random() * 2,
+        vx: (Math.random() - 0.5) * 1.8,
+        vy: 2.2 + Math.random() * 2,
+        vRot: (Math.random() - 0.5) * 0.15,
+        shape: 'star',
+        size: 3.5 + Math.random() * 2,
         color: 0xffffff,
-        maxLife: 3.0,
-        alpha: 0.8,
+        maxLife: 2.8,
+        alpha: 0.85,
       });
     }
   }
 
-  // --- PRESET VFX IMPLEMENTATIONS ---
+  // --- PRESET VFX IMPLEMENTATIONS (Driven by PixiJS v8 CombatFXSystem) ---
 
   public async playPresetVfx(
     presetName: string,
@@ -1147,476 +1482,350 @@ export class VFXSystem {
     const colA = parseInt(colorA.replace('#', ''), 16) || 0x38bdf8;
     const colB = parseInt(colorB.replace('#', ''), 16) || 0xffffff;
 
+    if (!this.combatFX) {
+      this.combatFX = new CombatFXSystem(this.vfxLayer, undefined, (intensity, duration) => {
+        this.screenShake(intensity, duration);
+      });
+    }
+
     switch (presetName) {
       case 'projectile':
-        await this.vfxProjectile(fromX, fromY, toX, toY, colA, colB);
+      case 'fireball':
+        await this.combatFX.attack('fireball', {
+          from: { x: fromX, y: fromY },
+          to: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
         break;
+
       case 'burst':
-        await this.vfxBurst(toX, toY, colA, colB);
+        await this.combatFX.attack('burst', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
         break;
+
       case 'beam':
-        await this.vfxBeam(fromX, fromY, toX, toY, colA, colB);
+      case 'energy_blast':
+        await this.combatFX.attack('beam', {
+          from: { x: fromX, y: fromY },
+          to: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
         break;
+
       case 'slash':
-        await this.vfxSlash(toX, toY, colA, colB);
+        await this.combatFX.attack('slash', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
         break;
+
+      case 'dimension_slash':
+        await this.combatFX.attack('dimension_slash', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
+        break;
+
+      case 'holy_impact':
+        await this.combatFX.attack('holy_impact', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
+        break;
+
+      case 'lightning':
+      case 'lightning_strike':
+        await this.combatFX.attack('lightning_strike', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
+        break;
+
+      case 'shadow_wave':
+      case 'dark_sphere':
+        await this.combatFX.attack('shadow_wave', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
+        break;
+
+      case 'quake':
+        await this.combatFX.attack('quake', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
+        break;
+
+      case 'leaf_storm':
+      case 'cyclone':
+        await this.combatFX.attack('leaf_storm', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
+        break;
+
       case 'aura':
         await this.vfxAura(fromX, fromY, colA, colB);
         break;
+
       case 'rain':
-        await this.vfxRain(toX, toY, colA, colB);
+        await this.combatFX.attack('vortex', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
         break;
-      case 'quake':
-        await this.vfxQuake(toX, toY, colA, colB);
-        break;
-      case 'shadow_wave':
-        await this.vfxShadowWave(toX, toY, colA, colB);
-        break;
-      case 'lightning':
-        await this.vfxLightning(fromX, fromY, toX, toY, colA, colB);
-        break;
-      case 'leaf_storm':
-        await this.vfxLeafStorm(toX, toY, colA, colB);
-        break;
+
       case 'ki_burst':
         await this.vfxKiBurst(toX, toY);
         break;
+
       case 'soul_flame':
         await this.vfxSoulFlame(fromX, fromY);
         break;
+
       case 'bottle_seal':
         await this.vfxBottleSeal(fromX, fromY, toX, toY);
         break;
+
+      case 'victory_burst':
+        await this.vfxVictoryBurst(toX, toY);
+        break;
+
       default:
-        await this.vfxBurst(toX, toY, colA, colB);
+        await this.combatFX.attack('burst', {
+          position: { x: toX, y: toY },
+          color: colA,
+          secondaryColor: colB,
+        });
         break;
     }
   }
 
-  private vfxProjectile(
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    colA: number,
-    colB: number
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      const ball = new Graphics();
-      ball.circle(0, 0, 14);
-      ball.fill({ color: colA });
-      ball.circle(0, 0, 8);
-      ball.fill({ color: colB });
-      ball.position.set(fromX, fromY);
-      this.vfxLayer.addChild(ball);
-
-      const steps = 18;
-      let step = 0;
-
-      const interval = setInterval(() => {
-        step++;
-        const t = step / steps;
-        ball.position.set(fromX + (toX - fromX) * t, fromY + (toY - fromY) * t);
-
-        // Trail particles
-        this.particlePool.emit({
-          x: ball.x,
-          y: ball.y,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: (Math.random() - 0.5) * 1.5,
-          shape: 'circle',
-          size: 5,
-          color: colA,
-          maxLife: 0.25,
-          alpha: 0.8,
-        });
-
-        if (step >= steps) {
-          clearInterval(interval);
-          ball.destroy();
-          this.screenShake(8, 0.2);
-          this.vfxBurst(toX, toY, colA, colB).then(resolve);
-        }
-      }, 20);
-    });
-  }
-
-  private vfxBurst(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      const count = 20;
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 3 + Math.random() * 5;
-        this.particlePool.emit({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          drag: 0.04,
-          shape: 'spark',
-          size: 4,
-          color: i % 2 === 0 ? colA : colB,
-          maxLife: 0.4 + Math.random() * 0.2,
-          alpha: 1.0,
-        });
-      }
-      setTimeout(resolve, 350);
-    });
-  }
-
-  private vfxBeam(
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    colA: number,
-    colB: number
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      const beam = new Graphics();
-      this.vfxLayer.addChild(beam);
-
-      let step = 0;
-      const interval = setInterval(() => {
-        step++;
-        beam.clear();
-        beam.moveTo(fromX, fromY);
-        beam.lineTo(toX, toY);
-        beam.stroke({ color: colA, width: 10 + Math.sin(step) * 4, alpha: 0.8 });
-        beam.moveTo(fromX, fromY);
-        beam.lineTo(toX, toY);
-        beam.stroke({ color: colB, width: 4, alpha: 0.95 });
-
-        this.particlePool.emit({
-          x: toX + (Math.random() - 0.5) * 20,
-          y: toY + (Math.random() - 0.5) * 20,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
-          shape: 'spark',
-          size: 3,
-          color: colB,
-          maxLife: 0.3,
-          alpha: 1.0,
-        });
-
-        if (step >= 15) {
-          clearInterval(interval);
-          beam.destroy();
-          resolve();
-        }
-      }, 25);
-    });
-  }
-
-  private vfxSlash(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      const slash = new Graphics();
-      this.vfxLayer.addChild(slash);
-
-      let step = 0;
-      const interval = setInterval(() => {
-        step++;
-        const t = step / 10;
-        slash.clear();
-        slash.moveTo(x - 50 + t * 80, y - 50 + t * 100);
-        slash.lineTo(x - 20 + t * 40, y + 40 - t * 60);
-        slash.stroke({ color: colA, width: 6, alpha: 1 - t * 0.5 });
-        slash.moveTo(x - 50 + t * 80, y - 50 + t * 100);
-        slash.lineTo(x - 20 + t * 40, y + 40 - t * 60);
-        slash.stroke({ color: colB, width: 2, alpha: 1 });
-
-        this.particlePool.emit({
-          x: x + (Math.random() - 0.5) * 30,
-          y: y + (Math.random() - 0.5) * 30,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          shape: 'slash_spark',
-          size: 3,
-          color: colB,
-          maxLife: 0.25,
-          alpha: 1.0,
-        });
-
-        if (step >= 10) {
-          clearInterval(interval);
-          slash.destroy();
-          resolve();
-        }
-      }, 20);
-    });
-  }
-
-  private vfxAura(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      for (let i = 0; i < 20; i++) {
-        const spreadX = (Math.random() - 0.5) * 40;
-        this.particlePool.emit({
-          x: x + spreadX,
-          y: y + 20,
-          vx: (Math.random() - 0.5) * 0.8,
-          vy: -2.5 - Math.random() * 2.0,
-          shape: 'circle',
-          size: 4 + Math.random() * 3,
-          color: i % 2 === 0 ? colA : colB,
-          maxLife: 0.5 + Math.random() * 0.2,
-          alpha: 0.9,
-        });
-      }
-      setTimeout(resolve, 400);
-    });
-  }
-
-  private vfxRain(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      for (let i = 0; i < 25; i++) {
-        const rx = x + (Math.random() - 0.5) * 80;
-        this.particlePool.emit({
-          x: rx,
-          y: y - 100 + Math.random() * 40,
-          vx: -1.5,
-          vy: 8 + Math.random() * 4,
-          shape: 'slash_spark',
-          size: 4,
-          color: colA,
-          maxLife: 0.45,
-          alpha: 0.8,
-        });
-      }
-      setTimeout(resolve, 350);
-    });
-  }
-
-  private vfxQuake(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      this.screenShake(14, 0.4);
-      for (let i = 0; i < 16; i++) {
-        const angle = Math.random() * Math.PI;
-        const speed = 2 + Math.random() * 4;
-        this.particlePool.emit({
-          x: x + (Math.random() - 0.5) * 50,
-          y: y + 20,
-          vx: Math.cos(angle) * speed,
-          vy: -Math.abs(Math.sin(angle) * speed),
-          shape: 'square',
-          size: 5 + Math.random() * 3,
-          color: colA,
-          maxLife: 0.45,
-          alpha: 0.9,
-        });
-      }
-      setTimeout(resolve, 400);
-    });
-  }
-
-  private vfxShadowWave(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      for (let i = 0; i < 22; i++) {
-        const angle = (i / 22) * Math.PI * 2;
-        const speed = 2 + Math.random() * 3;
-        this.particlePool.emit({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          shape: 'circle',
-          size: 6,
-          color: 0x581c87,
-          maxLife: 0.45,
-          alpha: 0.85,
-        });
-      }
-      setTimeout(resolve, 350);
-    });
-  }
-
-  private vfxLightning(
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
-    colA: number,
-    colB: number
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      this.screenShake(10, 0.25);
-      this.screenFlash(0xfacc15, 80);
-
-      const bolt = new Graphics();
-      this.vfxLayer.addChild(bolt);
-
-      let step = 0;
-      const interval = setInterval(() => {
-        step++;
-        bolt.clear();
-
-        const segments = 6;
-        let currX = fromX;
-        let currY = fromY;
-        bolt.moveTo(currX, currY);
-
-        for (let i = 1; i <= segments; i++) {
-          const t = i / segments;
-          const targetSegX = fromX + (toX - fromX) * t + (i < segments ? (Math.random() - 0.5) * 30 : 0);
-          const targetSegY = fromY + (toY - fromY) * t;
-          bolt.lineTo(targetSegX, targetSegY);
-          currX = targetSegX;
-          currY = targetSegY;
-        }
-
-        bolt.stroke({ color: step % 2 === 0 ? colA : colB, width: 4, alpha: 1 });
-
-        this.particlePool.emit({
-          x: toX + (Math.random() - 0.5) * 25,
-          y: toY + (Math.random() - 0.5) * 25,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 4,
-          shape: 'spark',
-          size: 4,
-          color: 0xffffff,
-          maxLife: 0.25,
-          alpha: 1.0,
-        });
-
-        if (step >= 8) {
-          clearInterval(interval);
-          bolt.destroy();
-          resolve();
-        }
-      }, 30);
-    });
-  }
-
-  private vfxLeafStorm(x: number, y: number, colA: number, colB: number): Promise<void> {
-    return new Promise((resolve) => {
-      for (let i = 0; i < 24; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 20 + Math.random() * 40;
-        this.particlePool.emit({
-          x: x + Math.cos(angle) * radius,
-          y: y + Math.sin(angle) * radius,
-          vx: -Math.sin(angle) * 3.5,
-          vy: Math.cos(angle) * 3.5,
-          shape: 'slash_spark',
-          size: 4,
-          color: i % 2 === 0 ? 0x22c55e : 0x86efac,
-          rotation: angle,
-          vRot: 0.1,
-          maxLife: 0.5,
-          alpha: 0.9,
-        });
-      }
-      setTimeout(resolve, 400);
-    });
-  }
-
   public vfxKiBurst(x: number, y: number): Promise<void> {
     return new Promise((resolve) => {
-      this.screenShake(10, 0.25);
-      this.particlePool.emit({
-        x,
-        y,
-        shape: 'ring',
-        color: 0x38bdf8,
-        size: 16,
-        scale: 0.5,
-        scaleSpeed: 4.5,
-        alpha: 1.0,
-        maxLife: 0.35,
-      });
+      this.screenShake(12, 0.3);
+      this.screenFlash(0x38bdf8, 90);
 
-      const count = 24;
-      for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
-        const speed = 3.5 + Math.random() * 4;
-        this.particlePool.emit({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          drag: 0.05,
-          shape: 'soul_orb',
-          size: 3 + Math.random() * 2.5,
-          color: i % 2 === 0 ? 0x38bdf8 : 0xffffff,
-          maxLife: 0.45,
-          alpha: 1.0,
+      if (this.combatFX) {
+        this.combatFX.spawnFX('explosion', {
+          position: { x, y },
+          color: 0x38bdf8,
+          secondaryColor: 0xffffff,
+          scale: 1.25,
+          duration: 0.45,
+          layer: 'impactFX',
+        });
+        this.combatFX.spawnFX('shockwave', {
+          position: { x, y: y + 8 },
+          color: 0x38bdf8,
+          secondaryColor: 0x60a5fa,
+          scale: 1.3,
+          duration: 0.42,
+          layer: 'backFX',
+        });
+        this.combatFX.spawnFX('radial_impact', {
+          position: { x, y },
+          color: 0x38bdf8,
+          secondaryColor: 0xffffff,
+          scale: 1.2,
+          duration: 0.38,
+          layer: 'impactFX',
+        });
+        this.combatFX.spawnFX('energy_ring', {
+          position: { x, y },
+          color: 0x38bdf8,
+          secondaryColor: 0xffffff,
+          scale: 1.1,
+          duration: 0.35,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('particles', {
+          position: { x, y },
+          color: 0x38bdf8,
+          secondaryColor: 0xffffff,
+          scale: 1.15,
+          count: 36,
+          duration: 0.55,
+          layer: 'impactFX',
         });
       }
-      setTimeout(resolve, 350);
+
+      setTimeout(resolve, 360);
+    });
+  }
+
+  public vfxAura(x: number, y: number, colA: number, colB: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.combatFX) {
+        this.combatFX.spawnFX('aura', {
+          position: { x, y },
+          color: colA,
+          secondaryColor: colB,
+          scale: 1.15,
+          duration: 0.6,
+          layer: 'backFX',
+        });
+        this.combatFX.spawnFX('spiral', {
+          position: { x, y },
+          color: colA,
+          secondaryColor: colB,
+          scale: 1.05,
+          duration: 0.55,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('particles', {
+          position: { x, y },
+          color: colA,
+          secondaryColor: colB,
+          scale: 1.05,
+          count: 28,
+          duration: 0.55,
+          layer: 'impactFX',
+        });
+      }
+      setTimeout(resolve, 420);
     });
   }
 
   public vfxSoulFlame(x: number, y: number): Promise<void> {
     return new Promise((resolve) => {
-      const flameContainer = new Container();
-      flameContainer.position.set(x, y);
-      this.vfxLayer.addChild(flameContainer);
-
-      const soulG = new Graphics();
-      soulG.circle(0, 0, 16);
-      soulG.fill({ color: 0x38bdf8, alpha: 0.85 });
-      soulG.circle(0, 0, 10);
-      soulG.fill({ color: 0xffffff, alpha: 0.95 });
-      flameContainer.addChild(soulG);
-
-      let step = 0;
-      const interval = setInterval(() => {
-        step++;
-        flameContainer.position.y -= 2.5;
-        flameContainer.alpha = 1 - step / 25;
-
-        this.particlePool.emit({
-          x: flameContainer.x + (Math.random() - 0.5) * 16,
-          y: flameContainer.y,
-          vx: (Math.random() - 0.5) * 1.0,
-          vy: -2,
-          shape: 'circle',
-          size: 4,
-          color: 0xc084fc,
-          maxLife: 0.4,
-          alpha: 0.8,
+      if (this.combatFX) {
+        this.combatFX.spawnFX('vortex', {
+          position: { x, y },
+          color: 0xa855f7,
+          secondaryColor: 0x38bdf8,
+          scale: 1.1,
+          duration: 0.65,
+          layer: 'backFX',
         });
-
-        if (step >= 25) {
-          clearInterval(interval);
-          flameContainer.destroy();
-          resolve();
-        }
-      }, 30);
+        this.combatFX.spawnFX('energy_sphere', {
+          position: { x, y: y - 10 },
+          color: 0x38bdf8,
+          secondaryColor: 0xffffff,
+          scale: 0.85,
+          duration: 0.55,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('particles', {
+          position: { x, y: y - 10 },
+          color: 0xc084fc,
+          secondaryColor: 0x38bdf8,
+          scale: 1.0,
+          count: 32,
+          duration: 0.6,
+          layer: 'impactFX',
+        });
+      }
+      setTimeout(resolve, 450);
     });
   }
 
   public vfxBottleSeal(fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     return new Promise((resolve) => {
-      this.emitSoulCaptureStream(fromX, fromY, toX, toY, 20);
-      const beam = new Graphics();
-      this.vfxLayer.addChild(beam);
-
-      let step = 0;
-      const interval = setInterval(() => {
-        step++;
-        beam.clear();
-        beam.moveTo(fromX, fromY);
-        beam.lineTo(toX, toY);
-        beam.stroke({ color: step % 2 === 0 ? 0x38bdf8 : 0xc084fc, width: 6, alpha: 0.8 });
-
-        this.particlePool.emit({
-          x: fromX + (toX - fromX) * Math.random(),
-          y: fromY + (toY - fromY) * Math.random(),
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          shape: 'spark',
-          size: 4,
-          color: 0xfef08a,
-          maxLife: 0.3,
-          alpha: 0.9,
+      if (this.combatFX) {
+        this.combatFX.spawnFX('trail', {
+          from: { x: fromX, y: fromY },
+          to: { x: toX, y: toY },
+          color: 0x38bdf8,
+          secondaryColor: 0xc084fc,
+          scale: 1.25,
+          duration: 0.45,
+          layer: 'projectileFX',
         });
+        this.combatFX.spawnFX('vortex', {
+          position: { x: toX, y: toY },
+          color: 0x38bdf8,
+          secondaryColor: 0xfacc15,
+          scale: 0.9,
+          duration: 0.55,
+          layer: 'backFX',
+        });
+        setTimeout(() => {
+          this.combatFX?.spawnFX('radial_impact', {
+            position: { x: toX, y: toY },
+            color: 0x38bdf8,
+            secondaryColor: 0xffffff,
+            scale: 1.0,
+            duration: 0.35,
+            layer: 'impactFX',
+          });
+          this.combatFX?.spawnFX('energy_ring', {
+            position: { x: toX, y: toY },
+            color: 0x38bdf8,
+            secondaryColor: 0xffffff,
+            scale: 0.95,
+            duration: 0.32,
+            layer: 'frontFX',
+          });
+        }, 220);
+      }
+      setTimeout(resolve, 460);
+    });
+  }
 
-        if (step >= 12) {
-          clearInterval(interval);
-          beam.destroy();
-          this.vfxKiBurst(toX, toY).then(resolve);
-        }
-      }, 35);
+  public vfxVictoryBurst(x: number, y: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.screenFlash(0xfacc15, 180);
+      this.screenShake(10, 0.3);
+
+      if (this.combatFX) {
+        this.combatFX.spawnFX('shockwave', {
+          position: { x, y: y + 10 },
+          color: 0xfacc15,
+          secondaryColor: 0x38bdf8,
+          scale: 1.5,
+          duration: 0.55,
+          layer: 'backFX',
+        });
+        this.combatFX.spawnFX('energy_ring', {
+          position: { x, y },
+          color: 0xfacc15,
+          secondaryColor: 0xffffff,
+          scale: 1.35,
+          duration: 0.48,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('spiral', {
+          position: { x, y },
+          color: 0x38bdf8,
+          secondaryColor: 0xfacc15,
+          scale: 1.25,
+          duration: 0.6,
+          layer: 'frontFX',
+        });
+        this.combatFX.spawnFX('radial_impact', {
+          position: { x, y },
+          color: 0xfacc15,
+          secondaryColor: 0xffffff,
+          scale: 1.4,
+          duration: 0.45,
+          layer: 'impactFX',
+        });
+        this.combatFX.spawnFX('particles', {
+          position: { x, y: y - 10 },
+          color: 0xfacc15,
+          secondaryColor: 0xffffff,
+          scale: 1.4,
+          count: 52,
+          duration: 0.7,
+          layer: 'impactFX',
+        });
+      }
+
+      setTimeout(resolve, 480);
     });
   }
 }

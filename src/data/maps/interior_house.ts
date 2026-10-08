@@ -1,8 +1,10 @@
 import { MapData } from '../../types/maps';
 import { TileType } from '../../types/tilesets';
+import esText from '../text/es.json';
 
 const W = 8;
 const H = 8;
+const houseText = (esText as any).dialogue.interior_house;
 
 const ground: TileType[][] = Array.from({ length: H }, () =>
   Array.from({ length: W }, () => 'interior_floor')
@@ -31,7 +33,7 @@ for (let y = 0; y < H; y++) {
 // Exit door at bottom (x: 4, y: 7)
 collision[7][4] = false;
 
-// Furniture: TV (x: 2, y: 1), Bed (x: 6, y: 1), Dining Table (x: 3..4, y: 4)
+// Furniture: Chronicle Crystal (x: 2, y: 1), Bed (x: 6, y: 1), Dining Table (x: 3..4, y: 4)
 [[1, 2], [1, 6], [2, 6], [4, 3], [4, 4]].forEach(([y, x]) => {
   decor[y][x] = 'building_wall';
   collision[y][x] = true;
@@ -39,7 +41,7 @@ collision[7][4] = false;
 
 export const INTERIOR_HOUSE_MAP: MapData = {
   id: 'interior_house',
-  name: 'Casa de Red',
+  name: houseText.map_name,
   category: 'interior',
   indoor: true,
   width: W,
@@ -52,20 +54,22 @@ export const INTERIOR_HOUSE_MAP: MapData = {
     {
       x: 2,
       y: 1,
-      text: '📺 TELEVISIÓN\n"Un programa especial sobre los misterios de las criaturas 2.5D."',
+      interactLabel: 'Examinar',
+      text: houseText.tv_sign,
     },
     {
       x: 6,
       y: 1,
-      text: '🛏 TU CAMA\n"Esponjosa y muy cómoda para descansar."',
+      interactLabel: 'Examinar',
+      text: houseText.bed_sign,
     },
   ],
   warps: [
     {
       x: 4,
       y: 7,
-      targetMapId: 'villa_brote',
-      targetX: 6,
+      targetMapId: 'aldea_marioneta',
+      targetX: 7,
       targetY: 8,
       targetDirection: 'down',
     },
@@ -74,14 +78,15 @@ export const INTERIOR_HOUSE_MAP: MapData = {
   npcs: [
     {
       id: 'npc_mom',
-      name: 'Mamá',
+      name: houseText.caretaker_name,
       paletteId: 'lass',
       x: 2,
       y: 4,
       direction: 'right',
+      interactLabel: 'Hablar',
       dialogueLines: [
-        '¡Hola hijo! El Prof. Roble te estaba buscando en su laboratorio.',
-        'Recuerda que si tus criaturas están cansadas, ¡puedes volver a casa a descansar!',
+        houseText.caretaker_line_1,
+        houseText.caretaker_line_2,
       ],
     },
   ],

@@ -1,0 +1,351 @@
+{
+  "image": "village_decor_atlas.png",
+  "size": [
+    1200,
+    896
+  ],
+  "ppu": 48,
+  "frames": {
+    "facade_house_teal": {
+      "x": 26,
+      "y": 20,
+      "w": 345,
+      "h": 275,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 55
+    },
+    "facade_house_brown": {
+      "x": 428,
+      "y": 20,
+      "w": 345,
+      "h": 275,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 55
+    },
+    "facade_house_slate": {
+      "x": 832,
+      "y": 15,
+      "w": 342,
+      "h": 283,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 55
+    },
+    "fountain_central_plaza": {
+      "x": 240,
+      "y": 310,
+      "w": 327,
+      "h": 288,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 75
+    },
+    "fountain_puppet_water_1": {
+      "x": 240,
+      "y": 310,
+      "w": 327,
+      "h": 288,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 75
+    },
+    "fountain_puppet_stone": {
+      "x": 240,
+      "y": 310,
+      "w": 327,
+      "h": 288,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 75
+    },
+    "fountain_puppet_water_2": {
+      "x": 240,
+      "y": 310,
+      "w": 327,
+      "h": 288,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 75
+    },
+    "fountain_puppet_water_3": {
+      "x": 240,
+      "y": 310,
+      "w": 327,
+      "h": 288,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 75
+    },
+    "stone_well_gazebo": {
+      "x": 727,
+      "y": 320,
+      "w": 233,
+      "h": 278,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "stone_well_village": {
+      "x": 727,
+      "y": 320,
+      "w": 233,
+      "h": 278,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "lamppost_ki_teal": {
+      "x": 18,
+      "y": 628,
+      "w": 96,
+      "h": 252,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "lamppost_ki_cyan": {
+      "x": 118,
+      "y": 626,
+      "w": 100,
+      "h": 254,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "signpost_arrows": {
+      "x": 118,
+      "y": 626,
+      "w": 100,
+      "h": 254,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "lamppost_pole_slim": {
+      "x": 247,
+      "y": 631,
+      "w": 46,
+      "h": 249,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "village_wood_bench": {
+      "x": 351,
+      "y": 620,
+      "w": 201,
+      "h": 200,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "bulletin_notice_board": {
+      "x": 351,
+      "y": 620,
+      "w": 201,
+      "h": 200,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "village_mailbox": {
+      "x": 600,
+      "y": 635,
+      "w": 150,
+      "h": 245,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "wooden_crates_stacked": {
+      "x": 600,
+      "y": 635,
+      "w": 150,
+      "h": 245,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "wooden_crate_single": {
+      "x": 600,
+      "y": 635,
+      "w": 150,
+      "h": 245,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "wooden_barrel": {
+      "x": 600,
+      "y": 635,
+      "w": 150,
+      "h": 245,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "puppet_statue_pedestal": {
+      "x": 768,
+      "y": 650,
+      "w": 185,
+      "h": 230,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "puppet_display_rack": {
+      "x": 768,
+      "y": 650,
+      "w": 185,
+      "h": 230,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "potted_plant_small": {
+      "x": 964,
+      "y": 615,
+      "w": 105,
+      "h": 265,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "potted_plant_medium": {
+      "x": 964,
+      "y": 615,
+      "w": 105,
+      "h": 265,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "potted_plant_tall": {
+      "x": 964,
+      "y": 615,
+      "w": 105,
+      "h": 265,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "flowerbox_purple": {
+      "x": 964,
+      "y": 615,
+      "w": 105,
+      "h": 265,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "flowerbox_orange": {
+      "x": 964,
+      "y": 615,
+      "w": 105,
+      "h": 265,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "flowerbox_white": {
+      "x": 964,
+      "y": 615,
+      "w": 105,
+      "h": 265,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "green_hedge_bush_1": {
+      "x": 1080,
+      "y": 668,
+      "w": 105,
+      "h": 212,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "green_hedge_bush_2": {
+      "x": 1080,
+      "y": 668,
+      "w": 105,
+      "h": 212,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    },
+    "clothesline_linens": {
+      "x": 1080,
+      "y": 668,
+      "w": 105,
+      "h": 212,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "ppu": 65
+    }
+  }
+}

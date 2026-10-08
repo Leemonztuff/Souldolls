@@ -153,10 +153,12 @@ export class Bloque44TilesetTestRunner {
       `${bakedIdx.atlasWidth}x${bakedIdx.atlasHeight}`
     );
 
-    const sampleBuilt = GlobalTileRenderer.buildMapGeometry(WorldGraph.getMap('villa_brote'));
+    const villaMap = WorldGraph.getMap('villa_brote');
+    const expectedMaxChunks = Math.ceil(villaMap.width / 16) * Math.ceil(villaMap.height / 16);
+    const sampleBuilt = GlobalTileRenderer.buildMapGeometry(villaMap);
     assert(
-      sampleBuilt.chunkCount > 0 && sampleBuilt.chunkCount <= 4,
-      'Villa Brote (30x24) merges 720 ground tiles into <= 4 chunk meshes (16x16)',
+      sampleBuilt.chunkCount > 0 && sampleBuilt.chunkCount <= expectedMaxChunks,
+      `Villa Brote (${villaMap.width}x${villaMap.height}) merges ${villaMap.width * villaMap.height} ground tiles into <= ${expectedMaxChunks} chunk meshes (16x16)`,
       `chunks=${sampleBuilt.chunkCount}`
     );
 

@@ -60,6 +60,14 @@ export interface EncounterEntry {
   weight: number; // probability weight, e.g. 30 for 30%
 }
 
+export interface MapLandmarkHints {
+  workshopDoor?: { x: number; y: number };
+  marketDoor?: { x: number; y: number };
+  labDoor?: { x: number; y: number };
+  fountainCenter?: { x: number; y: number };
+  northGateCenter?: { x: number; y: number };
+}
+
 export interface MapData {
   id: string;
   name: string;
@@ -82,6 +90,8 @@ export interface MapData {
   sunlightColor?: number;
   skyColor?: number;
   indoor?: boolean;
+  landmarkHints?: MapLandmarkHints;
+  regionBiomes?: ('meadow' | 'town' | 'forest' | 'coastal' | 'mountain' | 'cave')[][];
 }
 
 export interface WorldGraphNode {

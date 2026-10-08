@@ -1,0 +1,390 @@
+{
+  "schema": 1,
+  "meta": {
+    "id": "aldea_marioneta",
+    "name": "Aldea Marioneta",
+    "width": 40,
+    "height": 32,
+    "seed": 47001,
+    "defaultBiome": "meadow"
+  },
+  "border": {
+    "thickness": 2,
+    "material": "tree"
+  },
+  "regions": [
+    {
+      "id": "reg_valley_base",
+      "biome": "meadow",
+      "points": [
+        [1, 1],
+        [39, 1],
+        [39, 31],
+        [1, 31]
+      ],
+      "edgeNoise": 0,
+      "noiseScale": 0.25
+    },
+    {
+      "id": "reg_town_heart",
+      "biome": "town",
+      "points": [
+        [8, 6],
+        [32, 6],
+        [33, 25],
+        [7, 25]
+      ],
+      "edgeNoise": 1.2,
+      "noiseScale": 0.22
+    }
+  ],
+  "paths": [
+    {
+      "id": "path_main_north_plaza",
+      "rank": "main",
+      "surface": "cobble",
+      "points": [
+        [20, 1],
+        [20, 12]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_main_south_plaza",
+      "rank": "main",
+      "surface": "cobble",
+      "points": [
+        [20, 18],
+        [20, 27]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_main_west_plaza",
+      "rank": "main",
+      "surface": "cobble",
+      "points": [
+        [1, 16],
+        [17, 16]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_main_east_plaza",
+      "rank": "main",
+      "surface": "cobble",
+      "points": [
+        [23, 16],
+        [34, 16]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_north_avenue",
+      "rank": "secondary",
+      "surface": "path",
+      "points": [
+        [6, 9],
+        [20, 9],
+        [33, 9]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_south_artisan_loop",
+      "rank": "secondary",
+      "surface": "path",
+      "points": [
+        [6, 25],
+        [20, 25],
+        [33, 25]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_west_connector",
+      "rank": "trail",
+      "surface": "dirt",
+      "points": [
+        [13, 9],
+        [13, 16],
+        [13, 25]
+      ],
+      "widthJitter": 0
+    },
+    {
+      "id": "path_east_connector",
+      "rank": "trail",
+      "surface": "dirt",
+      "points": [
+        [26, 9],
+        [26, 16],
+        [26, 25]
+      ],
+      "widthJitter": 0
+    }
+  ],
+  "patches": [
+    {
+      "id": "patch_west_flowers",
+      "type": "flowers",
+      "center": [13, 6],
+      "radius": 2.8,
+      "aspect": 1.2,
+      "rotation": 15,
+      "noise": 0.28
+    },
+    {
+      "id": "patch_east_lab_flowers",
+      "type": "flowers",
+      "center": [24, 5],
+      "radius": 2.6,
+      "aspect": 1.15,
+      "rotation": -20,
+      "noise": 0.28
+    },
+    {
+      "id": "patch_south_meadow_flowers",
+      "type": "flowers",
+      "center": [20, 28],
+      "radius": 3.0,
+      "aspect": 1.35,
+      "rotation": 5,
+      "noise": 0.3
+    },
+    {
+      "id": "patch_southwest_clearing",
+      "type": "clearing",
+      "center": [13, 21],
+      "radius": 2.7,
+      "aspect": 1.1,
+      "rotation": 10,
+      "noise": 0.26
+    },
+    {
+      "id": "patch_southeast_clearing",
+      "type": "clearing",
+      "center": [25, 21],
+      "radius": 2.7,
+      "aspect": 1.1,
+      "rotation": -10,
+      "noise": 0.26
+    }
+  ],
+  "stamps": [
+    {
+      "id": "st_stone_gate_north",
+      "stampId": "stone_gate",
+      "x": 18,
+      "y": 0,
+      "rot": 0,
+      "label": "Portón de Piedra Norte"
+    },
+    {
+      "id": "st_fountain_plaza",
+      "stampId": "fountain_plaza",
+      "x": 17,
+      "y": 12,
+      "rot": 0,
+      "label": "Plaza Central con Fuente"
+    },
+    {
+      "id": "st_player_house",
+      "stampId": "house_small",
+      "x": 5,
+      "y": 4,
+      "rot": 0,
+      "label": "Refugio del Soultrainer"
+    },
+    {
+      "id": "st_lab",
+      "stampId": "lab",
+      "x": 28,
+      "y": 3,
+      "rot": 0,
+      "label": "Laboratorio del Maestro Artífice"
+    },
+    {
+      "id": "st_workshop",
+      "stampId": "workshop",
+      "x": 4,
+      "y": 11,
+      "rot": 0,
+      "label": "Taller de Artífices"
+    },
+    {
+      "id": "st_market",
+      "stampId": "market",
+      "x": 28,
+      "y": 11,
+      "rot": 0,
+      "label": "Mercado de Artífices"
+    },
+    {
+      "id": "st_house_southwest",
+      "stampId": "house_small",
+      "x": 5,
+      "y": 20,
+      "rot": 0,
+      "label": "Casa del Artesano Oeste"
+    },
+    {
+      "id": "st_house_southeast",
+      "stampId": "house_medium",
+      "x": 29,
+      "y": 19,
+      "rot": 0,
+      "label": "Casa del Gremio Este"
+    },
+    {
+      "id": "st_garden_west",
+      "stampId": "garden_plot",
+      "x": 3,
+      "y": 8,
+      "rot": 0,
+      "label": "Huerto del Refugio"
+    },
+    {
+      "id": "st_village_well",
+      "stampId": "well",
+      "x": 14,
+      "y": 12,
+      "rot": 0,
+      "label": "Pozo Antiguo"
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "lm_spawn_home",
+      "role": "spawn",
+      "x": 7,
+      "y": 8,
+      "label": "Entrada del Refugio"
+    },
+    {
+      "id": "lm_exit_north_route",
+      "role": "exit",
+      "x": 20,
+      "y": 1,
+      "label": "Salida Norte hacia Ruta Claro",
+      "targetMap": "ruta_claro"
+    },
+    {
+      "id": "lm_exit_west_coast",
+      "role": "exit",
+      "x": 1,
+      "y": 16,
+      "label": "Camino Oeste hacia Puerto Marea",
+      "targetMap": "pueblo_costero"
+    },
+    {
+      "id": "lm_plaza_focus",
+      "role": "focus",
+      "x": 20,
+      "y": 15,
+      "label": "Fuente de Resonancia Central"
+    },
+    {
+      "id": "lm_south_rest",
+      "role": "rest",
+      "x": 20,
+      "y": 25,
+      "label": "Mirador Sur de la Aldea"
+    },
+    {
+      "id": "lm_west_crossroad_rest",
+      "role": "rest",
+      "x": 13,
+      "y": 16,
+      "label": "Descanso del Pozo Antiguo"
+    },
+    {
+      "id": "lm_east_crossroad_rest",
+      "role": "rest",
+      "x": 26,
+      "y": 16,
+      "label": "Cruce de los Artífices"
+    },
+    {
+      "id": "lm_garden_secret",
+      "role": "secret",
+      "x": 4,
+      "y": 9,
+      "label": "Secreto del Huerto"
+    }
+  ],
+  "signs": [
+    {
+      "x": 9,
+      "y": 8,
+      "interactLabel": "Leer",
+      "text": "REFUGIO DEL ALMA\n\"Hogar del joven Soultrainer.\""
+    },
+    {
+      "x": 30,
+      "y": 9,
+      "interactLabel": "Leer",
+      "text": "LABORATORIO DEL MAESTRO ARTÍFICE\n\"Investigación sobre la resonancia entre Almas y Cuerpos.\""
+    },
+    {
+      "x": 9,
+      "y": 16,
+      "interactLabel": "Leer",
+      "text": "TALLER DE ARTÍFICES\n\"Purga de ki, reparación de Cuerpos y Reencarnación.\""
+    },
+    {
+      "x": 30,
+      "y": 16,
+      "interactLabel": "Leer",
+      "text": "MERCADO DE ARTÍFICES\n\"Soul Bottles, Elixires de ki y suministros de contención.\""
+    },
+    {
+      "x": 22,
+      "y": 2,
+      "interactLabel": "Leer",
+      "text": "NORTE: RUTA CLARO\n\"Precaución: almas errantes entre la hierba alta.\""
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_guide_leo",
+      "name": "Guía Leo",
+      "paletteId": "hiker",
+      "x": 18,
+      "y": 4,
+      "direction": "down",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "¡Bienvenido a Aldea Marioneta!",
+        "Al norte se extiende Ruta Claro, donde las almas errantes resuenan entre la hierba alta.",
+        "Recuerda visitar primero el Laboratorio del Maestro Artífice y el Taller de Artífices."
+      ]
+    },
+    {
+      "id": "npc_girl_mia",
+      "name": "Joven Mía",
+      "paletteId": "lass",
+      "x": 16,
+      "y": 15,
+      "direction": "right",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "El agua de la fuente central refleja el ki tranquilo de nuestra aldea.",
+        "Si las partes del Cuerpo de tu Souldoll sufren daños, llévala al Taller de Artífices."
+      ]
+    },
+    {
+      "id": "npc_prof_roble",
+      "name": "Maestro Artífice",
+      "paletteId": "professor",
+      "x": 31,
+      "y": 9,
+      "direction": "down",
+      "interactLabel": "Hablar",
+      "dialogueLines": [
+        "¡Ah, joven Soultrainer! Tu ki sin afinidad fija puede armonizar con cualquier alma.",
+        "Entra a mi Laboratorio cuando estés listo para vincular tu primera Soul Bottle a un Cuerpo."
+      ]
+    }
+  ]
+}

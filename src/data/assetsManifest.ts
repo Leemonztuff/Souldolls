@@ -14,6 +14,7 @@ export interface SouldollSpriteManifestEntry {
   speciesId: string;
   name: string;
   element: string;
+  sourceRawSheet?: string;
   sheetPath: string;
   atlasPath: string;
   size: [number, number];

@@ -6,10 +6,12 @@ import { GlobalInput } from '../core/Input';
 import { GlobalAudioService } from '../services/AudioService';
 import { GlobalSaveService } from '../services/SaveService';
 import { GlobalVFXSystem } from '../render/vfx/VFXSystem';
+import { CombatFXSystem } from '../render/vfx/CombatFXSystem';
 import { BattleEngine, BattleEngineConfig } from '../systems/battle/BattleEngine';
 import { BattlePlayer } from '../systems/battle/BattlePlayer';
 import { BattleAction, BattleSide } from '../systems/battle/BattleTypes';
 import { DamageCalculator } from '../systems/battle/DamageCalculator';
+import { ExpCalculator } from '../systems/battle/ExpCalculator';
 import { CREATURES_DATA } from '../data/creatures/creatures';
 import { MOVES_DATA } from '../data/moves/moves';
 import { ITEMS_DATA } from '../data/items/items';
@@ -22,16 +24,17 @@ import { HumanoidPartSilhouette } from '../render/ui/HumanoidPartSilhouette';
 import { BodyPart } from '../types/bodies';
 import { GlobalTheme } from '../data/theme/ThemeManager';
 import { COLOR_NUM, COLOR_HEX, FONTS, COLOR_SEMANTIC } from '../ui/styles';
-import { KitCard, KitButton, IconRegistry, UIKitLinter } from '../ui/kit';
+import { KitCard, KitButton, KitDivider, IconRegistry, UIKitLinter } from '../ui/kit';
 import { PokedexSystem } from '../systems/PokedexSystem';
 import { SOUL_SPECIES_DATA } from '../data/souldolls/souls';
 import battleConfigRaw from '../data/config/battle.json';
+import esText from '../data/text/es.json';
 
 export type BiomeType = 'pasto' | 'bosque' | 'cueva' | 'interior';
 
 export interface BattleSceneParams extends BattleEngineConfig {
   biome?: BiomeType;
-  onBattleEnd?: (victory: boolean, capturedCreature?: CreatureInstance) => void;
+  onBattleEnd?: (victory: boolean, capturedCreature?: CreatureInstance) => void | Promise<void>;
 }
 
 interface BattleLayoutRect {
@@ -75,6 +78,7 @@ export class BattleScene implements IScene {
 
   private engine!: BattleEngine;
   private player!: BattlePlayer;
+  public combatFX!: CombatFXSystem;
   private biome: BiomeType = 'pasto';
   private layout!: ComputedBattleLayout;
 
@@ -133,10 +137,13 @@ export class BattleScene implements IScene {
   private currentMenuState: 'main' | 'fight' | 'bag' | 'party' | 'busy' | 'summary' = 'main';
   private selectedIndex = 0;
   private menuItemsContainers: Container[] = [];
-  private onBattleEndCallback?: (victory: boolean, capturedCreature?: CreatureInstance) => void;
+  private onBattleEndCallback?: (victory: boolean, capturedCreature?: CreatureInstance) => void | Promise<void>;
   private summaryOverlayContainer: Container | null = null;
   private summaryTooltipContainer: Container | null = null;
   private summaryDoneResolver?: () => void;
+  private summaryEntranceComplete = false;
+  private summaryAnimInterval: ReturnType<typeof setInterval> | null = null;
+  private lastRenderedExpRatio = 0;
 
   // Debug State (Bloque 37, 38 & 39)
   private debugVisible = false;
@@ -187,8 +194,12 @@ export class BattleScene implements IScene {
       }
     });
 
-    // 3. Init VFX System
+    // 3. Init VFX System & PixiJS v8 CombatFXSystem
     GlobalVFXSystem.init(this.container);
+    this.combatFX = new CombatFXSystem(this.container, undefined, (intensity, duration) => {
+      GlobalVFXSystem.screenShake(intensity, duration);
+    });
+    GlobalVFXSystem.attachCombatFX(this.combatFX);
 
     // 4. Play Entrance Transition (Swirl / Curtain Flash)
     await this.playEntranceTransition();
@@ -424,7 +435,7 @@ export class BattleScene implements IScene {
   private applyCreatureSpritesAndScales(): void {
     const { enemyPlatform, allyPlatform, allyTargetHeight, enemyTargetHeight } = this.layout;
     const battleViews = (battleConfigRaw as any).battleViews || {
-      ally: { view: 'view_back34', flipX: true },
+      ally: { view: 'view_back34', flipX: false },
       enemy: { view: 'view_front34', flipX: true },
     };
 
@@ -434,18 +445,13 @@ export class BattleScene implements IScene {
     const plCreature = this.engine.getPlayerActive();
     const opCreature = this.engine.getOpponentActive();
 
-    // --- ALLY (Abajo-Izquierda: de espaldas 3/4, mirando arriba-derecha hacia la enemiga) ---
+    // --- ALLY (Abajo-Izquierda: en los spritesheets nuevos mira a la derecha por defecto, flipX = false) ---
     let allyView = (this.debugAllyViewOverride || battleViews.ally?.view || 'view_back34') as SpriteView;
-    let allyFlipX = this.debugAllyFlipOverride !== null ? this.debugAllyFlipOverride : Boolean(battleViews.ally?.flipX ?? true);
+    let allyFlipX = this.debugAllyFlipOverride !== null ? this.debugAllyFlipOverride : Boolean(battleViews.ally?.flipX ?? false);
 
     if (allyView === 'view_back34' && !GlobalAssetRegistry.hasRealCreatureView(plCreature.speciesId, 'view_back34')) {
       allyView = 'view_back';
       if (this.debugAllyFlipOverride === null) allyFlipX = false;
-    } else {
-      const allyMeta = GlobalAssetRegistry.getCreatureFrameMeta(plCreature.speciesId, allyView);
-      if (allyMeta.native && this.debugAllyFlipOverride === null) {
-        allyFlipX = false;
-      }
     }
 
     this.playerView = allyView;
@@ -457,7 +463,7 @@ export class BattleScene implements IScene {
     this.playerSprite.timeScale = this.debugSlowMotion ? 0.25 : 1.0;
     this.playerSprite.setIdleMeta(this.getEffectiveIdleMeta(plCreature.speciesId, allyView));
 
-    const plNativeH = Math.max(1, plTex.height || 160);
+    const plNativeH = Math.max(1, plTex.height || 122);
     let plScale = this.debugNativeSize
       ? 1
       : this.debugIntegerScale
@@ -472,19 +478,13 @@ export class BattleScene implements IScene {
     this.playerBaseY = Math.round(allyPlatform.cy);
     this.playerSprite.position.set(this.playerBaseX, this.playerBaseY);
 
-    // --- ENEMY (Arriba-Derecha: de frente 3/4, mirando abajo-izquierda hacia el jugador) ---
+    // --- ENEMY (Arriba-Derecha: en el arte 3/4 mira a la derecha por defecto, por lo que requiere flipX = true para mirar a la izquierda hacia la aliada) ---
     let enemyView = (this.debugEnemyViewOverride || battleViews.enemy?.view || 'view_front34') as SpriteView;
     let enemyFlipX =
       this.debugEnemyFlipOverride !== null ? this.debugEnemyFlipOverride : Boolean(battleViews.enemy?.flipX ?? true);
 
     if (enemyView === 'view_front34' && !GlobalAssetRegistry.hasRealCreatureView(opCreature.speciesId, 'view_front34')) {
       enemyView = 'view_front';
-      if (this.debugEnemyFlipOverride === null) enemyFlipX = false;
-    } else {
-      const enemyMeta = GlobalAssetRegistry.getCreatureFrameMeta(opCreature.speciesId, enemyView);
-      if (enemyMeta.native && this.debugEnemyFlipOverride === null) {
-        enemyFlipX = false;
-      }
     }
 
     this.opponentView = enemyView;
@@ -496,7 +496,7 @@ export class BattleScene implements IScene {
     this.opponentSprite.timeScale = this.debugSlowMotion ? 0.25 : 1.0;
     this.opponentSprite.setIdleMeta(this.getEffectiveIdleMeta(opCreature.speciesId, enemyView));
 
-    const opNativeH = Math.max(1, opTex.height || 160);
+    const opNativeH = Math.max(1, opTex.height || 122);
     let opScale = this.debugNativeSize
       ? 1
       : this.debugIntegerScale
@@ -739,7 +739,9 @@ export class BattleScene implements IScene {
     // Initial render of fills and silhouettes
     this.renderHpBar('player', plCreature.currentHp, plCreature.maxHp);
     this.renderHpBar('opponent', opCreature.currentHp, opCreature.maxHp);
-    this.renderExpBar(plCreature.currentExp, plCreature.maxHp * 10);
+    const initExpProg = this.getCreatureExpProgress(plCreature);
+    this.lastRenderedExpRatio = initExpProg.ratio;
+    this.renderExpBar(initExpProg.current, initExpProg.max);
     this.updateSilhouettes();
 
     UIKitLinter.inspectTree(this.hudContainer, 'BattleHUD');
@@ -1184,12 +1186,19 @@ export class BattleScene implements IScene {
     this.submitPlayerAction({ type: 'flee' });
   }
 
+  private isEndingBattle = false;
+
   private async submitPlayerAction(action: BattleAction): Promise<void> {
+    if (this.currentMenuState === 'busy' || this.isEndingBattle) return;
     this.currentMenuState = 'busy';
     this.clearSubmenus();
 
-    const turnEvents = this.engine.executeTurn(action);
-    await this.player.playEvents(turnEvents);
+    try {
+      const turnEvents = this.engine.executeTurn(action);
+      await this.player.playEvents(turnEvents);
+    } catch (err) {
+      console.error('[BattleScene] Error playing turn events:', err);
+    }
 
     if (this.engine.isBattleOver) {
       await this.handleBattleEnd();
@@ -1198,63 +1207,163 @@ export class BattleScene implements IScene {
     }
   }
 
-  private async handleBattleEnd(): Promise<void> {
-    if (this.engine.victory) {
-      GlobalAudioService.playVictoryTheme();
-      const captured = this.engine.capturedCreature || undefined;
+  private getCreatureExpProgress(creature: CreatureInstance): { current: number; max: number; ratio: number } {
+    const sp = SOUL_SPECIES_DATA[creature.speciesId];
+    const evalRes = ExpCalculator.evaluateExp(
+      creature.currentExp || 0,
+      creature.level || 1,
+      sp?.expGroup || 'medium_fast'
+    );
+    const max = Math.max(1, evalRes.expForNextLevel);
+    const current = Math.max(0, Math.min(max, evalRes.expIntoCurrentLevel));
+    return {
+      current,
+      max,
+      ratio: Math.max(0, Math.min(1, current / max)),
+    };
+  }
 
-      // Register captured Souldoll immediately so opening its sheet from the summary shows the real roster
-      if (captured) {
-        const saveState = GlobalSaveService.getCurrentState();
-        PokedexSystem.markCaught(captured.speciesId);
-        const alreadyInParty = saveState.party.some((c) => c.uid === captured.uid);
-        const alreadyInStorage = (saveState.storage || []).some((c) => c.uid === captured.uid);
-        if (!alreadyInParty && !alreadyInStorage) {
-          if (saveState.party.length < 6) {
-            saveState.party.push(captured);
-          } else {
-            if (!saveState.storage) saveState.storage = [];
-            saveState.storage.push(captured);
-          }
+  /**
+   * Executes and awaits the full on-field victory animation sequence:
+   * 1. Waits for any ongoing attack, faint, or capture animation to complete.
+   * 2. Switches the player's Souldoll to the 'victory' pose.
+   * 3. Plays the victory theme, celebratory hops, and golden/cyan ki aura VFX.
+   * 4. Holds the victory pose on the battlefield so the player sees the celebration finish
+   *    before the Post-Battle EXP & Item Drops UI appears.
+   */
+  public async animateVictorySequence(captured?: CreatureInstance): Promise<void> {
+    let waitTicks = 0;
+    while (this.isActionAnimating && waitTicks < 40) {
+      await this.sleep(30);
+      waitTicks++;
+    }
+
+    this.isActionAnimating = true;
+    GlobalAudioService.playVictoryTheme();
+
+    if (this.playerSprite && !this.playerSprite.destroyed) {
+      this.playerSprite.visible = true;
+      this.playerSprite.alpha = 1.0;
+      this.playerSprite.tint = 0xffffff;
+      this.playerSprite.rotation = 0;
+      this.playerSprite.setPaused(false);
+    }
+
+    this.setCombatPose('player', 'victory');
+
+    const activePlayer = this.engine.getPlayerActive();
+    const activeName = (activePlayer?.nickname || activePlayer?.speciesId || 'Souldoll').toUpperCase();
+    this.narratorText.text = captured
+      ? `¡Vínculo completado! ¡${activeName} celebra la captura!`
+      : `¡Victoria! ¡${activeName} ha triunfado en el combate!`;
+
+    const playerPos = this.getSpritePosition('player');
+    const origY = this.playerBaseY;
+
+    // Emit celebratory aura & ki sparkles around the victorious Souldoll
+    const vfxPromise = GlobalVFXSystem.playPresetVfx(
+      'victory_burst',
+      playerPos.x,
+      playerPos.y - 16,
+      playerPos.x,
+      playerPos.y - 16,
+      COLOR_HEX.gold,
+      COLOR_HEX.cyan
+    );
+
+    // Perform two crisp integer-pixel celebratory hops on the player's Souldoll
+    if (this.playerSprite && !this.playerSprite.destroyed) {
+      for (let hop = 0; hop < 2; hop++) {
+        this.playerSprite.applyImpulse(-18);
+        const hopOffsets = [-6, -12, -14, -10, -4, 0];
+        for (const dy of hopOffsets) {
+          if (!this.playerSprite || this.playerSprite.destroyed) break;
+          this.playerSprite.position.y = Math.round(origY + dy);
+          await this.sleep(28);
         }
-        GlobalSaveService.save();
-      } else {
-        await this.showNarratorMessage('¡Has ganado el combate!');
+        await this.sleep(60);
       }
-
-      // Show Post-Battle & Capture Summary Modal (Loot + Capture + Sheet Button + Opacity Comparison Tooltip)
-      await this.showPostBattleSummary();
-
-      // Hook for Evolution Check (Bloque 10)
-      this.checkEvolutionHook();
-
-      if (this.onBattleEndCallback) {
-        this.onBattleEndCallback(true, captured);
-      } else {
-        GlobalSceneManager.popScene();
+      if (this.playerSprite && !this.playerSprite.destroyed) {
+        this.playerSprite.position.y = Math.round(origY);
       }
-    } else {
-      await this.showNarratorMessage('¡Te has quedado sin Souldolls activas! Regresas al Taller de Artífices.');
-      const saveState = GlobalSaveService.getCurrentState();
-      saveState.player.money = Math.floor(saveState.player.money / 2);
-      saveState.party.forEach((c) => {
-        c.currentHp = c.maxHp;
-        c.status = null;
-        c.moves.forEach((m) => (m.currentPp = m.maxPp));
-      });
-      GlobalSaveService.save();
+    }
 
-      if (this.onBattleEndCallback) {
-        this.onBattleEndCallback(false);
+    await vfxPromise;
+    // Hold the completed victory screen pose briefly before opening the reward summary UI
+    await this.sleep(420);
+    this.isActionAnimating = false;
+  }
+
+  private async handleBattleEnd(): Promise<void> {
+    if (this.isEndingBattle) return;
+    this.isEndingBattle = true;
+
+    try {
+      if (this.engine.victory) {
+        const captured = this.engine.capturedCreature || undefined;
+
+        // Register captured Souldoll immediately so opening its sheet from the summary shows the real roster
+        if (captured) {
+          const saveState = GlobalSaveService.getCurrentState();
+          PokedexSystem.markCaught(captured.speciesId);
+          const alreadyInParty = saveState.party.some((c) => c.uid === captured.uid);
+          const alreadyInStorage = (saveState.storage || []).some((c) => c.uid === captured.uid);
+          if (!alreadyInParty && !alreadyInStorage) {
+            if (saveState.party.length < 6) {
+              saveState.party.push(captured);
+            } else {
+              if (!saveState.storage) saveState.storage = [];
+              saveState.storage.push(captured);
+            }
+          }
+          GlobalSaveService.save();
+        }
+
+        // Wait for the complete victory animation sequence on the battlefield before showing the EXP & Loot UI
+        await this.animateVictorySequence(captured);
+
+        // Show Post-Battle EXP & Item Drops Summary UI Component
+        await this.showPostBattleSummary();
+
+        // Check if active Souldoll is eligible to Ascend (Evolution) after battle ends
+        const pendingEvolution = this.getPendingEvolution();
+
+        if (this.onBattleEndCallback) {
+          await this.onBattleEndCallback(true, captured);
+        } else {
+          await GlobalSceneManager.popScene();
+        }
+
+        // Push EvolutionScene AFTER popping BattleScene so SceneManager pops Battle cleanly first
+        if (pendingEvolution) {
+          await GlobalSceneManager.pushScene('Evolution', pendingEvolution);
+        }
       } else {
-        GlobalSceneManager.popScene();
-        GlobalSceneManager.pushScene('Overworld', {
-          mapId: 'interior_center',
-          x: 5,
-          y: 6,
-          dir: 'up',
+        await this.showNarratorMessage('¡Te has quedado sin Souldolls activas! Regresas al Taller de Artífices.');
+        const saveState = GlobalSaveService.getCurrentState();
+        saveState.player.money = Math.floor(saveState.player.money / 2);
+        saveState.party.forEach((c) => {
+          c.currentHp = c.maxHp;
+          c.status = null;
+          c.moves.forEach((m) => (m.currentPp = m.maxPp));
         });
+        GlobalSaveService.save();
+
+        if (this.onBattleEndCallback) {
+          await this.onBattleEndCallback(false);
+        } else {
+          await GlobalSceneManager.popScene();
+          await GlobalSceneManager.pushScene('Overworld', {
+            mapId: 'interior_center',
+            x: 5,
+            y: 6,
+            dir: 'up',
+          });
+        }
       }
+    } catch (err) {
+      console.error('[BattleScene] Error in handleBattleEnd:', err);
+      await GlobalSceneManager.popScene();
     }
   }
 
@@ -1272,7 +1381,7 @@ export class BattleScene implements IScene {
   }
 
   private formatEquipEffectSummary(itemId: string | null | undefined): string {
-    if (!itemId || !ITEMS_DATA[itemId]) return 'Ranura vacía (Sin bonificación)';
+    if (!itemId || !ITEMS_DATA[itemId]) return 'Ranura vacía — Sin bonificación';
     const item = ITEMS_DATA[itemId];
     const eff = item.effect;
     if (eff.type === 'weapon_stat') {
@@ -1297,13 +1406,22 @@ export class BattleScene implements IScene {
     return `Comparación directa: ATQ ${fmt(dAtk)}  |  ATQ.ESP ${fmt(dSpAtk)}`;
   }
 
+  private clearSummaryAnimInterval(): void {
+    if (this.summaryAnimInterval !== null) {
+      clearInterval(this.summaryAnimInterval);
+      this.summaryAnimInterval = null;
+    }
+  }
+
   public async showPostBattleSummary(): Promise<void> {
     this.currentMenuState = 'summary';
+    this.summaryEntranceComplete = false;
     this.clearSubmenus();
     this.renderPostBattleSummaryUI();
 
     return new Promise<void>((resolve) => {
       this.summaryDoneResolver = () => {
+        this.clearSummaryAnimInterval();
         if (this.summaryOverlayContainer && !this.summaryOverlayContainer.destroyed) {
           this.summaryOverlayContainer.destroy({ children: true });
         }
@@ -1316,10 +1434,12 @@ export class BattleScene implements IScene {
   }
 
   private renderPostBattleSummaryUI(): void {
+    this.clearSummaryAnimInterval();
     if (this.summaryOverlayContainer && !this.summaryOverlayContainer.destroyed) {
       this.summaryOverlayContainer.destroy({ children: true });
     }
 
+    const i18nSummary = esText.terms.group_c.battle_summary;
     const { width, height } = this.layout;
     const textRes = this.getTextRes();
     const isMobile = width < 640;
@@ -1333,7 +1453,8 @@ export class BattleScene implements IScene {
     // 1. Semi-transparent backdrop blocking background taps
     const dimmer = new Graphics();
     dimmer.rect(0, 0, width, height);
-    dimmer.fill({ color: COLOR_NUM.black, alpha: 0.72 });
+    dimmer.fill({ color: COLOR_NUM.black, alpha: 0.76 });
+    dimmer.alpha = 0;
     dimmer.eventMode = 'static';
     dimmer.on('pointerdown', () => {
       if (this.summaryTooltipContainer) {
@@ -1348,11 +1469,14 @@ export class BattleScene implements IScene {
     const moneyGained = this.engine.moneyReward || 0;
     const levelUps = this.engine.levelUpRecords || [];
 
-    const modalW = Math.min(540, width - 20);
+    const maxVisibleLoot = Math.min(lootList.length, 4);
     const hasCapture = Boolean(captured);
-    const baseH = hasCapture ? 410 : 340;
-    const extraLootRows = Math.max(0, lootList.length - 2) * 44;
-    const modalH = Math.min(height - 24, baseH + extraLootRows);
+    const modalW = Math.min(548, width - 16);
+    const expSectionH = 92;
+    const capSectionH = hasCapture ? 88 : 0;
+    const lootSectionH = 26 + (maxVisibleLoot === 0 ? 44 : maxVisibleLoot * 48);
+    const desiredH = 44 + expSectionH + 10 + (hasCapture ? capSectionH + 10 : 0) + lootSectionH + 62;
+    const modalH = Math.min(height - 16, Math.max(330, desiredH));
     const modalX = Math.round((width - modalW) / 2);
     const modalY = Math.round((height - modalH) / 2);
 
@@ -1360,65 +1484,227 @@ export class BattleScene implements IScene {
       width: modalW,
       height: modalH,
       variant: 'inkCrypt',
-      title: hasCapture ? 'RESEÑA DE CAPTURA Y BOTÍN' : 'RESEÑA DE VICTORIA Y BOTÍN',
+      title: hasCapture ? i18nSummary.title_capture : i18nSummary.title_victory,
     });
-    card.position.set(modalX, modalY);
+    card.position.set(modalX, Math.round(modalY + 12));
+    card.alpha = 0;
     card.eventMode = 'static';
     overlay.addChild(card);
 
     let cursorY = 38;
+    const innerW = modalW - 28;
 
-    // 2. Experience, Level-Up & Money Summary Banner
-    const expBanner = new Graphics();
-    expBanner.roundRect(14, cursorY, modalW - 28, 36, 6);
-    expBanner.fill({ color: COLOR_NUM.smokedWood, alpha: 0.92 });
-    expBanner.stroke({ color: COLOR_NUM.bronze, width: 1.5 });
-    card.addChild(expBanner);
+    // =========================================================================
+    // 2. EXPERIENCE POINTS & ACTIVE SOULDOLL PROGRESSION PANEL
+    // =========================================================================
+    const expPanel = new Graphics();
+    expPanel.roundRect(14, cursorY, innerW, expSectionH, 8);
+    expPanel.fill({ color: COLOR_NUM.smokedWood, alpha: 0.96 });
+    expPanel.stroke({
+      color: levelUps.length > 0 ? COLOR_NUM.gold : COLOR_NUM.bronze,
+      width: levelUps.length > 0 ? 2 : 1.5,
+    });
+    card.addChild(expPanel);
 
     const activePlayer = this.engine.getPlayerActive();
-    const activeName = (activePlayer.nickname || activePlayer.speciesId).toUpperCase();
-    const expParts: string[] = [];
-    if (totalExp > 0) expParts.push(`${activeName}: +${totalExp} EXP`);
-    if (levelUps.length > 0) {
-      expParts.push(`¡Subió a Nv.${levelUps[levelUps.length - 1].newLevel}!`);
-    }
-    if (moneyGained > 0) expParts.push(`+$${moneyGained}`);
-    if (expParts.length === 0 && hasCapture) {
-      expParts.push('¡Vínculo de resonancia completado con éxito!');
-    }
+    const activeSpecies = SOUL_SPECIES_DATA[activePlayer.speciesId];
+    const activeName = (activePlayer.nickname || activeSpecies?.name || activePlayer.speciesId).toUpperCase();
+    const expProg = this.getCreatureExpProgress(activePlayer);
 
-    const expTxt = new Text({
-      text: expParts.join('  ·  '),
+    // Portrait frame for the victorious Souldoll
+    const portraitFrame = new Graphics();
+    portraitFrame.roundRect(22, cursorY + 8, 60, expSectionH - 16, 6);
+    portraitFrame.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
+    portraitFrame.stroke({ color: COLOR_NUM.gold, width: 1.5 });
+    card.addChild(portraitFrame);
+
+    const activeTex = GlobalAssetRegistry.getCreatureSpritePixi(activePlayer.speciesId, 'victory');
+    const activeSpr = new Sprite(activeTex);
+    activeSpr.anchor.set(0.5, 1.0);
+    const maxPortraitH = expSectionH - 22;
+    const sprScale = Math.max(0.35, Math.min(1, maxPortraitH / Math.max(1, activeTex.height || 140)));
+    activeSpr.scale.set(sprScale);
+    activeSpr.position.set(52, Math.round(cursorY + expSectionH - 11));
+    card.addChild(activeSpr);
+
+    // Unit Name + Level / Level-Up Badge
+    const infoLeftX = 92;
+    const unitTitle = new Text({
+      text: `${activeName} · Nv.${activePlayer.level}`,
       resolution: textRes,
       style: new TextStyle({
         fontFamily: FONTS.hud,
-        fontSize: isMobile ? 12 : 14,
+        fontSize: 16,
         fontWeight: 'bold',
-        fill: COLOR_HEX.gold,
+        fill: COLOR_HEX.parchment,
       }),
     });
-    expTxt.roundPixels = true;
-    expTxt.position.set(24, cursorY + 9);
-    card.addChild(expTxt);
-    cursorY += 44;
+    unitTitle.roundPixels = true;
+    unitTitle.position.set(infoLeftX, cursorY + 8);
+    card.addChild(unitTitle);
 
-    // 3. Captured Souldoll Section (with Sprite, Info & Direct Button to Sheet)
+    // EXP Gained Animated Counter Pill (Top-Right of EXP Panel)
+    const expPillW = isMobile ? 108 : 124;
+    const expPillX = 14 + innerW - expPillW - 8;
+    const expPill = new Graphics();
+    expPill.roundRect(expPillX, cursorY + 7, expPillW, 24, 4);
+    expPill.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
+    expPill.stroke({ color: COLOR_NUM.soulViolet, width: 1.5 });
+    card.addChild(expPill);
+
+    const expSparkIcon = IconRegistry.create('spark', 14);
+    expSparkIcon.position.set(expPillX + 6, cursorY + 12);
+    card.addChild(expSparkIcon);
+
+    const expGainValueTxt = new Text({
+      text: `+0 EXP`,
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.hud,
+        fontSize: 14,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.cyan,
+      }),
+    });
+    expGainValueTxt.roundPixels = true;
+    expGainValueTxt.position.set(expPillX + 24, cursorY + 10);
+    card.addChild(expGainValueTxt);
+
+    // Secondary row: Level-Up badge or Sync + Money rewards
+    const row2Y = cursorY + 33;
+    let badgeCursorX = infoLeftX;
+
+    if (levelUps.length > 0) {
+      const lvUpLevel = levelUps[levelUps.length - 1].newLevel;
+      const lvBadgeStr = i18nSummary.level_up_badge.replace('{level}', String(lvUpLevel));
+      const lvIcon = IconRegistry.create('star_full', 14);
+      lvIcon.position.set(badgeCursorX, row2Y + 2);
+      card.addChild(lvIcon);
+
+      const lvUpTxt = new Text({
+        text: lvBadgeStr,
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 12,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.ok,
+        }),
+      });
+      lvUpTxt.roundPixels = true;
+      lvUpTxt.position.set(badgeCursorX + 18, row2Y);
+      card.addChild(lvUpTxt);
+      badgeCursorX += Math.round(lvUpTxt.width + 28);
+    } else {
+      const syncIcon = IconRegistry.create('heart_full', 14);
+      syncIcon.position.set(badgeCursorX, row2Y + 2);
+      card.addChild(syncIcon);
+
+      const syncTxt = new Text({
+        text: i18nSummary.sync_bonus,
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 12,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.porcelainPink,
+        }),
+      });
+      syncTxt.roundPixels = true;
+      syncTxt.position.set(badgeCursorX + 18, row2Y);
+      card.addChild(syncTxt);
+      badgeCursorX += Math.round(syncTxt.width + 28);
+    }
+
+    if (moneyGained > 0) {
+      const coinIcon = IconRegistry.create('coin', 14);
+      coinIcon.position.set(badgeCursorX, row2Y + 2);
+      card.addChild(coinIcon);
+
+      const moneyTxt = new Text({
+        text: `+${moneyGained} Monedas`,
+        resolution: textRes,
+        style: new TextStyle({
+          fontFamily: FONTS.body,
+          fontSize: 12,
+          fontWeight: 'bold',
+          fill: COLOR_HEX.gold,
+        }),
+      });
+      moneyTxt.roundPixels = true;
+      moneyTxt.position.set(badgeCursorX + 18, row2Y);
+      card.addChild(moneyTxt);
+    }
+
+    // Animated EXP Progress Bar & Next Level Counter inside Summary Card
+    const expBarX = infoLeftX;
+    const expBarY = cursorY + 56;
+    const expBarW = Math.max(120, 14 + innerW - infoLeftX - 10);
+    const expBarH = 12;
+
+    const expBarTrack = new Graphics();
+    expBarTrack.roundRect(expBarX, expBarY, expBarW, expBarH, 4);
+    expBarTrack.fill({ color: COLOR_NUM.inkCrypt });
+    expBarTrack.stroke({ color: COLOR_NUM.bronze, width: 1 });
+    card.addChild(expBarTrack);
+
+    const expBarFill = new Graphics();
+    card.addChild(expBarFill);
+
+    const pctTarget = Math.round(expProg.ratio * 100);
+    const expProgressSubTxt = new Text({
+      text: `EXP Nivel ${activePlayer.level}: ${expProg.current}/${expProg.max} — ${pctTarget}%`,
+      resolution: textRes,
+      style: new TextStyle({
+        fontFamily: FONTS.body,
+        fontSize: 11,
+        fontWeight: 'bold',
+        fill: COLOR_HEX.smoke,
+      }),
+    });
+    expProgressSubTxt.roundPixels = true;
+    expProgressSubTxt.position.set(expBarX, expBarY + 15);
+    card.addChild(expProgressSubTxt);
+
+    const drawSummaryExpFill = (ratio: number) => {
+      if (expBarFill.destroyed) return;
+      expBarFill.clear();
+      const fillW = Math.max(0, Math.floor((expBarW - 2) * Math.max(0, Math.min(1, ratio))));
+      if (fillW > 0) {
+        expBarFill.roundRect(expBarX + 1, expBarY + 1, fillW, expBarH - 2, 3);
+        expBarFill.fill({ color: levelUps.length > 0 ? COLOR_NUM.gold : COLOR_NUM.soulViolet });
+        if (fillW > 4) {
+          expBarFill.rect(expBarX + fillW - 2, expBarY + 1, 2, expBarH - 2);
+          expBarFill.fill({ color: COLOR_NUM.cyan });
+        }
+      }
+    };
+
+    const startExpRatio =
+      levelUps.length > 0
+        ? 0
+        : Math.max(0, Math.min(1, (expProg.current - totalExp) / Math.max(1, expProg.max)));
+    drawSummaryExpFill(startExpRatio);
+
+    cursorY += expSectionH + 8;
+
+    // =========================================================================
+    // 3. CAPTURED SOULDOLL SECTION (When a Souldoll was captured)
+    // =========================================================================
     if (captured) {
-      const capBoxH = 92;
       const capBox = new Graphics();
-      capBox.roundRect(14, cursorY, modalW - 28, capBoxH, 8);
+      capBox.roundRect(14, cursorY, innerW, capSectionH, 8);
       capBox.fill({ color: COLOR_NUM.smokedWood, alpha: 0.96 });
       capBox.stroke({ color: COLOR_NUM.gold, width: 2 });
       card.addChild(capBox);
 
-      // Mini sprite preview of captured Souldoll
       const capTex = GlobalAssetRegistry.getCreatureSpritePixi(captured.speciesId, 'view_front34');
       const capSpr = new Sprite(capTex);
       capSpr.anchor.set(0.5, 1.0);
-      const targetSprH = 68;
-      const sprScale = Math.max(0.35, Math.min(1, targetSprH / Math.max(1, capTex.height || 160)));
-      capSpr.scale.set(sprScale);
-      capSpr.position.set(54, cursorY + capBoxH - 8);
+      const targetSprH = 64;
+      const capSprScale = Math.max(0.35, Math.min(1, targetSprH / Math.max(1, capTex.height || 160)));
+      capSpr.scale.set(capSprScale);
+      capSpr.position.set(52, cursorY + capSectionH - 8);
       card.addChild(capSpr);
 
       const spData = SOUL_SPECIES_DATA[captured.speciesId];
@@ -1428,13 +1714,13 @@ export class BattleScene implements IScene {
         resolution: textRes,
         style: new TextStyle({
           fontFamily: FONTS.title,
-          fontSize: isMobile ? 13 : 15,
+          fontSize: isMobile ? 14 : 15,
           fontWeight: 'bold',
           fill: COLOR_HEX.gold,
         }),
       });
       capTitle.roundPixels = true;
-      capTitle.position.set(96, cursorY + 10);
+      capTitle.position.set(92, cursorY + 12);
       card.addChild(capTitle);
 
       const capSub = new Text({
@@ -1442,24 +1728,23 @@ export class BattleScene implements IScene {
         resolution: textRes,
         style: new TextStyle({
           fontFamily: FONTS.body,
-          fontSize: isMobile ? 11 : 12,
+          fontSize: 12,
           fontWeight: 'bold',
           fill: COLOR_HEX.parchment,
         }),
       });
       capSub.roundPixels = true;
-      capSub.position.set(96, cursorY + 32);
+      capSub.position.set(92, cursorY + 36);
       card.addChild(capSub);
 
-      // Direct Button to Captured Souldoll's Sheet ("VER FICHA")
-      const sheetBtnW = isMobile ? 148 : 168;
+      const sheetBtnW = isMobile ? 138 : 158;
       const sheetBtn = new KitButton({
         width: sheetBtnW,
         height: 44,
-        label: 'VER FICHA',
+        label: i18nSummary.btn_sheet,
         iconId: 'soul_orb',
         variant: 'primary',
-        fontSize: 13,
+        fontSize: 14,
         onClick: () => {
           GlobalAudioService.playSfx('confirm');
           const saveState = GlobalSaveService.getCurrentState();
@@ -1480,69 +1765,110 @@ export class BattleScene implements IScene {
           }
         },
       });
-      sheetBtn.position.set(modalW - 22 - sheetBtnW, cursorY + Math.round((capBoxH - 44) / 2));
+      sheetBtn.position.set(modalW - 22 - sheetBtnW, cursorY + Math.round((capSectionH - 44) / 2));
       card.addChild(sheetBtn);
 
-      cursorY += capBoxH + 10;
+      cursorY += capSectionH + 8;
     }
 
-    // 4. Looted Items Section
+    // =========================================================================
+    // 4. ITEM DROPS (BOTÍN OBTENIDO) SECTION WITH STAGGERED REVEAL
+    // =========================================================================
+    const bagHeaderIcon = IconRegistry.create('bag', 16);
+    bagHeaderIcon.position.set(16, cursorY + 2);
+    card.addChild(bagHeaderIcon);
+
     const lootHeader = new Text({
-      text: 'BOTÍN OBTENIDO (Pasa el cursor o toca un equipable para comparar):',
+      text: `${i18nSummary.sec_loot} — ${i18nSummary.loot_hint}`,
       resolution: textRes,
       style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: isMobile ? 11 : 12,
+        fontFamily: FONTS.body,
+        fontSize: 12,
         fontWeight: 'bold',
         fill: COLOR_HEX.parchment,
       }),
     });
     lootHeader.roundPixels = true;
-    lootHeader.position.set(16, cursorY);
+    lootHeader.position.set(36, cursorY + 2);
     card.addChild(lootHeader);
-    cursorY += 20;
+    cursorY += 24;
 
     const rowH = 44;
-    const rowGap = 6;
-    const maxVisibleLoot = Math.min(lootList.length, 4);
+    const rowGap = 5;
+    const lootRowContainers: Array<{ row: Container; baseX: number }> = [];
 
     if (lootList.length === 0) {
+      const noLootBox = new Graphics();
+      noLootBox.roundRect(14, cursorY, innerW, 40, 6);
+      noLootBox.fill({ color: COLOR_NUM.smokedWood, alpha: 0.7 });
+      noLootBox.stroke({ color: COLOR_NUM.bronze, width: 1 });
+      card.addChild(noLootBox);
+
       const noLootTxt = new Text({
-        text: 'Sin objetos adicionales en este encuentro.',
+        text: i18nSummary.no_loot,
         resolution: textRes,
         style: new TextStyle({
           fontFamily: FONTS.body,
-          fontSize: 12,
+          fontSize: 13,
           fill: COLOR_HEX.smoke,
         }),
       });
       noLootTxt.roundPixels = true;
-      noLootTxt.position.set(18, cursorY + 8);
+      noLootTxt.position.set(26, cursorY + 11);
       card.addChild(noLootTxt);
-      cursorY += 36;
+      cursorY += 44;
     } else {
       lootList.slice(0, maxVisibleLoot).forEach((entry, idx) => {
         const itemDef = ITEMS_DATA[entry.itemId];
         if (!itemDef) return;
 
         const ry = cursorY + idx * (rowH + rowGap);
-        const rowW = modalW - 28;
+        const rowW = innerW;
         const isEquip = this.isEquipableItem(entry.itemId);
+
+        const accentColor =
+          itemDef.category === 'weapon' || itemDef.category === 'relic'
+            ? COLOR_NUM.gold
+            : itemDef.category === 'crystal'
+            ? COLOR_NUM.cyan
+            : itemDef.category === 'fragment'
+            ? COLOR_NUM.soulViolet
+            : COLOR_NUM.bronze;
+
+        const catLabel =
+          itemDef.category === 'weapon'
+            ? i18nSummary.cat_weapon
+            : itemDef.category === 'relic'
+            ? i18nSummary.cat_relic
+            : itemDef.category === 'crystal'
+            ? i18nSummary.cat_crystal
+            : itemDef.category === 'fragment'
+            ? i18nSummary.cat_fragment
+            : i18nSummary.cat_consumable;
 
         const rowContainer = new Container();
         rowContainer.roundPixels = true;
-        rowContainer.position.set(14, ry);
+        rowContainer.position.set(26, ry);
+        rowContainer.alpha = 0;
         rowContainer.eventMode = 'static';
         rowContainer.cursor = isEquip ? 'pointer' : 'default';
+        lootRowContainers.push({ row: rowContainer, baseX: 14 });
 
         const rBg = new Graphics();
         rBg.roundRect(0, 0, rowW, rowH, 6);
-        rBg.fill({ color: COLOR_NUM.smokedWood, alpha: 0.95 });
+        rBg.fill({ color: COLOR_NUM.smokedWood, alpha: 0.96 });
         rBg.stroke({
-          color: isEquip ? COLOR_NUM.gold : COLOR_NUM.bronze,
+          color: accentColor,
           width: isEquip ? 2 : 1.5,
         });
         rowContainer.addChild(rBg);
+
+        // Framed Icon Slot
+        const iconSlot = new Graphics();
+        iconSlot.roundRect(6, 6, 32, 32, 6);
+        iconSlot.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.95 });
+        iconSlot.stroke({ color: accentColor, width: 1.5 });
+        rowContainer.addChild(iconSlot);
 
         const iconId =
           itemDef.category === 'weapon'
@@ -1555,67 +1881,70 @@ export class BattleScene implements IScene {
             ? 'soul_fragment'
             : 'elixir';
         const ic = IconRegistry.create(iconId, 20);
-        ic.position.set(10, Math.round((rowH - 20) / 2));
+        ic.position.set(12, 12);
         rowContainer.addChild(ic);
 
         const itemTitle = new Text({
-          text: `${itemDef.name.toUpperCase()} x${entry.count}`,
+          text: `${itemDef.name.toUpperCase()}  x${entry.count}`,
           resolution: textRes,
           style: new TextStyle({
             fontFamily: FONTS.hud,
-            fontSize: isMobile ? 12 : 14,
+            fontSize: 16,
             fontWeight: 'bold',
             fill: isEquip ? COLOR_HEX.gold : COLOR_HEX.parchment,
           }),
         });
         itemTitle.roundPixels = true;
-        itemTitle.position.set(38, 5);
+        itemTitle.position.set(46, 4);
         rowContainer.addChild(itemTitle);
 
+        const rawDesc = isEquip
+          ? `${catLabel} · ${this.formatEquipEffectSummary(entry.itemId)}`
+          : `${catLabel} · ${itemDef.description}`;
+        const maxChars = isMobile ? 42 : 58;
+        const cleanDesc = rawDesc.length > maxChars ? `${rawDesc.slice(0, maxChars - 1)}…` : rawDesc;
+
         const subDesc = new Text({
-          text: isEquip
-            ? `[EQUIPABLE] ${this.formatEquipEffectSummary(entry.itemId).slice(0, isMobile ? 38 : 54)}`
-            : itemDef.description.slice(0, isMobile ? 44 : 62),
+          text: cleanDesc,
           resolution: textRes,
           style: new TextStyle({
             fontFamily: FONTS.body,
-            fontSize: 11,
+            fontSize: 12,
             fill: isEquip ? COLOR_HEX.cyan : COLOR_HEX.smoke,
           }),
         });
         subDesc.roundPixels = true;
-        subDesc.position.set(38, 24);
+        subDesc.position.set(46, 23);
         rowContainer.addChild(subDesc);
 
         if (isEquip) {
-          // Compare badge on right side of equipable loot row
-          const cmpBadgeW = isMobile ? 84 : 102;
+          const cmpBadgeW = isMobile ? 88 : 104;
           const cmpBadge = new Graphics();
           cmpBadge.roundRect(rowW - cmpBadgeW - 8, 8, cmpBadgeW, rowH - 16, 4);
-          cmpBadge.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.9 });
+          cmpBadge.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.92 });
           cmpBadge.stroke({ color: COLOR_NUM.cyan, width: 1.5 });
           rowContainer.addChild(cmpBadge);
 
           const cmpTxt = new Text({
-            text: 'COMPARAR',
+            text: i18nSummary.btn_compare,
             resolution: textRes,
             style: new TextStyle({
-              fontFamily: FONTS.hud,
-              fontSize: 10,
+              fontFamily: FONTS.body,
+              fontSize: 11,
               fontWeight: 'bold',
               fill: COLOR_HEX.cyan,
             }),
           });
           cmpTxt.roundPixels = true;
           cmpTxt.anchor.set(0.5);
-          cmpTxt.position.set(rowW - cmpBadgeW / 2 - 8, Math.round(rowH / 2));
+          cmpTxt.position.set(Math.round(rowW - cmpBadgeW / 2 - 8), Math.round(rowH / 2));
           rowContainer.addChild(cmpTxt);
 
           const showComparison = () => {
             this.showEquipComparisonTooltip(
               entry.itemId,
               modalX + 18,
-              Math.max(12, modalY + ry - 134)
+              Math.max(8, modalY + ry - 128)
             );
           };
 
@@ -1631,39 +1960,97 @@ export class BattleScene implements IScene {
       });
     }
 
-    // 5. Bottom Action Button ("CONTINUAR")
+    // =========================================================================
+    // 5. BOTTOM ACTION BUTTON ("CONTINUAR")
+    // =========================================================================
     const continueBtnW = Math.min(240, modalW - 32);
     const continueBtn = new KitButton({
       width: continueBtnW,
       height: 44,
-      label: 'CONTINUAR',
+      label: i18nSummary.btn_continue,
       iconId: 'check',
       variant: 'primary',
-      fontSize: 15,
+      fontSize: 16,
       onClick: () => {
         GlobalAudioService.playSfx('confirm');
         this.summaryDoneResolver?.();
       },
     });
-    continueBtn.position.set(Math.round((modalW - continueBtnW) / 2), modalH - 54);
+    continueBtn.position.set(Math.round((modalW - continueBtnW) / 2), modalH - 52);
     card.addChild(continueBtn);
 
-    // 6. Floating Translucent Comparison Tooltip Container (alpha 0.90)
+    // Allow tapping the backdrop dimmer (outside the card) to dismiss once entrance animation finishes
+    dimmer.on('pointertap', () => {
+      if (this.summaryTooltipContainer && this.summaryTooltipContainer.visible) {
+        this.summaryTooltipContainer.visible = false;
+      } else if (this.summaryEntranceComplete) {
+        GlobalAudioService.playSfx('confirm');
+        this.summaryDoneResolver?.();
+      }
+    });
+
+    // =========================================================================
+    // 6. FLOATING TRANSLUCENT COMPARISON TOOLTIP CONTAINER (alpha 0.90)
+    // =========================================================================
     this.summaryTooltipContainer = new Container();
     this.summaryTooltipContainer.roundPixels = true;
     this.summaryTooltipContainer.visible = false;
     this.summaryTooltipContainer.zIndex = 995;
     overlay.addChild(this.summaryTooltipContainer);
 
-    // Auto-show comparison tooltip if there is at least one equipable item looted so the player sees it immediately
+    // =========================================================================
+    // 7. ENTRANCE, EXP COUNTER & STAGGERED ITEM DROP REVEAL ANIMATION
+    // =========================================================================
+    let step = 0;
+    const totalSteps = 18;
     const firstEquip = lootList.find((l) => this.isEquipableItem(l.itemId));
-    if (firstEquip) {
-      this.showEquipComparisonTooltip(
-        firstEquip.itemId,
-        modalX + Math.round((modalW - Math.min(440, modalW - 16)) / 2),
-        Math.max(8, modalY - 126)
-      );
-    }
+
+    this.summaryAnimInterval = setInterval(() => {
+      if (!this.summaryOverlayContainer || this.summaryOverlayContainer.destroyed) {
+        this.clearSummaryAnimInterval();
+        return;
+      }
+      step++;
+      const t = Math.min(1, step / totalSteps);
+      const easeOut = 1 - Math.pow(1 - t, 3);
+
+      // Card & Dimmer smooth entrance
+      dimmer.alpha = Math.min(1, t * 1.4);
+      card.alpha = Math.min(1, t * 1.5);
+      card.position.y = Math.round(modalY + (1 - easeOut) * 12);
+
+      // Animated EXP Counter & Progress Bar fill
+      const currentDisplayedExp = Math.round(totalExp * easeOut);
+      if (!expGainValueTxt.destroyed) {
+        expGainValueTxt.text = `+${currentDisplayedExp} EXP`;
+      }
+      const interpRatio = startExpRatio + (expProg.ratio - startExpRatio) * easeOut;
+      drawSummaryExpFill(interpRatio);
+
+      // Staggered Item Drop Rows reveal
+      lootRowContainers.forEach((itemRow, idx) => {
+        if (itemRow.row.destroyed) return;
+        const rowStartStep = 3 + idx * 3;
+        const rowT = Math.max(0, Math.min(1, (step - rowStartStep) / 8));
+        const rowEase = 1 - Math.pow(1 - rowT, 2);
+        itemRow.row.alpha = rowEase;
+        itemRow.row.position.x = Math.round(itemRow.baseX + (1 - rowEase) * 12);
+      });
+
+      if (step >= totalSteps) {
+        this.clearSummaryAnimInterval();
+        this.summaryEntranceComplete = true;
+        if (firstEquip && this.summaryTooltipContainer && !this.summaryTooltipContainer.destroyed) {
+          this.showEquipComparisonTooltip(
+            firstEquip.itemId,
+            modalX + Math.round((modalW - Math.min(440, modalW - 16)) / 2),
+            Math.max(8, modalY - 126)
+          );
+        }
+      }
+    }, 25);
+
+    UIKitLinter.inspectTree(overlay, 'BattleVictorySummary');
   }
 
   /**
@@ -1703,19 +2090,19 @@ export class BattleScene implements IScene {
     this.summaryTooltipContainer.position.set(clampedX, clampedY);
     this.summaryTooltipContainer.visible = true;
 
-    // Translucent Background Panel with explicit opacity (alpha 0.88)
+    // Translucent Background Panel with explicit opacity (alpha 0.90)
     const bg = new Graphics();
     bg.roundRect(0, 0, tipW, tipH, 8);
-    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.88 });
+    bg.fill({ color: COLOR_NUM.inkCrypt, alpha: 0.90 });
     bg.stroke({ color: COLOR_NUM.gold, width: 2, alpha: 0.95 });
     this.summaryTooltipContainer.addChild(bg);
 
     const headerTxt = new Text({
-      text: `COMPARACIÓN DE ${slotLabelMap[slotKey]} (${(activeDoll.nickname || activeDoll.speciesId).toUpperCase()})`,
+      text: `COMPARACIÓN DE ${slotLabelMap[slotKey]} — ${(activeDoll.nickname || activeDoll.speciesId).toUpperCase()}`,
       resolution: textRes,
       style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 11,
+        fontFamily: FONTS.body,
+        fontSize: 12,
         fontWeight: 'bold',
         fill: COLOR_HEX.gold,
       }),
@@ -1730,9 +2117,9 @@ export class BattleScene implements IScene {
       resolution: textRes,
       style: new TextStyle({
         fontFamily: FONTS.body,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 'bold',
-        fill: '#4ade80',
+        fill: COLOR_HEX.ok,
         wordWrap: true,
         wordWrapWidth: tipW - 24,
       }),
@@ -1747,7 +2134,7 @@ export class BattleScene implements IScene {
       resolution: textRes,
       style: new TextStyle({
         fontFamily: FONTS.body,
-        fontSize: 11,
+        fontSize: 12,
         fill: COLOR_HEX.parchment,
         wordWrap: true,
         wordWrapWidth: tipW - 24,
@@ -1768,8 +2155,8 @@ export class BattleScene implements IScene {
       text: deltaStr,
       resolution: textRes,
       style: new TextStyle({
-        fontFamily: FONTS.hud,
-        fontSize: 11,
+        fontFamily: FONTS.body,
+        fontSize: 12,
         fontWeight: 'bold',
         fill: COLOR_HEX.cyan,
       }),
@@ -1779,16 +2166,24 @@ export class BattleScene implements IScene {
     this.summaryTooltipContainer.addChild(deltaTxt);
   }
 
-  public checkEvolutionHook(): void {
+  public getPendingEvolution(): { creature: CreatureInstance; targetSpeciesId: string } | null {
     const activeCreature = this.engine.getPlayerActive();
-    if (!activeCreature) return;
+    if (!activeCreature) return null;
 
     const evoCheck = GlobalEvolutionSystem.checkEvolution(activeCreature, 'level_up');
     if (evoCheck) {
-      GlobalSceneManager.pushScene('Evolution', {
+      return {
         creature: activeCreature,
         targetSpeciesId: evoCheck.targetSpeciesId,
-      });
+      };
+    }
+    return null;
+  }
+
+  public checkEvolutionHook(): void {
+    const pending = this.getPendingEvolution();
+    if (pending) {
+      GlobalSceneManager.pushScene('Evolution', pending);
     }
   }
 
@@ -1808,14 +2203,42 @@ export class BattleScene implements IScene {
 
   /**
    * Dirección visual horizontal hacia la que mira el rol (1 = derecha, -1 = izquierda),
-   * calculada dinámicamente según la vista activa y su flipX (nunca un signo fijo).
+   * calculada dinámicamente según su flipX (en el arte 3/4 original todos los frames miran a la derecha, +1).
    */
   public getRoleFacingDirX(side: BattleSide): number {
-    const view = side === 'player' ? this.playerView : this.opponentView;
     const flipX = side === 'player' ? this.playerFlipX : this.opponentFlipX;
-    // En el arte original: view_front34 mira a la DERECHA (+1), view_back34 mira a la IZQUIERDA (-1)
-    const baseDir = view === 'view_back34' || view === 'side_l' ? -1 : 1;
-    return flipX ? -baseDir : baseDir;
+    return flipX ? -1 : 1;
+  }
+
+  /**
+   * Cambia el frame/pose activo de la Souldoll en combate (1..9, excepto 5 y 6 que no se usan por el momento):
+   * - Frame 1: 'idle' (reposo principal 3/4)
+   * - Frame 2: 'relaxed' (reposo alternativo / preparación)
+   * - Frame 3: 'attack' (inicio de ataque)
+   * - Frame 4: 'attack_2' / 'attack_impact' (impacto de ataque)
+   * - Frame 7: 'damage' (recibir daño)
+   * - Frame 8: 'victory' (pose de victoria)
+   * - Frame 9: 'down' (derrotada / KO)
+   */
+  public setCombatPose(side: BattleSide, pose: SpriteView): void {
+    const isPlayer = side === 'player';
+    const creature = isPlayer ? this.engine.getPlayerActive() : this.engine.getOpponentActive();
+    const sprite = isPlayer ? this.playerSprite : this.opponentSprite;
+    if (!creature || !sprite) return;
+
+    const tex = GlobalAssetRegistry.getCreatureSpritePixi(creature.speciesId, pose);
+    if (tex && tex !== sprite.texture) {
+      sprite.texture = tex;
+      sprite.setIdleMeta(this.getEffectiveIdleMeta(creature.speciesId, pose));
+    }
+  }
+
+  /**
+   * Restaura el frame de reposo (Frame 1 'idle') tras finalizar una acción.
+   */
+  public restoreDefaultPose(side: BattleSide): void {
+    const defaultView = side === 'player' ? this.playerView : this.opponentView;
+    this.setCombatPose(side, defaultView);
   }
 
   /**
@@ -1834,7 +2257,7 @@ export class BattleScene implements IScene {
     const flipX = isPlayer ? this.playerFlipX : this.opponentFlipX;
     const sprite = isPlayer ? this.playerSprite : this.opponentSprite;
     const scale = isPlayer ? this.playerBaseScale : this.opponentBaseScale;
-    const texH = Math.max(1, sprite?.texture?.height || 160);
+    const texH = Math.max(1, sprite?.texture?.height || 122);
     const renderedH = texH * scale;
 
     const hotspotsCfg = (battleConfigRaw as any).partHotspots || {
@@ -1866,9 +2289,8 @@ export class BattleScene implements IScene {
   }
 
   /**
-   * Bloque 38 Req 4 & Bloque 39 Req 3 & 5:
-   * Ataque: embestida hacia el rival respetando el flip y la orientación del rol,
-   * aplicando un impulso al resorte secundario del busto sin reiniciar la fase del idle.
+   * Ataque usando los frames del spritesheet (Frame 2 'relaxed' preparación -> Frame 3 'attack' -> Frame 4 'attack_2' impacto -> vuelve a Frame 1 'idle'):
+   * Los frames 5 y 6 no se usan por el momento.
    */
   public async animateAttackerLunge(side: BattleSide): Promise<void> {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
@@ -1883,18 +2305,30 @@ export class BattleScene implements IScene {
     const otherBaseY = side === 'player' ? this.opponentBaseY : this.playerBaseY;
     const dirY = otherBaseY < origY ? -1 : 1;
 
+    // 1. Preparación breve (Frame 2: relaxed)
+    this.setCombatPose(side, 'relaxed');
+    await this.sleep(85);
+
+    // 2. Avance / Swing de ataque (Frame 3: attack)
+    this.setCombatPose(side, 'attack');
     const lungeDx = Math.round(dirX * 28);
     const lungeDy = Math.round(dirY * 16);
+    sprite.position.set(Math.round(origX + lungeDx * 0.6), Math.round(origY + lungeDy * 0.6));
+    await this.sleep(110);
 
+    // 3. Impacto / Remate de ataque (Frame 4: attack_2 / attack_impact)
+    this.setCombatPose(side, 'attack_2');
     sprite.position.set(Math.round(origX + lungeDx), Math.round(origY + lungeDy));
-    await this.sleep(120);
+    await this.sleep(130);
+
+    // 4. Regreso a posición y Frame 1 (idle)
     sprite.position.set(origX, origY);
+    this.restoreDefaultPose(side);
     this.isActionAnimating = false;
   }
 
   /**
-   * Bloque 38 Req 4 & Bloque 39 Req 3 & 5:
-   * Daño: parpadeo blanco, retroceso de 1-2 px enteros alejándose del atacante e impulso mayor al resorte.
+   * Daño usando Frame 7 ('damage'): parpadeo, retroceso de 1-2 px enteros alejándose del atacante y restauración a Frame 1 ('idle').
    */
   public async animateDefenderHitBlink(side: BattleSide): Promise<void> {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
@@ -1905,6 +2339,9 @@ export class BattleScene implements IScene {
     const origX = Math.round(sprite.position.x);
     const origY = Math.round(sprite.position.y);
 
+    // Cambiar al Frame 7 ('damage') al recibir el golpe
+    this.setCombatPose(side, 'damage');
+
     // Alejarse del atacante (opuesto a la dirección hacia la que mira el defensor)
     const retreatDirX = -this.getRoleFacingDirX(side);
     const retreatDirY = side === 'player' ? 1 : -1;
@@ -1914,17 +2351,41 @@ export class BattleScene implements IScene {
       sprite.position.set(Math.round(origX + retreatDirX * stepPx), Math.round(origY + retreatDirY * stepPx));
       sprite.tint = i % 2 === 0 ? 0xffffff : 0xf43f5e;
       sprite.alpha = i % 2 === 0 ? 0.45 : 1.0;
-      await this.sleep(60);
+      await this.sleep(70);
     }
     sprite.tint = 0xffffff;
     sprite.alpha = 1.0;
     sprite.position.set(origX, origY);
+
+    // Volver al Frame 1 ('idle') si sigue con vida
+    const creature = side === 'player' ? this.engine.getPlayerActive() : this.engine.getOpponentActive();
+    if (!creature || creature.currentHp > 0) {
+      this.restoreDefaultPose(side);
+    }
     this.isActionAnimating = false;
   }
 
   /**
-   * Bloque 38 Req 4 & Bloque 39 Req 3 & 5:
-   * KO: impulso de caída, desplazamiento en píxeles enteros y fundido de alpha.
+   * Dispatches combat skill FX using the PixiJS v8 CombatFXSystem and data-driven skill pipelines.
+   */
+  public async playMoveCombatFX(
+    moveId: string,
+    from: { x: number; y: number },
+    to: { x: number; y: number }
+  ): Promise<void> {
+    const move = moveId ? MOVES_DATA[moveId] : undefined;
+    if (this.combatFX) {
+      await this.combatFX.playSkill(moveId, from, to, move);
+    } else {
+      const preset = move?.vfx?.preset || 'burst';
+      const colA = move?.vfx?.colorA || '#38bdf8';
+      const colB = move?.vfx?.colorB || '#ffffff';
+      await GlobalVFXSystem.playPresetVfx(preset, from.x, from.y, to.x, to.y, colA, colB);
+    }
+  }
+
+  /**
+   * KO usando Frame 9 ('down'): muestra la pose de caída en el suelo antes de desvanecerse.
    */
   public async animateFaint(side: BattleSide): Promise<void> {
     const sprite = side === 'player' ? this.playerSprite : this.opponentSprite;
@@ -1933,10 +2394,18 @@ export class BattleScene implements IScene {
     sprite.setPaused(true);
 
     this.isActionAnimating = true;
+    // Mostrar Frame 8 ('down') al caer derrotada
+    this.setCombatPose(side, 'down');
+    await this.sleep(260);
+
     let elapsed = 0;
     const interval = setInterval(() => {
+      if (!sprite || sprite.destroyed) {
+        clearInterval(interval);
+        return;
+      }
       elapsed += 0.05;
-      sprite.position.y = Math.round(sprite.position.y + 3);
+      sprite.position.y = Math.round(sprite.position.y + 2);
       sprite.alpha = Math.max(0, 1 - elapsed / 0.5);
       if (elapsed >= 0.5) {
         clearInterval(interval);
@@ -1992,9 +2461,31 @@ export class BattleScene implements IScene {
       const y = Math.round(startY + (targetY - startY) * t - Math.sin(t * Math.PI) * 110);
       bottle.position.set(x, y);
       bottle.rotation = t * Math.PI * 4;
+
+      // Ethereal trajectory spark motes
+      GlobalVFXSystem.particlePool?.emit({
+        x,
+        y,
+        shape: 'spark',
+        color: 0x38bdf8,
+        size: 3,
+        maxLife: 0.28,
+        alpha: 0.85,
+      });
+
       await this.sleep(25);
     }
     bottle.rotation = 0;
+
+    // Resonant arrival energy ring
+    this.combatFX?.spawnFX('energy_ring', {
+      position: { x: targetX, y: targetY },
+      color: 0x38bdf8,
+      secondaryColor: 0xffffff,
+      scale: 0.55,
+      duration: 0.28,
+      layer: 'frontFX',
+    });
 
     const opCreature = this.engine.getOpponentActive();
     const soulSprite = new Sprite(this.opponentSprite.texture);
@@ -2092,6 +2583,7 @@ export class BattleScene implements IScene {
   public renderHpBar(side: BattleSide, currentHp: number, maxHp: number): void {
     const fillG = side === 'player' ? this.playerHpBarFill : this.opponentHpBarFill;
     const txt = side === 'player' ? this.playerHpText : this.opponentHpText;
+    if (!fillG || fillG.destroyed || !txt || txt.destroyed) return;
 
     const barWidth = side === 'player' ? this.playerBarWidth : this.opponentBarWidth;
     const barHeight = side === 'player' ? 18 : 16;
@@ -2116,6 +2608,7 @@ export class BattleScene implements IScene {
   }
 
   public renderExpBar(currentExp: number, maxExp: number): void {
+    if (!this.playerExpBarFill || this.playerExpBarFill.destroyed) return;
     const ratio = Math.max(0, Math.min(1, currentExp / maxExp));
     this.playerExpBarFill.clear();
     this.playerExpBarFill.roundRect(
@@ -2129,17 +2622,30 @@ export class BattleScene implements IScene {
   }
 
   public async updateExpBarAnimated(currentExp: number, maxExp: number): Promise<void> {
-    this.renderExpBar(currentExp, maxExp);
-    await this.sleep(300);
+    const safeMax = Math.max(1, maxExp);
+    const targetRatio = Math.max(0, Math.min(1, currentExp / safeMax));
+    const startRatio = this.lastRenderedExpRatio;
+    const steps = 10;
+    for (let i = 1; i <= steps; i++) {
+      if (!this.playerExpBarFill || this.playerExpBarFill.destroyed) break;
+      const t = i / steps;
+      const r = startRatio + (targetRatio - startRatio) * t;
+      this.renderExpBar(r * safeMax, safeMax);
+      await this.sleep(24);
+    }
+    this.lastRenderedExpRatio = targetRatio;
+    this.renderExpBar(currentExp, safeMax);
   }
 
   public updateLevelBadge(side: BattleSide, level: number): void {
     const txt = side === 'player' ? this.playerLevelText : this.opponentLevelText;
+    if (!txt || txt.destroyed) return;
     txt.text = `Nv.${level}`;
   }
 
   public setStatusBadge(side: BattleSide, status: string): void {
     const badgeContainer = side === 'player' ? this.playerStatusBadge : this.opponentStatusBadge;
+    if (!badgeContainer || badgeContainer.destroyed) return;
     badgeContainer.removeChildren();
 
     if (!status) return;
@@ -2801,13 +3307,14 @@ export class BattleScene implements IScene {
     }
 
     GlobalVFXSystem.update(dt);
+    this.combatFX?.update(dt);
     if (this.engine?.weather) {
       GlobalVFXSystem.updateWeatherVFX(dt, this.engine.weather.type);
     }
 
-    if (this.engine) {
+    if (this.engine && this.container && !this.container.destroyed) {
       const pl = this.engine.getPlayerActive();
-      if (pl && this.playerSprite && this.playerSprite.visible) {
+      if (pl && this.playerSprite && !this.playerSprite.destroyed && this.playerSprite.visible) {
         const legsBroken = pl.partHP && pl.partHP.legs <= 0;
         const armsBroken = pl.partHP && pl.partHP.arms <= 0;
 
@@ -2823,24 +3330,22 @@ export class BattleScene implements IScene {
         if ((armsBroken || legsBroken) && Math.random() < 0.25) {
           const sparkPart = armsBroken ? 'arms' : 'legs';
           const sparkOrigin = this.getPartHotspotWorldPos('player', sparkPart);
-          const p = GlobalVFXSystem.particlePool?.getParticle();
-          if (p) {
-            p.x = Math.round(sparkOrigin.x + (Math.random() - 0.5) * 18);
-            p.y = Math.round(sparkOrigin.y + (Math.random() - 0.5) * 18);
-            p.vx = (Math.random() - 0.5) * 2;
-            p.vy = -1 - Math.random() * 2;
-            p.life = 0;
-            p.maxLife = 0.4;
-            p.alpha = 0.8;
-            p.graphic.clear();
-            p.graphic.circle(0, 0, 2 + Math.random() * 2);
-            p.graphic.fill({ color: 0x38bdf8 });
-          }
+          GlobalVFXSystem.particlePool?.emit({
+            x: Math.round(sparkOrigin.x + (Math.random() - 0.5) * 18),
+            y: Math.round(sparkOrigin.y + (Math.random() - 0.5) * 18),
+            vx: (Math.random() - 0.5) * 2.2,
+            vy: -1.2 - Math.random() * 2.2,
+            maxLife: 0.45,
+            alpha: 0.95,
+            shape: 'spark',
+            size: 3 + Math.random() * 2,
+            color: 0x38bdf8,
+          });
         }
       }
 
       const op = this.engine.getOpponentActive();
-      if (op && this.opponentSprite && this.opponentSprite.visible) {
+      if (op && this.opponentSprite && !this.opponentSprite.destroyed && this.opponentSprite.visible) {
         const legsBroken = op.partHP && op.partHP.legs <= 0;
         const armsBroken = op.partHP && op.partHP.arms <= 0;
 
@@ -2856,19 +3361,17 @@ export class BattleScene implements IScene {
         if ((armsBroken || legsBroken) && Math.random() < 0.25) {
           const sparkPart = armsBroken ? 'arms' : 'legs';
           const sparkOrigin = this.getPartHotspotWorldPos('opponent', sparkPart);
-          const p = GlobalVFXSystem.particlePool?.getParticle();
-          if (p) {
-            p.x = Math.round(sparkOrigin.x + (Math.random() - 0.5) * 18);
-            p.y = Math.round(sparkOrigin.y + (Math.random() - 0.5) * 18);
-            p.vx = (Math.random() - 0.5) * 2;
-            p.vy = -1 - Math.random() * 2;
-            p.life = 0;
-            p.maxLife = 0.4;
-            p.alpha = 0.8;
-            p.graphic.clear();
-            p.graphic.circle(0, 0, 2 + Math.random() * 2);
-            p.graphic.fill({ color: 0xc084fc });
-          }
+          GlobalVFXSystem.particlePool?.emit({
+            x: Math.round(sparkOrigin.x + (Math.random() - 0.5) * 18),
+            y: Math.round(sparkOrigin.y + (Math.random() - 0.5) * 18),
+            vx: (Math.random() - 0.5) * 2.2,
+            vy: -1.2 - Math.random() * 2.2,
+            maxLife: 0.45,
+            alpha: 0.95,
+            shape: 'spark',
+            size: 3 + Math.random() * 2,
+            color: 0xc084fc,
+          });
         }
       }
 
@@ -2882,7 +3385,11 @@ export class BattleScene implements IScene {
         GlobalAudioService.playSfx('confirm');
         this.openFightMenu();
       }
-    } else if (this.currentMenuState === 'summary' && GlobalSceneManager.getCurrentScene()?.name === this.name) {
+    } else if (
+      this.currentMenuState === 'summary' &&
+      this.summaryEntranceComplete &&
+      GlobalSceneManager.getCurrentScene()?.name === this.name
+    ) {
       if (GlobalInput.justPressed('CONFIRM') || GlobalInput.justPressed('CANCEL')) {
         GlobalAudioService.playSfx('confirm');
         this.summaryDoneResolver?.();
@@ -2893,6 +3400,8 @@ export class BattleScene implements IScene {
   public render(): void {}
 
   public async exit(): Promise<void> {
+    this.clearSummaryAnimInterval();
+    this.combatFX?.destroy();
     this.container.destroy({ children: true });
   }
 

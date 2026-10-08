@@ -142,12 +142,8 @@ export class TileRegistry {
 
     // 1. Si no lleva prefijo de origen, traducir mediante legacy_map.json
     if (!ref.startsWith('pack:') && !ref.startsWith('atlas:') && !ref.startsWith('proc:')) {
-      if (layer === 'ground' && ref === 'path' && mapCategory === 'town') {
-        ref = (legacyMapJson.ground as Record<string, string>).cobble || (legacyMapJson.ground as Record<string, string>).path;
-      } else {
-        const table = layer === 'ground' ? (legacyMapJson.ground as Record<string, string>) : (legacyMapJson.decor as Record<string, string>);
-        ref = table[ref] || (legacyMapJson.ground as Record<string, string>)[ref] || (legacyMapJson.decor as Record<string, string>)[ref] || `pack:anima_core:Outside_A2:0`;
-      }
+      const table = layer === 'ground' ? (legacyMapJson.ground as Record<string, string>) : (legacyMapJson.decor as Record<string, string>);
+      ref = table[ref] || (legacyMapJson.ground as Record<string, string>)[ref] || (legacyMapJson.decor as Record<string, string>)[ref] || `pack:anima_core:Outside_A2:0`;
     }
 
     // 2. Origen "atlas:<atlasName>:<frameName>" (Coexistencia con Bloques 33/34/36)
@@ -270,10 +266,14 @@ export class TileRegistry {
     const H = this.bakedIndex.atlasHeight;
     const frameOffsetPx = animFrame > 0 && entry.animatedFrames > 1 ? animFrame * this.bakedIndex.stride : 0;
 
-    const u0 = (rect.x + frameOffsetPx) / W;
-    const u1 = (rect.x + frameOffsetPx + rect.w) / W;
-    const v0 = 1 - (rect.y + rect.h) / H;
-    const v1 = 1 - rect.y / H;
+    // Sub-texel inset (0.2px) prevents floating-point UV interpolation seams across adjacent atlas tiles
+    const UV_INSET_U = 0.2 / W;
+    const UV_INSET_V = 0.2 / H;
+
+    const u0 = (rect.x + frameOffsetPx) / W + UV_INSET_U;
+    const u1 = (rect.x + frameOffsetPx + rect.w) / W - UV_INSET_U;
+    const v0 = 1 - (rect.y + rect.h) / H + UV_INSET_V;
+    const v1 = 1 - rect.y / H - UV_INSET_V;
 
     return {
       u0,

@@ -130,6 +130,13 @@ export class StarterSelectionModal extends Container {
     }
 
     this.buildUI();
+
+    // Refrescar la UI en cuanto los spritesheets dedicados de cada Souldoll terminen de cargarse
+    SoulDollSpriteFactory.onSpritesheetReady(() => {
+      if (!this.destroyed) {
+        this.buildUI();
+      }
+    });
   }
 
   public override destroy(options?: any): void {
@@ -571,13 +578,12 @@ export class StarterSelectionModal extends Container {
     // Calcular la mayor escala entera que quepa en ~70% del alto del escenario
     const sampleTex = GlobalAssetRegistry.getCreatureSpritePixi(
       vm.options[centerIdx].soulSpeciesId,
-      'view_front'
+      'view_front34'
     );
     const nativeH = Math.max(64, sampleTex?.height || 156);
     const maxAllowedSpriteH = stageH * 0.7;
     const centerIntScale = Math.max(1, Math.floor(maxAllowedSpriteH / nativeH));
     const sideIntScale = centerIntScale - 1 >= 1 ? centerIntScale - 1 : centerIntScale;
-    const dimSideBrightness = sideIntScale === centerIntScale;
 
     slotIndices.forEach((optIdx, slotPos) => {
       const opt = vm.options[optIdx];
@@ -654,11 +660,9 @@ export class StarterSelectionModal extends Container {
         }
       }
 
-      // Orientación por ranura (Req 2):
-      // - slot 1 (centro): view_front (frente)
-      // - slot 0 (izquierda): view_front34 mirando a la derecha (flipX = false)
-      // - slot 2 (derecha): view_front34 espejada (flipX = true) mirando a la izquierda
-      const targetView = isCenter ? 'view_front' : 'view_front34';
+      // Orientación por ranura:
+      // El Frame 1 es de idle (vista frontal 3/4). Cada Souldoll usa su propio spritesheet asignado sin tintes.
+      const targetView = 'view_front34';
       const flipX = slotPos === 2;
       const scaleInt = isCenter ? centerIntScale : sideIntScale;
 
@@ -690,15 +694,12 @@ export class StarterSelectionModal extends Container {
         maskedContent.addChild(idleMesh);
         this.activeIdleMesh = idleMesh;
       } else {
-        // Las laterales quedan quietas (ahorra rendimiento) y atenuadas (brillo 0.6 si comparten escala)
+        // Las laterales muestran el spritesheet propio de su Souldoll sin tintes de color
         const spr = new Sprite(tex);
         spr.roundPixels = true;
         spr.anchor.set(0.5, 1.0); // Pivote en los pies (I-07)
         spr.scale.set(flipX ? -scaleInt : scaleInt, scaleInt);
         spr.position.set(pedCx, pedCy);
-        if (dimSideBrightness) {
-          spr.tint = 0x999999; // Brillo ~0.6 sin cambiar colores de paleta
-        }
         (spr as any).__requireIntegerScale = true;
         maskedContent.addChild(spr);
       }

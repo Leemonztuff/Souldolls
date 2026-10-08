@@ -1,30 +1,68 @@
 {
-  "version": "1.1.0",
+  "version": "2.1.0",
   "totalSpecies": 14,
+  "poses": [
+    "idle",
+    "relaxed",
+    "attack",
+    "attack_impact",
+    "casting",
+    "casting_release",
+    "damage",
+    "victory",
+    "down"
+  ],
   "defaultViews": [
-    "view_front",
+    "idle",
+    "relaxed",
+    "attack",
+    "attack_impact",
+    "casting",
+    "casting_release",
+    "damage",
+    "victory",
+    "down",
     "view_front34",
+    "view_front",
     "view_side",
+    "view_back",
     "view_back34",
-    "view_back"
+    "front",
+    "back",
+    "side_r",
+    "side_l"
   ],
   "species": {
     "maga": {
       "speciesId": "maga",
       "name": "Maga",
       "element": "Fuego",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_008.png",
       "sheetPath": "/assets/souldolls/maga_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/maga_battle_atlas.json",
       "size": [
-        305,
-        162
+        798,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -32,18 +70,32 @@
       "speciesId": "archimaga",
       "name": "Archimaga",
       "element": "Fuego",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_001.png",
       "sheetPath": "/assets/souldolls/archimaga_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/archimaga_battle_atlas.json",
       "size": [
-        305,
-        162
+        707,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -51,18 +103,32 @@
       "speciesId": "sacerdotisa",
       "name": "Sacerdotisa",
       "element": "Planta",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_002.png",
       "sheetPath": "/assets/souldolls/sacerdotisa_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/sacerdotisa_battle_atlas.json",
       "size": [
-        305,
-        162
+        730,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -70,18 +136,32 @@
       "speciesId": "hierofante",
       "name": "Hierofante",
       "element": "Planta",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_003.png",
       "sheetPath": "/assets/souldolls/hierofante_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/hierofante_battle_atlas.json",
       "size": [
-        305,
-        162
+        743,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -89,18 +169,32 @@
       "speciesId": "gladiadora",
       "name": "Gladiadora",
       "element": "Tierra",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_004.png",
       "sheetPath": "/assets/souldolls/gladiadora_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/gladiadora_battle_atlas.json",
       "size": [
-        305,
-        162
+        876,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -108,18 +202,32 @@
       "speciesId": "titanide",
       "name": "Titánide",
       "element": "Tierra",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_000.png",
       "sheetPath": "/assets/souldolls/titanide_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/titanide_battle_atlas.json",
       "size": [
-        305,
-        162
+        665,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -127,18 +235,32 @@
       "speciesId": "bruja",
       "name": "Bruja",
       "element": "Neutro",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_006.png",
       "sheetPath": "/assets/souldolls/bruja_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/bruja_battle_atlas.json",
       "size": [
-        305,
-        162
+        846,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -146,18 +268,32 @@
       "speciesId": "hechicera",
       "name": "Hechicera",
       "element": "Neutro",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_007.png",
       "sheetPath": "/assets/souldolls/hechicera_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/hechicera_battle_atlas.json",
       "size": [
-        305,
-        162
+        780,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -165,18 +301,32 @@
       "speciesId": "hidromante",
       "name": "Hidromante",
       "element": "Agua",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_005.png",
       "sheetPath": "/assets/souldolls/hidromante_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/hidromante_battle_atlas.json",
       "size": [
-        305,
-        162
+        762,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -184,18 +334,32 @@
       "speciesId": "cantora_marea",
       "name": "Cantora de Marea",
       "element": "Agua",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_009.png",
       "sheetPath": "/assets/souldolls/cantora_marea_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/cantora_marea_battle_atlas.json",
       "size": [
-        305,
-        162
+        824,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -203,18 +367,32 @@
       "speciesId": "monje",
       "name": "Monje",
       "element": "Eléctrico",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_010.png",
       "sheetPath": "/assets/souldolls/monje_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/monje_battle_atlas.json",
       "size": [
-        305,
-        162
+        798,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -222,18 +400,32 @@
       "speciesId": "maestro_trueno",
       "name": "Maestro del Trueno",
       "element": "Eléctrico",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_011.png",
       "sheetPath": "/assets/souldolls/maestro_trueno_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/maestro_trueno_battle_atlas.json",
       "size": [
-        305,
-        162
+        768,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -241,18 +433,32 @@
       "speciesId": "asesina",
       "name": "Asesina",
       "element": "Sombra",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_012.png",
       "sheetPath": "/assets/souldolls/asesina_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/asesina_battle_atlas.json",
       "size": [
-        305,
-        162
+        691,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     },
@@ -260,18 +466,32 @@
       "speciesId": "espectro",
       "name": "Espectro",
       "element": "Sombra",
+      "sourceRawSheet": "assets/raw/spritesheets/frame_013.png",
       "sheetPath": "/assets/souldolls/espectro_battle_sheet.png",
       "atlasPath": "/data/art/souldolls/espectro_battle_atlas.json",
       "size": [
-        305,
-        162
+        711,
+        122
       ],
       "views": [
-        "view_front",
+        "idle",
+        "relaxed",
+        "attack",
+        "attack_impact",
+        "casting",
+        "casting_release",
+        "damage",
+        "victory",
+        "down",
         "view_front34",
+        "view_front",
         "view_side",
+        "view_back",
         "view_back34",
-        "view_back"
+        "front",
+        "back",
+        "side_r",
+        "side_l"
       ],
       "idleSupported": true
     }

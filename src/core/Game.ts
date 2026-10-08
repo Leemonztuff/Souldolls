@@ -15,7 +15,6 @@ import { PokedexScene } from '../scenes/PokedexScene';
 import { ShopScene } from '../scenes/ShopScene';
 import { StorageBoxScene } from '../scenes/StorageBoxScene';
 import { CreditsScene } from '../scenes/CreditsScene';
-import { DebugScene } from '../scenes/DebugScene';
 import { CreatureDetailScene } from '../scenes/CreatureDetailScene';
 import { PartyScene } from '../scenes/PartyScene';
 import { BagScene } from '../scenes/BagScene';
@@ -25,12 +24,7 @@ import { GachaResonanceScene } from '../scenes/GachaResonanceScene';
 import { OptionsScene } from '../ui/hud/OptionsScene';
 import { DataValidator } from '../data/validation/DataValidator';
 import { SoulCodexSystem } from '../systems/SoulCodexSystem';
-import { GachaService, GachaTestRunner, Bloque28BQrTestRunner } from '../systems/gacha';
-import { Bloque43HudTestRunner } from '../ui/hud/Bloque43HudTestRunner';
-import { Bloque44TilesetTestRunner } from '../render/overworld/Bloque44TilesetTestRunner';
-import { Bloque45MapgenTestRunner } from '../render/overworld/Bloque45MapgenTestRunner';
-import { Bloque35LabTestRunner } from '../systems/lab/Bloque35LabTestRunner';
-import { Bloque46StarterUiTestRunner } from '../systems/lab/Bloque46StarterUiTestRunner';
+import { GachaService } from '../systems/gacha';
 import { isDebugEnabled } from './DebugGate';
 
 export class Game {
@@ -57,14 +51,9 @@ export class Game {
   public async init(): Promise<void> {
     if (this.isInitialized) return;
 
-    // 0. Validate Data Layer Integrity (failing fast if schema or links are invalid)
-    DataValidator.validateAll();
+    // 0. Initialize Codex listeners (DataValidator & AssetRegistry run progressively inside BootScene)
     SoulCodexSystem.initEventListeners();
     (window as any).GachaService = GachaService;
-    (window as any).GachaTestRunner = GachaTestRunner;
-    (window as any).Bloque43HudTestRunner = Bloque43HudTestRunner;
-    (window as any).Bloque44TilesetTestRunner = Bloque44TilesetTestRunner;
-    (window as any).Bloque45MapgenTestRunner = Bloque45MapgenTestRunner;
 
     // 1. Locate DOM containers
     this.gameContainer = document.getElementById('game-container') as HTMLElement;
@@ -85,23 +74,37 @@ export class Game {
     this.targetHeight = initialH;
     await GlobalPixiRenderer.init(this.pixiContainer, this.targetWidth, this.targetHeight);
 
-    // 4. Generate & Cache all procedural Pixel Art Assets
-    GlobalAssetRegistry.init();
-
-    // Run automated test suites now that renderers and registries are ready
-    setTimeout(() => {
-      try {
-        GachaTestRunner.runAllTests();
-        Bloque28BQrTestRunner.runAllTests();
-        Bloque35LabTestRunner.runAllTests();
-        Bloque46StarterUiTestRunner.runAllTests();
-        Bloque43HudTestRunner.runAllTests();
-        Bloque44TilesetTestRunner.runAllTests();
-        Bloque45MapgenTestRunner.runAllTests();
-      } catch (err) {
-        console.error('[GachaTestRunner] Error in automated suite:', err);
-      }
-    }, 50);
+    // 4. Optional automated test suites: only run in DEV when explicitly requested via ?runTests=1
+    if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('runTests') === '1') {
+      setTimeout(async () => {
+        try {
+          const [
+            gachaMod,
+            b35Mod,
+            b46Mod,
+            b43Mod,
+            b44Mod,
+            b45Mod,
+          ] = await Promise.all([
+            import('../systems/gacha'),
+            import('../systems/lab/Bloque35LabTestRunner'),
+            import('../systems/lab/Bloque46StarterUiTestRunner'),
+            import('../ui/hud/Bloque43HudTestRunner'),
+            import('../render/overworld/Bloque44TilesetTestRunner'),
+            import('../render/overworld/Bloque45MapgenTestRunner'),
+          ]);
+          gachaMod.GachaTestRunner.runAllTests();
+          gachaMod.Bloque28BQrTestRunner.runAllTests();
+          b35Mod.Bloque35LabTestRunner.runAllTests();
+          b46Mod.Bloque46StarterUiTestRunner.runAllTests();
+          b43Mod.Bloque43HudTestRunner.runAllTests();
+          b44Mod.Bloque44TilesetTestRunner.runAllTests();
+          b45Mod.Bloque45MapgenTestRunner.runAllTests();
+        } catch (err) {
+          console.error('[TestRunners] Error in automated suite:', err);
+        }
+      }, 200);
+    }
 
     // 5. Initialize Touch Controls Overlay
     GlobalInput.mountTouchControls(this.gameContainer);
@@ -124,7 +127,6 @@ export class Game {
     GlobalSceneManager.registerScene('GachaResonance', () => new GachaResonanceScene());
     GlobalSceneManager.registerScene('Options', () => new OptionsScene());
     GlobalSceneManager.registerScene('Credits', () => new CreditsScene());
-    GlobalSceneManager.registerScene('Debug', () => new DebugScene());
 
     // 7. Debug Toggle Shortcut Handler (Bloque 43 Req. 2: Dynamic import only when DEBUG is active)
     GlobalEventBus.on('debug:toggle', async () => {
@@ -137,9 +139,13 @@ export class Game {
       if (current && current.name === 'Debug') {
         GlobalSceneManager.popScene();
       } else {
-        const mod = await import('../scenes/DebugScene');
-        GlobalSceneManager.registerScene('Debug', () => new mod.DebugScene());
-        GlobalSceneManager.pushScene('Debug');
+        try {
+          const mod = await import('../scenes/DebugScene');
+          GlobalSceneManager.registerScene('Debug', () => new mod.DebugScene());
+          GlobalSceneManager.pushScene('Debug');
+        } catch (err) {
+          console.warn('[Game] Optional DebugScene could not be loaded:', err);
+        }
       }
     });
 
@@ -151,15 +157,15 @@ export class Game {
       ro.observe(this.gameContainer);
     }
 
-    // 9. Setup Central Loop
+    // 9. Setup & Start Central Loop immediately so BootScene renders its first frame without waiting
     this.gameLoop = new GameLoop(
       (fixedDt) => this.onLogicUpdate(fixedDt),
       (alpha) => this.onRender(alpha)
     );
-
-    // 10. Start Initial Scene & GameLoop
-    await GlobalSceneManager.changeScene('Boot');
     this.gameLoop.start();
+
+    // 10. Enter Initial BootScene
+    await GlobalSceneManager.changeScene('Boot');
 
     this.isInitialized = true;
     console.log('[Game] Engine initialized successfully with procedural art assets.');

@@ -191,11 +191,18 @@ export class AssetRegistry {
 
   // --- Creature Getters ---
   public getCreatureSpritePixi(speciesId: string, view: SpriteView = 'view_front34'): Texture {
-    if (view === 'view_front34' || view === 'side_r') {
+    const spriteSet = this.creatureSprites.get(speciesId);
+    if (spriteSet && (spriteSet as any)[view]) {
+      return this.createCrispPixiTexture((spriteSet as any)[view]);
+    }
+    if (view === 'view_front34' || view === 'side_r' || view === 'idle') {
       return this.pixiCreatureFront34.get(speciesId) || this.pixiCreatureFront.get(speciesId) || Texture.EMPTY;
     }
     if (view === 'view_front' || view === 'front') {
       return this.pixiCreatureFront.get(speciesId) || this.pixiCreatureFront34.get(speciesId) || Texture.EMPTY;
+    }
+    if (view === 'view_side' || view === 'relaxed') {
+      return (spriteSet && spriteSet.view_side ? this.createCrispPixiTexture(spriteSet.view_side) : null) || this.pixiCreatureFront34.get(speciesId) || Texture.EMPTY;
     }
     if (view === 'view_back34' || view === 'side_l') {
       return this.pixiCreatureBack34.get(speciesId) || this.pixiCreatureBack.get(speciesId) || Texture.EMPTY;
@@ -276,8 +283,12 @@ export class AssetRegistry {
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d')!;
-      if (this.atlasTexture) {
+      if (this.atlasTexture && this.atlasTexture.complete && this.atlasTexture.naturalWidth > 0) {
+        try {
           ctx.drawImage(this.atlasTexture, x, y, w, h, 0, 0, w, h);
+        } catch (e) {
+          console.warn('[AssetRegistry] Failed to draw tile from atlas:', e);
+        }
       }
       return canvas;
   }

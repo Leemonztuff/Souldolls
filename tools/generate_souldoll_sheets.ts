@@ -1,17 +1,35 @@
 /**
  * Generador y configurador de Hojas de Batalla y Atlas para las 14 especies de Souldolls.
- * Produce para cada especie (maga, archimaga, sacerdotisa, hierofante, gladiadora, titanide,
- * bruja, hechicera, hidromante, cantora_marea, monje, maestro_trueno, asesina, espectro):
+ * Procesa las 9 poses definitivas (idle, relaxed, attack, attack_impact, casting, casting_release, damage, down, victory)
+ * y genera para cada especie:
  * - /public/assets/souldolls/<speciesId>_battle_sheet.png
  * - /src/data/art/souldolls/<speciesId>_battle_atlas.json
  * - /public/data/art/souldolls/<speciesId>_battle_atlas.json
  * - /public/data/art/souldolls_sprites_manifest.json y /src/data/art/souldolls_sprites_manifest.json
+ *
+ * Busca hojas individuales en assets/raw/spritesheets/<speciesId>_spritesheet.webp (o .png)
+ * y si no existen, toma el master sheet (assets/raw/spritesheet.webp) aplicando paletas y equipo característico.
+ * Deja preparada la configuración para la vista trasera cuando se añadan los sheets de espalda.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
+import sharp from 'sharp';
 import { PNG } from 'pngjs';
-import { prepareBattleSpritesheet } from './prepare_atlas';
+
+export const POSE_NAMES = [
+  'idle',
+  'relaxed',
+  'attack',
+  'attack_impact',
+  'casting',
+  'casting_release',
+  'damage',
+  'victory',
+  'down',
+] as const;
+
+export type PoseName = (typeof POSE_NAMES)[number];
 
 interface IdleBustBox {
   y0: number;
@@ -36,7 +54,8 @@ interface FrameMeta {
   mirrorSafe: boolean;
   native: boolean;
   note: string;
-  idle: IdleBandMeta;
+  isBackFallback?: boolean;
+  idle?: IdleBandMeta;
 }
 
 interface SpeciesVisualProfile {
@@ -79,6 +98,23 @@ interface SpeciesVisualProfile {
     | 'void_crown';
   isAscended: boolean;
 }
+
+const SPECIES_FRAME_INDEX_MAP: Record<string, number> = {
+  maga: 8,
+  archimaga: 1,
+  sacerdotisa: 2,
+  hierofante: 3,
+  gladiadora: 4,
+  titanide: 0,
+  bruja: 6,
+  hechicera: 7,
+  hidromante: 5,
+  cantora_marea: 9,
+  monje: 10,
+  maestro_trueno: 11,
+  asesina: 12,
+  espectro: 13,
+};
 
 const SPECIES_PROFILES: SpeciesVisualProfile[] = [
   {
@@ -311,16 +347,12 @@ function applyPaletteTransformToRegion(
       const g = png.data[idx + 1];
       const b = png.data[idx + 2];
 
-      // 1. Piel cálida / durazno (en el spritesheet de 5 vistas: R ~235..255, G ~135..200, B ~85..135)
       const isWarmSkin = r > 228 && g >= 132 && g <= 210 && b >= 80 && b <= 142 && r > g + 35 && g > b + 20;
-      // En la parte superior de la cabeza (sombrero puntiagudo, y < 13% del alto), ese tono naranja es el sombrero, no piel
       const isTopHatCone = y < frame.y + Math.round(frame.h * 0.13);
       if (isWarmSkin && !isTopHatCone) {
         continue;
       }
 
-      // 2. Blanco/crema del atuendo (corsé/top y falda: R>215, G>215, B>205) y pliegues grises (R~145..195, G~150..195, B~145..195)
-      // Excluir la esclerótica de los ojos en la zona de la cara (y < 25%)
       const isWhiteGarment = y >= headBottomY && r > 215 && g > 215 && b > 205 && Math.abs(r - g) < 20;
       const isGreyGarmentFold =
         y >= headBottomY &&
@@ -333,14 +365,12 @@ function applyPaletteTransformToRegion(
         Math.abs(r - g) < 18 &&
         Math.abs(g - b) < 18;
 
-      // 3. Rojo/carmesí del cabello, cintas y bordes del sombrero (R ~175..238, G ~65..118, B ~60..98)
       const isCrimsonHairOrRibbon = r > 165 && g < 122 && b < 105 && r > g * 1.55;
       const isDarkHatOrCape = r > 55 && b > 50 && g < Math.min(r, b) * 0.88;
 
       const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 185;
 
       if (isWhiteGarment || isGreyGarmentFold) {
-        // Teñir el atuendo blanco/gris con una mezcla luminosa del color secundario y primario de la clase
         const mixR = sR * 0.65 + pR * 0.35;
         const mixG = sG * 0.65 + pG * 0.35;
         const mixB = sB * 0.65 + pB * 0.35;
@@ -371,13 +401,8 @@ function drawSignatureEquipmentOnFrame(
   frame: FrameMeta,
   profile: SpeciesVisualProfile
 ): void {
-  const isBack = frameName === 'view_back' || frameName === 'view_back34';
-  const handX =
-    frameName === 'view_side'
-      ? frame.x + Math.round(frame.w * 0.72)
-      : frameName === 'view_front34'
-      ? frame.x + Math.round(frame.w * 0.78)
-      : frame.x + Math.round(frame.w * 0.82);
+  const isBack = frame.isBackFallback || frameName === 'view_back' || frameName === 'view_back34';
+  const handX = frame.x + Math.round(frame.w * 0.76);
   const handY = frame.y + Math.round(frame.h * 0.56);
   const headX = frame.x + Math.round(frame.w * 0.5);
   const headY = frame.y + Math.round(frame.h * 0.14);
@@ -388,7 +413,7 @@ function drawSignatureEquipmentOnFrame(
   const darkOutline: [number, number, number] = [20, 16, 28];
 
   // 1. Tocado / Corona distintiva por especie
-  if (!isBack) {
+  if (!isBack && frameName !== 'down') {
     switch (profile.headgearType) {
       case 'tiara_ignis':
       case 'solar_crown':
@@ -427,95 +452,412 @@ function drawSignatureEquipmentOnFrame(
     }
   }
 
-  // 2. Arma característica en la mano
-  switch (profile.weaponType) {
-    case 'baston_ignis':
-    case 'cetro_piroclastico': {
-      fillRect(png, handX - 2, handY - 34, 4, 58, darkOutline);
-      fillRect(png, handX - 1, handY - 33, 2, 56, woodShaft);
-      fillRect(png, handX - 4, handY - 36, 8, 3, bronzeMetal);
-      fillRect(png, handX - 5, handY - 45, 10, 9, profile.primaryRgb);
-      fillRect(png, handX - 2, handY - 43, 4, 5, profile.secondaryRgb);
-      if (profile.isAscended) {
-        fillRect(png, handX - 8, handY - 42, 3, 5, goldMetal);
-        fillRect(png, handX + 5, handY - 42, 3, 5, goldMetal);
+  // 2. Arma característica en la mano (para poses activas)
+  if (frameName === 'idle' || frameName === 'attack' || frameName === 'attack_impact' || frameName === 'casting' || frameName === 'victory') {
+    switch (profile.weaponType) {
+      case 'baston_ignis':
+      case 'cetro_piroclastico': {
+        fillRect(png, handX - 2, handY - 34, 4, 58, darkOutline);
+        fillRect(png, handX - 1, handY - 33, 2, 56, woodShaft);
+        fillRect(png, handX - 4, handY - 36, 8, 3, bronzeMetal);
+        fillRect(png, handX - 5, handY - 45, 10, 9, profile.primaryRgb);
+        fillRect(png, handX - 2, handY - 43, 4, 5, profile.secondaryRgb);
+        if (profile.isAscended) {
+          fillRect(png, handX - 8, handY - 42, 3, 5, goldMetal);
+          fillRect(png, handX + 5, handY - 42, 3, 5, goldMetal);
+        }
+        break;
       }
-      break;
-    }
-    case 'vara_sauce':
-    case 'baculo_solaria': {
-      fillRect(png, handX - 2, handY - 32, 4, 56, woodShaft);
-      fillRect(png, handX - 7, handY - 38, 10, 4, woodShaft);
-      fillRect(png, handX - 10, handY - 41, 5, 4, profile.primaryRgb);
-      fillRect(png, handX + 2, handY - 42, 5, 4, profile.primaryRgb);
-      fillRect(png, handX - 4, handY - 44, 6, 6, profile.secondaryRgb);
-      if (profile.isAscended) {
-        fillRect(png, handX - 2, handY - 48, 4, 4, goldMetal);
+      case 'vara_sauce':
+      case 'baculo_solaria': {
+        fillRect(png, handX - 2, handY - 32, 4, 56, woodShaft);
+        fillRect(png, handX - 7, handY - 38, 10, 4, woodShaft);
+        fillRect(png, handX - 10, handY - 41, 5, 4, profile.primaryRgb);
+        fillRect(png, handX + 2, handY - 42, 5, 4, profile.primaryRgb);
+        fillRect(png, handX - 4, handY - 44, 6, 6, profile.secondaryRgb);
+        if (profile.isAscended) {
+          fillRect(png, handX - 2, handY - 48, 4, 4, goldMetal);
+        }
+        break;
       }
-      break;
-    }
-    case 'tridente_coral':
-    case 'arpa_abismal': {
-      fillRect(png, handX - 2, handY - 30, 4, 54, profile.darkTrimRgb);
-      fillRect(png, handX - 8, handY - 34, 16, 3, profile.primaryRgb);
-      fillRect(png, handX - 8, handY - 45, 3, 12, profile.primaryRgb);
-      fillRect(png, handX - 1, handY - 49, 3, 16, profile.secondaryRgb);
-      fillRect(png, handX + 5, handY - 45, 3, 12, profile.primaryRgb);
-      break;
-    }
-    case 'grimorio_polvo':
-    case 'tomo_arcano': {
-      // Tomo arcano / grimorio flotante con páginas iluminadas y sello de ki
-      fillRect(png, handX - 9, handY - 22, 16, 20, darkOutline);
-      fillRect(png, handX - 8, handY - 21, 14, 18, profile.primaryRgb);
-      fillRect(png, handX - 6, handY - 19, 10, 14, [242, 230, 201]);
-      fillRect(png, handX - 3, handY - 15, 4, 6, profile.accentHex);
-      if (profile.isAscended) {
-        fillRect(png, handX - 10, handY - 28, 3, 3, goldMetal);
-        fillRect(png, handX + 6, handY - 28, 3, 3, goldMetal);
+      case 'tridente_coral':
+      case 'arpa_abismal': {
+        fillRect(png, handX - 2, handY - 30, 4, 54, profile.darkTrimRgb);
+        fillRect(png, handX - 8, handY - 34, 16, 3, profile.primaryRgb);
+        fillRect(png, handX - 8, handY - 45, 3, 12, profile.primaryRgb);
+        fillRect(png, handX - 1, handY - 49, 3, 16, profile.secondaryRgb);
+        fillRect(png, handX + 5, handY - 45, 3, 12, profile.primaryRgb);
+        break;
       }
-      break;
-    }
-    case 'guantelete_piedra':
-    case 'guantelete_titan': {
-      fillRect(png, handX - 7, handY - 10, 13, 16, darkOutline);
-      fillRect(png, handX - 6, handY - 9, 11, 14, profile.primaryRgb);
-      fillRect(png, handX - 4, handY - 7, 7, 5, goldMetal);
-      break;
-    }
-    case 'guantes_chispa':
-    case 'nunchaku_rayo': {
-      fillRect(png, handX - 5, handY - 14, 9, 12, profile.primaryRgb);
-      fillRect(png, handX - 3, handY - 22, 4, 8, profile.secondaryRgb);
-      fillRect(png, handX + 2, handY - 26, 3, 6, profile.accentHex);
-      break;
-    }
-    case 'daga_penumbra':
-    case 'guadana_vacio': {
-      fillRect(png, handX - 2, handY - 34, 3, 52, darkOutline);
-      fillRect(png, handX - 1, handY - 38, 12, 5, profile.secondaryRgb);
-      fillRect(png, handX + 6, handY - 35, 4, 10, profile.accentHex);
-      break;
+      case 'grimorio_polvo':
+      case 'tomo_arcano': {
+        fillRect(png, handX - 9, handY - 22, 16, 20, darkOutline);
+        fillRect(png, handX - 8, handY - 21, 14, 18, profile.primaryRgb);
+        fillRect(png, handX - 6, handY - 19, 10, 14, [242, 230, 201]);
+        fillRect(png, handX - 3, handY - 15, 4, 6, profile.accentHex);
+        if (profile.isAscended) {
+          fillRect(png, handX - 10, handY - 28, 3, 3, goldMetal);
+          fillRect(png, handX + 6, handY - 28, 3, 3, goldMetal);
+        }
+        break;
+      }
+      case 'guantelete_piedra':
+      case 'guantelete_titan': {
+        fillRect(png, handX - 7, handY - 10, 13, 16, darkOutline);
+        fillRect(png, handX - 6, handY - 9, 11, 14, profile.primaryRgb);
+        fillRect(png, handX - 4, handY - 7, 7, 5, goldMetal);
+        break;
+      }
+      case 'guantes_chispa':
+      case 'nunchaku_rayo': {
+        fillRect(png, handX - 5, handY - 14, 9, 12, profile.primaryRgb);
+        fillRect(png, handX - 3, handY - 22, 4, 8, profile.secondaryRgb);
+        fillRect(png, handX + 2, handY - 26, 3, 6, profile.accentHex);
+        break;
+      }
+      case 'daga_penumbra':
+      case 'guadana_vacio': {
+        fillRect(png, handX - 2, handY - 34, 3, 52, darkOutline);
+        fillRect(png, handX - 1, handY - 38, 12, 5, profile.secondaryRgb);
+        fillRect(png, handX + 6, handY - 35, 4, 10, profile.accentHex);
+        break;
+      }
     }
   }
 }
 
-export function generateAllSoulDollSheets(): boolean {
+interface RawSlice {
+  name: PoseName;
+  width: number;
+  height: number;
+  pixels: Uint8Array;
+  sourceRect: [number, number, number, number];
+}
+
+async function loadAndSliceRawSheet(rawPath: string): Promise<RawSlice[]> {
+  const { data, info } = await sharp(rawPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width;
+  const H = info.height;
+
+  // Helper to extract and trim a rectangular region (rx0..rx1, ry0..ry1)
+  const extractRectSlice = (
+    name: PoseName,
+    rx0: number,
+    ry0: number,
+    rx1: number,
+    ry1: number
+  ): RawSlice => {
+    let minX = rx1;
+    let maxX = rx0;
+    let minY = ry1;
+    let maxY = ry0;
+    let hasPixels = false;
+
+    for (let y = ry0; y <= ry1; y++) {
+      for (let x = rx0; x <= rx1; x++) {
+        const a = data[(y * W + x) * 4 + 3];
+        if (a > 16) {
+          hasPixels = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (!hasPixels) {
+      minX = rx0;
+      maxX = rx1;
+      minY = ry0;
+      maxY = ry1;
+    }
+
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+    const padding = 1;
+    const outW = cropW + padding * 2;
+    const outH = cropH + padding * 2;
+    const outPixels = new Uint8Array(outW * outH * 4);
+
+    for (let py = 0; py < cropH; py++) {
+      for (let px = 0; px < cropW; px++) {
+        const srcIdx = ((minY + py) * W + (minX + px)) * 4;
+        const dstIdx = ((py + padding) * outW + (px + padding)) * 4;
+        outPixels[dstIdx] = data[srcIdx];
+        outPixels[dstIdx + 1] = data[srcIdx + 1];
+        outPixels[dstIdx + 2] = data[srcIdx + 2];
+        outPixels[dstIdx + 3] = data[srcIdx + 3];
+      }
+    }
+
+    return {
+      name,
+      width: outW,
+      height: outH,
+      pixels: outPixels,
+      sourceRect: [minX, minY, cropW, cropH],
+    };
+  };
+
+  // 0. Si la hoja es una cuadrícula cuadrada 3x3 (ej. 388x388 con 3 filas x 3 columnas = 9 frames del 1 al 9):
+  //    - Fila 1: Frame 1 (idle), Frame 2 (relaxed), Frame 3 (attack)
+  //    - Fila 2: Frame 4 (attack_impact), Frame 5 (casting / reservado), Frame 6 (casting_release / reservado)
+  //    - Fila 3: Frame 7 (damage), Frame 8 (victory), Frame 9 (down)
+  if (Math.abs(W - H) <= 8 && W >= 300) {
+    const cellW = Math.floor(W / 3);
+    const cellH = Math.floor(H / 3);
+    const gridSlices: RawSlice[] = [];
+    for (let i = 0; i < 9; i++) {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const rx0 = col * cellW;
+      const ry0 = row * cellH;
+      const rx1 = col === 2 ? W - 1 : (col + 1) * cellW - 1;
+      const ry1 = row === 2 ? H - 1 : (row + 1) * cellH - 1;
+      gridSlices.push(extractRectSlice(POSE_NAMES[i], rx0, ry0, rx1, ry1));
+    }
+    return gridSlices;
+  }
+
+  // 1. Detect contiguous segments of non-transparent columns
+  const colDensity = new Array(W).fill(0);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      if (data[(y * W + x) * 4 + 3] > 16) {
+        colDensity[x]++;
+      }
+    }
+  }
+
+  const detectedSegments: Array<{ startX: number; endX: number; width: number }> = [];
+  let inSeg = false;
+  let startX = 0;
+  for (let x = 0; x < W; x++) {
+    if (colDensity[x] > 0) {
+      if (!inSeg) {
+        inSeg = true;
+        startX = x;
+      }
+    } else {
+      if (inSeg) {
+        inSeg = false;
+        // Ignore noise smaller than 3px wide
+        if (x - startX >= 3) {
+          detectedSegments.push({ startX, endX: x - 1, width: x - startX });
+        }
+      }
+    }
+  }
+  if (inSeg && W - startX >= 3) {
+    detectedSegments.push({ startX, endX: W - 1, width: W - startX });
+  }
+
+  // Fallback if no segments found or image is completely opaque background
+  if (detectedSegments.length === 0) {
+    const defaultCols = 9;
+    const colW = W / defaultCols;
+    for (let i = 0; i < defaultCols; i++) {
+      detectedSegments.push({
+        startX: Math.floor(i * colW),
+        endX: Math.min(W - 1, Math.floor((i + 1) * colW) - 1),
+        width: Math.floor(colW),
+      });
+    }
+  }
+
+  // Helper to extract a single slice from bounds
+  const extractSlice = (name: PoseName, sx0: number, sx1: number): RawSlice => {
+    let minX = sx1;
+    let maxX = sx0;
+    let minY = H - 1;
+    let maxY = 0;
+    let hasPixels = false;
+
+    for (let y = 0; y < H; y++) {
+      for (let x = sx0; x <= sx1; x++) {
+        const a = data[(y * W + x) * 4 + 3];
+        if (a > 16) {
+          hasPixels = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (!hasPixels) {
+      minX = sx0;
+      maxX = sx1;
+      minY = 0;
+      maxY = H - 1;
+    }
+
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+    const padding = 1;
+    const outW = cropW + padding * 2;
+    const outH = cropH + padding * 2;
+    const outPixels = new Uint8Array(outW * outH * 4);
+
+    for (let py = 0; py < cropH; py++) {
+      for (let px = 0; px < cropW; px++) {
+        const srcIdx = ((minY + py) * W + (minX + px)) * 4;
+        const dstIdx = ((py + padding) * outW + (px + padding)) * 4;
+        outPixels[dstIdx] = data[srcIdx];
+        outPixels[dstIdx + 1] = data[srcIdx + 1];
+        outPixels[dstIdx + 2] = data[srcIdx + 2];
+        outPixels[dstIdx + 3] = data[srcIdx + 3];
+      }
+    }
+
+    return {
+      name,
+      width: outW,
+      height: outH,
+      pixels: outPixels,
+      sourceRect: [minX, minY, cropW, cropH],
+    };
+  };
+
+  const slices: RawSlice[] = [];
+  const numSegs = detectedSegments.length;
+
+  if (numSegs >= 9) {
+    // 9 or more frames: 1:1 mapping for all 9 poses
+    for (let f = 0; f < 9; f++) {
+      const seg = detectedSegments[f];
+      slices.push(extractSlice(POSE_NAMES[f], seg.startX, seg.endX));
+    }
+  } else if (numSegs === 5) {
+    // 5 frames layout: idle, relaxed, attack, damage, down
+    // Map to all 9 required poses cleanly
+    const segIdle = detectedSegments[0];
+    const segRelaxed = detectedSegments[1];
+    const segAttack = detectedSegments[2];
+    const segDamage = detectedSegments[3];
+    const segDown = detectedSegments[4];
+
+    slices.push(extractSlice('idle', segIdle.startX, segIdle.endX));
+    slices.push(extractSlice('relaxed', segRelaxed.startX, segRelaxed.endX));
+    slices.push(extractSlice('attack', segAttack.startX, segAttack.endX));
+    slices.push(extractSlice('attack_impact', segAttack.startX, segAttack.endX));
+    slices.push(extractSlice('casting', segAttack.startX, segAttack.endX));
+    slices.push(extractSlice('casting_release', segDamage.startX, segDamage.endX));
+    slices.push(extractSlice('damage', segDamage.startX, segDamage.endX));
+    slices.push(extractSlice('victory', segIdle.startX, segIdle.endX));
+    slices.push(extractSlice('down', segDown.startX, segDown.endX));
+  } else {
+    // Dynamic fallback for any other number of segments
+    for (let f = 0; f < 9; f++) {
+      const segIndex = Math.min(numSegs - 1, Math.floor((f / 9) * numSegs));
+      const seg = detectedSegments[segIndex];
+      slices.push(extractSlice(POSE_NAMES[f], seg.startX, seg.endX));
+    }
+  }
+
+  return slices;
+}
+
+function packSlicesIntoPngAndFrames(slices: RawSlice[]): {
+  png: PNG;
+  frames: Record<string, FrameMeta>;
+} {
+  let totalW = 0;
+  let maxH = 0;
+  slices.forEach((s) => {
+    totalW += s.width + 2;
+    if (s.height > maxH) maxH = s.height;
+  });
+
+  const png = new PNG({ width: totalW, height: maxH });
+  const frames: Record<string, FrameMeta> = {};
+
+  let curX = 0;
+  slices.forEach((s) => {
+    for (let y = 0; y < s.height; y++) {
+      for (let x = 0; x < s.width; x++) {
+        const srcIdx = (y * s.width + x) * 4;
+        const dstIdx = (y * totalW + (curX + x)) * 4;
+        png.data[dstIdx] = s.pixels[srcIdx];
+        png.data[dstIdx + 1] = s.pixels[srcIdx + 1];
+        png.data[dstIdx + 2] = s.pixels[srcIdx + 2];
+        png.data[dstIdx + 3] = s.pixels[srcIdx + 3];
+      }
+    }
+
+    const isIdle = s.name === 'idle';
+    const isRelaxed = s.name === 'relaxed';
+
+    frames[s.name] = {
+      x: curX,
+      y: 0,
+      w: s.width,
+      h: s.height,
+      anchor: [0.5, 1.0],
+      sourceRect: s.sourceRect,
+      mirrorSafe: false,
+      native: true,
+      note: `Pose ${s.name} definitiva`,
+      idle: isIdle
+        ? {
+            neck: 0.31,
+            waist: 0.48,
+            bust: { y0: 0.34, y1: 0.46, x0: 0.3, x1: 0.7 },
+          }
+        : isRelaxed
+        ? {
+            neck: 0.3,
+            waist: 0.48,
+            bust: { y0: 0.33, y1: 0.46, x0: 0.28, x1: 0.72 },
+          }
+        : undefined,
+    };
+
+    curX += s.width + 2;
+  });
+
+  // Alias de compatibilidad hacia atrás:
+  // El Frame 1 es idle (vista frontal 3/4). Ya no hay vista frontal plana ni de lado, sólo frontal 3/4.
+  const idleFrame = frames['idle'];
+
+  frames['view_front34'] = { ...idleFrame, note: '3/4 Frontal (Frame 1 idle)' };
+  frames['view_front'] = { ...idleFrame, note: 'Frontal (alias a 3/4 frontal / Frame 1 idle)' };
+  frames['view_side'] = { ...idleFrame, note: 'Lateral (alias a 3/4 frontal / Frame 1 idle)' };
+
+  // Vista trasera temporalmente configurada con la delantera (frontal 3/4) pero lista para switch futuro (isBackFallback: true)
+  frames['view_back'] = {
+    ...idleFrame,
+    isBackFallback: true,
+    note: 'Vista trasera configurada provisionalmente con frontal 3/4 (preparada para switch futuro)',
+  };
+  frames['view_back34'] = {
+    ...idleFrame,
+    isBackFallback: true,
+    note: 'Vista 3/4 trasera configurada provisionalmente con frontal 3/4 (preparada para switch futuro)',
+  };
+
+  frames['front'] = frames['view_front34'];
+  frames['back'] = frames['view_back34'];
+  frames['side_r'] = frames['view_front34'];
+  frames['side_l'] = frames['view_back34'];
+
+  return { png, frames };
+}
+
+export async function generateAllSoulDollSheets(): Promise<boolean> {
   const rootDir = process.cwd();
-
-  // 1. Regenerar maga_battle_sheet.png y maga_battle_atlas.json desde el spritesheet fuente actual (5 vistas WebP)
-  prepareBattleSpritesheet();
-  const basePngPath = path.resolve(rootDir, 'public/assets/souldolls/maga_battle_sheet.png');
-  const baseJsonPath = path.resolve(rootDir, 'src/data/art/souldolls/maga_battle_atlas.json');
-
-  const baseBuffer = fs.readFileSync(basePngPath);
-  const basePng = PNG.sync.read(baseBuffer);
-  const baseAtlas = JSON.parse(fs.readFileSync(baseJsonPath, 'utf-8'));
+  const rawSpritesheetsDir = path.resolve(rootDir, 'assets/raw/spritesheets');
+  if (!fs.existsSync(rawSpritesheetsDir)) {
+    fs.mkdirSync(rawSpritesheetsDir, { recursive: true });
+  }
 
   const manifestEntries: Array<{
     speciesId: string;
     name: string;
     element: string;
+    sourceRawSheet: string;
     sheetPath: string;
     atlasPath: string;
     size: [number, number];
@@ -524,84 +866,121 @@ export function generateAllSoulDollSheets(): boolean {
   }> = [];
 
   for (const profile of SPECIES_PROFILES) {
-    // Clonar PNG base
-    const outPng = new PNG({ width: basePng.width, height: basePng.height });
-    basePng.data.copy(outPng.data);
+    const frameIdx = SPECIES_FRAME_INDEX_MAP[profile.speciesId];
+    const frameNumStr = frameIdx !== undefined ? String(frameIdx).padStart(3, '0') : null;
+    const specificCandidates = [
+      ...(frameNumStr
+        ? [
+            path.resolve(rawSpritesheetsDir, `frame_${frameNumStr}.png`),
+            path.resolve(rawSpritesheetsDir, `frame_${frameNumStr}.webp`),
+          ]
+        : []),
+      path.resolve(rawSpritesheetsDir, `${profile.speciesId}_spritesheet.webp`),
+      path.resolve(rawSpritesheetsDir, `${profile.speciesId}_spritesheet.png`),
+      path.resolve(rawSpritesheetsDir, `${profile.speciesId}.webp`),
+      path.resolve(rawSpritesheetsDir, `${profile.speciesId}.png`),
+    ];
+    const specificPath = specificCandidates.find((p) => fs.existsSync(p));
 
-    const frames: Record<string, FrameMeta> = JSON.parse(JSON.stringify(baseAtlas.frames));
-
-    for (const [viewName, frame] of Object.entries(frames)) {
-      applyPaletteTransformToRegion(outPng, frame, profile);
-      drawSignatureEquipmentOnFrame(outPng, viewName, frame, profile);
+    if (!specificPath) {
+      console.error(
+        `❌ [generateAllSoulDollSheets] No se encontró spritesheet dedicado para ${profile.speciesId}`
+      );
+      return false;
     }
 
-    const outBuffer = PNG.sync.write(outPng);
+    const relRawSheet = `assets/raw/spritesheets/${path.basename(specificPath)}`;
+    console.log(
+      `✨ [generateAllSoulDollSheets] ${profile.speciesId} -> ${relRawSheet}`
+    );
+    const specificSlices = await loadAndSliceRawSheet(specificPath);
+    const packed = packSlicesIntoPngAndFrames(specificSlices);
+    const speciesPng = packed.png;
+    const speciesFrames = packed.frames;
+
+    const outBuffer = PNG.sync.write(speciesPng);
     const relSheetUrl = `/assets/souldolls/${profile.speciesId}_battle_sheet.png`;
     const relAtlasUrl = `/data/art/souldolls/${profile.speciesId}_battle_atlas.json`;
 
-    const pngTarget = path.resolve(
-      rootDir,
-      `public/assets/souldolls/${profile.speciesId}_battle_sheet.png`
-    );
-    fs.mkdirSync(path.dirname(pngTarget), { recursive: true });
-    fs.writeFileSync(pngTarget, outBuffer);
+    const pngTargets = [
+      path.resolve(rootDir, `public/assets/souldolls/${profile.speciesId}_battle_sheet.png`),
+      path.resolve(rootDir, `dist/assets/souldolls/${profile.speciesId}_battle_sheet.png`),
+    ];
+    for (const pTarget of pngTargets) {
+      fs.mkdirSync(path.dirname(pTarget), { recursive: true });
+      fs.writeFileSync(pTarget, outBuffer);
+    }
 
     const speciesAtlas = {
       speciesId: profile.speciesId,
       name: profile.name,
       element: profile.element,
+      sourceRawSheet: relRawSheet,
       image: relSheetUrl,
-      size: [outPng.width, outPng.height],
-      nativeTargetHeightPx: baseAtlas.nativeTargetHeightPx || 160,
+      size: [speciesPng.width, speciesPng.height],
+      nativeTargetHeightPx: speciesPng.height,
       mirrorSafe: false,
-      asymmetryNote: baseAtlas.asymmetryNote,
-      frames,
+      asymmetryNote: 'El brazo del arma cambia de lado al espejar horizontalmente (flipX: true).',
+      hasBackSheet: false, // Flag que indica si ya se suministró vista trasera nativa
+      frames: speciesFrames,
     };
 
     const jsonTargets = [
       path.resolve(rootDir, `public/data/art/souldolls/${profile.speciesId}_battle_atlas.json`),
       path.resolve(rootDir, `src/data/art/souldolls/${profile.speciesId}_battle_atlas.json`),
+      path.resolve(rootDir, `dist/data/art/souldolls/${profile.speciesId}_battle_atlas.json`),
     ];
     for (const j of jsonTargets) {
       fs.mkdirSync(path.dirname(j), { recursive: true });
       fs.writeFileSync(j, JSON.stringify(speciesAtlas, null, 2));
     }
 
+    // Copiar también maga_battle_atlas legacy si es maga
+    if (profile.speciesId === 'maga') {
+      const magaLegacyTargets = [
+        path.resolve(rootDir, 'public/data/art/maga_battle_atlas.json'),
+        path.resolve(rootDir, 'dist/data/art/maga_battle_atlas.json'),
+      ];
+      for (const mTarget of magaLegacyTargets) {
+        fs.mkdirSync(path.dirname(mTarget), { recursive: true });
+        fs.writeFileSync(mTarget, JSON.stringify(speciesAtlas, null, 2));
+      }
+    }
+
     manifestEntries.push({
       speciesId: profile.speciesId,
       name: profile.name,
       element: profile.element,
+      sourceRawSheet: relRawSheet,
       sheetPath: relSheetUrl,
       atlasPath: relAtlasUrl,
-      size: [outPng.width, outPng.height],
-      views: Object.keys(frames),
+      size: [speciesPng.width, speciesPng.height],
+      views: Object.keys(speciesFrames),
       idleSupported: true,
     });
 
-    console.log(
-      `✅ [generateAllSoulDollSheets] ${profile.speciesId} (${profile.name}): ${relSheetUrl} + ${relAtlasUrl}`
-    );
+    console.log(`✅ [generateAllSoulDollSheets] ${profile.speciesId} (${profile.name}): ${speciesPng.width}x${speciesPng.height} px`);
   }
 
   const manifestJson = {
-    version: '1.1.0',
+    version: '2.1.0',
     totalSpecies: manifestEntries.length,
-    defaultViews: Object.keys(baseAtlas.frames),
+    poses: POSE_NAMES,
+    defaultViews: manifestEntries[0]?.views || POSE_NAMES,
     species: Object.fromEntries(manifestEntries.map((e) => [e.speciesId, e])),
   };
 
   const manifestTargets = [
     path.resolve(rootDir, 'public/data/art/souldolls_sprites_manifest.json'),
     path.resolve(rootDir, 'src/data/art/souldolls_sprites_manifest.json'),
+    path.resolve(rootDir, 'dist/data/art/souldolls_sprites_manifest.json'),
   ];
   for (const m of manifestTargets) {
     fs.mkdirSync(path.dirname(m), { recursive: true });
     fs.writeFileSync(m, JSON.stringify(manifestJson, null, 2));
   }
 
-  console.log(
-    `\n🎨 [generateAllSoulDollSheets] 14/14 hojas de Souldolls y manifiesto guardados correctamente.`
-  );
+  console.log(`\n🎨 [generateAllSoulDollSheets] 14/14 hojas de 9 poses y manifiesto generados con éxito.`);
   return true;
 }
 

@@ -341,6 +341,24 @@ export class AtlasDebugOverlay {
     };
     panel.appendChild(flatModeBtn);
 
+    // Botón de Vista Aérea Completa de la Aldea (F2)
+    const aerialBtn = document.createElement('button');
+    aerialBtn.innerText = '🔭 Vista Aérea Aldea (Referencia F2)';
+    aerialBtn.style.padding = '7px 10px';
+    aerialBtn.style.background = '#0284c7';
+    aerialBtn.style.color = '#fff';
+    aerialBtn.style.fontWeight = 'bold';
+    aerialBtn.style.border = 'none';
+    aerialBtn.style.borderRadius = '4px';
+    aerialBtn.style.cursor = 'pointer';
+    aerialBtn.onclick = () => {
+      if (this.trackedCamera) {
+        this.trackedCamera.position.set(14.5, 26, 20);
+        this.trackedCamera.lookAt(14.5, 0, 11.5);
+      }
+    };
+    panel.appendChild(aerialBtn);
+
     // Bloque 45 Req. 1: Flujo obligatorio de autoría por mapa en 6 etapas (con vista y captura en F2)
     const b45Title = document.createElement('div');
     b45Title.innerHTML = '<strong>🗺 FLUJO DE AUTORÍA EN 6 ETAPAS (B45)</strong>';

@@ -709,19 +709,21 @@ export class BattleEngine {
     player.currentExp += exp;
     this.totalExpGained += exp;
 
-    events.push({
-      type: 'EXP_GAINED',
-      side: 'player',
-      sourceName: player.nickname || player.speciesId,
-      expGained: exp,
-      message: `¡${player.nickname || player.speciesId} ganó ${exp} puntos de experiencia!`,
-    });
-
     const evalResult = ExpCalculator.evaluateExp(
       player.currentExp,
       player.level,
       playerSpecies.expGroup
     );
+
+    events.push({
+      type: 'EXP_GAINED',
+      side: 'player',
+      sourceName: player.nickname || player.speciesId,
+      expGained: exp,
+      currentExp: evalResult.expIntoCurrentLevel,
+      maxExp: Math.max(1, evalResult.expForNextLevel),
+      message: `¡${player.nickname || player.speciesId} ganó ${exp} puntos de experiencia!`,
+    });
 
     if (evalResult.didLevelUp) {
       player.level = evalResult.newLevel;
@@ -1013,6 +1015,20 @@ export class BattleEngine {
       this.isBattleOver = true;
       this.victory = true;
       this.capturedCreature = opponent;
+
+      // Award experience points on successful capture as well
+      const player = this.getPlayerActive();
+      const playerSpecies = this.getPlayerSpecies();
+      const exp = ExpCalculator.calculateExpYield(oSpecies, opponent.level, false);
+      player.currentExp += exp;
+      this.totalExpGained += exp;
+
+      const evalResult = ExpCalculator.evaluateExp(
+        player.currentExp,
+        player.level,
+        playerSpecies.expGroup
+      );
+
       const dropped = this.rollLootForOpponent(opponent, true);
       events.push({
         type: 'CAPTURE_SUCCESS',
@@ -1020,6 +1036,32 @@ export class BattleEngine {
         lootItems: dropped,
         message: `¡Ya está! ¡${opponent.nickname || opponent.speciesId} fue capturado!`,
       });
+
+      events.push({
+        type: 'EXP_GAINED',
+        side: 'player',
+        sourceName: player.nickname || player.speciesId,
+        expGained: exp,
+        currentExp: evalResult.expIntoCurrentLevel,
+        maxExp: Math.max(1, evalResult.expForNextLevel),
+        message: `¡${player.nickname || player.speciesId} ganó ${exp} puntos de experiencia por el vínculo!`,
+      });
+
+      if (evalResult.didLevelUp) {
+        player.level = evalResult.newLevel;
+        StatCalculator.recalculateStatsAndParts(player);
+        this.levelUpRecords.push({
+          name: player.nickname || player.speciesId,
+          newLevel: player.level,
+        });
+        events.push({
+          type: 'LEVEL_UP',
+          side: 'player',
+          sourceName: player.nickname || player.speciesId,
+          newLevel: player.level,
+          message: `¡${player.nickname || player.speciesId} subió al nivel ${player.level}!`,
+        });
+      }
     } else {
       events.push({
         type: 'CAPTURE_FAIL',

@@ -1,0 +1,725 @@
+{
+  "chispa_ignea": {
+    "element": "Fuego",
+    "color": "#ff4d17",
+    "secondaryColor": "#ffaa00",
+    "scale": 0.95,
+    "charge": { "preset": "energy_ring", "duration": 0.2, "scale": 0.6 },
+    "projectile": { "preset": "projectile", "duration": 0.28, "scale": 0.9 },
+    "hit": { "preset": "radial_impact", "duration": 0.3, "scale": 0.9 },
+    "explosion": { "preset": "particles", "duration": 0.42, "scale": 0.95 },
+    "cameraShake": { "intensity": 6, "duration": 0.18 }
+  },
+  "ascuas": {
+    "element": "Fuego",
+    "color": "#ea580c",
+    "secondaryColor": "#f97316",
+    "scale": 1.0,
+    "cast": { "preset": "energy_ring", "duration": 0.22, "scale": 0.7 },
+    "projectile": { "preset": "projectile", "duration": 0.3, "scale": 0.95 },
+    "hit": { "preset": "explosion", "duration": 0.38, "scale": 0.95 },
+    "explosion": { "preset": "particles", "duration": 0.45 },
+    "cameraShake": { "intensity": 7, "duration": 0.2 }
+  },
+  "orbe_flamigero": {
+    "element": "Fuego",
+    "color": "#ef4444",
+    "secondaryColor": "#f59e0b",
+    "scale": 1.1,
+    "charge": { "preset": "energy_sphere", "duration": 0.28, "scale": 0.8 },
+    "projectile": { "preset": "projectile", "duration": 0.32, "scale": 1.1 },
+    "hit": { "preset": "explosion", "duration": 0.44, "scale": 1.1 },
+    "explosion": { "preset": "shockwave", "duration": 0.38, "scale": 1.05, "layer": "backFX" },
+    "cameraShake": { "intensity": 10, "duration": 0.24 }
+  },
+  "llamarada_arcana": {
+    "element": "Fuego",
+    "color": "#dc2626",
+    "secondaryColor": "#fbbf24",
+    "scale": 1.25,
+    "charge": { "preset": "aura", "duration": 0.3, "scale": 1.0 },
+    "cast": { "preset": "trail", "duration": 0.32, "scale": 1.3, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.38, "scale": 1.25 },
+    "explosion": { "preset": "explosion", "duration": 0.48, "scale": 1.25 },
+    "cameraShake": { "intensity": 12, "duration": 0.28 }
+  },
+  "explosion_ki": {
+    "element": "Fuego",
+    "color": "#b91c1c",
+    "secondaryColor": "#f97316",
+    "scale": 1.3,
+    "charge": { "preset": "vortex", "duration": 0.32, "scale": 1.0 },
+    "hit": { "preset": "explosion", "duration": 0.48, "scale": 1.3 },
+    "explosion": { "preset": "shockwave", "duration": 0.45, "scale": 1.35, "layer": "backFX" },
+    "cameraShake": { "intensity": 14, "duration": 0.32 }
+  },
+  "meteorito_ki": {
+    "element": "Fuego",
+    "color": "#991b1b",
+    "secondaryColor": "#f59e0b",
+    "scale": 1.35,
+    "charge": { "preset": "energy_sphere", "duration": 0.32, "scale": 1.0 },
+    "projectile": { "preset": "projectile", "duration": 0.36, "scale": 1.35 },
+    "hit": { "preset": "explosion", "duration": 0.5, "scale": 1.35 },
+    "explosion": { "preset": "radial_impact", "duration": 0.44, "scale": 1.3 },
+    "cameraShake": { "intensity": 16, "duration": 0.36 }
+  },
+  "infierno_eterno": {
+    "element": "Fuego",
+    "color": "#ff4d17",
+    "secondaryColor": "#fef08a",
+    "scale": 1.4,
+    "charge": { "preset": "aura", "duration": 0.35, "scale": 1.2 },
+    "cast": { "preset": "vortex", "duration": 0.36, "scale": 1.25 },
+    "hit": { "preset": "explosion", "duration": 0.52, "scale": 1.4 },
+    "explosion": { "preset": "shockwave", "duration": 0.5, "scale": 1.45, "layer": "backFX" },
+    "cameraShake": { "intensity": 18, "duration": 0.4 }
+  },
+  "colmillo_igneo": {
+    "element": "Fuego",
+    "color": "#ea580c",
+    "secondaryColor": "#fbbf24",
+    "scale": 1.15,
+    "cast": { "preset": "trail", "duration": 0.28, "scale": 1.2 },
+    "hit": { "preset": "explosion", "duration": 0.4, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.44, "scale": 1.1 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "lanzallamas": {
+    "element": "Fuego",
+    "color": "#ff5522",
+    "secondaryColor": "#facc15",
+    "scale": 1.28,
+    "charge": { "preset": "energy_ring", "duration": 0.26, "scale": 0.9 },
+    "cast": { "preset": "trail", "duration": 0.34, "scale": 1.35, "layer": "projectileFX" },
+    "hit": { "preset": "explosion", "duration": 0.46, "scale": 1.3 },
+    "explosion": { "preset": "particles", "duration": 0.5, "scale": 1.25 },
+    "cameraShake": { "intensity": 12, "duration": 0.26 }
+  },
+  "latigazo_ki": {
+    "element": "Planta",
+    "color": "#22c55e",
+    "secondaryColor": "#86efac",
+    "scale": 1.1,
+    "cast": { "preset": "trail", "duration": 0.28, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.35, "scale": 1.1 },
+    "explosion": { "preset": "particles", "duration": 0.42, "scale": 1.0 },
+    "cameraShake": { "intensity": 8, "duration": 0.2 }
+  },
+  "hoja_afilada": {
+    "element": "Planta",
+    "color": "#16a34a",
+    "secondaryColor": "#a7f3d0",
+    "scale": 1.15,
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.25 },
+    "hit": { "preset": "radial_impact", "duration": 0.34, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.44, "scale": 1.1 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "drenaje_vital": {
+    "element": "Planta",
+    "color": "#22c55e",
+    "secondaryColor": "#15803d",
+    "scale": 1.1,
+    "charge": { "preset": "spiral", "duration": 0.3, "scale": 1.0 },
+    "cast": { "preset": "vortex", "duration": 0.34, "scale": 1.1 },
+    "hit": { "preset": "aura", "duration": 0.42, "scale": 1.15, "layer": "frontFX" },
+    "explosion": { "preset": "particles", "duration": 0.46 },
+    "cameraShake": { "intensity": 7, "duration": 0.2 }
+  },
+  "gigadrenado": {
+    "element": "Planta",
+    "color": "#15803d",
+    "secondaryColor": "#86efac",
+    "scale": 1.25,
+    "charge": { "preset": "spiral", "duration": 0.32, "scale": 1.15 },
+    "cast": { "preset": "vortex", "duration": 0.36, "scale": 1.25 },
+    "hit": { "preset": "energy_ring", "duration": 0.44, "scale": 1.25 },
+    "explosion": { "preset": "particles", "duration": 0.52, "scale": 1.2 },
+    "cameraShake": { "intensity": 11, "duration": 0.26 }
+  },
+  "rayo_solar": {
+    "element": "Planta",
+    "color": "#eab308",
+    "secondaryColor": "#22c55e",
+    "scale": 1.35,
+    "charge": { "preset": "energy_sphere", "duration": 0.34, "scale": 1.1 },
+    "cast": { "preset": "trail", "duration": 0.34, "scale": 1.45, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.42, "scale": 1.35 },
+    "explosion": { "preset": "shockwave", "duration": 0.46, "scale": 1.35, "layer": "backFX" },
+    "cameraShake": { "intensity": 15, "duration": 0.34 }
+  },
+  "plegaria_sanadora": {
+    "element": "Planta",
+    "color": "#4ade80",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "charge": { "preset": "aura", "duration": 0.35, "scale": 1.1 },
+    "cast": { "preset": "spiral", "duration": 0.38, "scale": 1.1 },
+    "explosion": { "preset": "particles", "duration": 0.48, "scale": 1.15 }
+  },
+  "brote_protector": {
+    "element": "Planta",
+    "color": "#16a34a",
+    "secondaryColor": "#4ade80",
+    "scale": 1.2,
+    "charge": { "preset": "energy_ring", "duration": 0.3, "scale": 1.1 },
+    "cast": { "preset": "aura", "duration": 0.4, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.45 }
+  },
+  "bendicion_bosque": {
+    "element": "Planta",
+    "color": "#4ade80",
+    "secondaryColor": "#22c55e",
+    "scale": 1.2,
+    "charge": { "preset": "spiral", "duration": 0.32, "scale": 1.1 },
+    "cast": { "preset": "aura", "duration": 0.4, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.48 }
+  },
+  "santuario_primaveral": {
+    "element": "Planta",
+    "color": "#86efac",
+    "secondaryColor": "#16a34a",
+    "scale": 1.3,
+    "charge": { "preset": "energy_ring", "duration": 0.32, "scale": 1.2 },
+    "cast": { "preset": "vortex", "duration": 0.4, "scale": 1.25 },
+    "explosion": { "preset": "particles", "duration": 0.5, "scale": 1.2 }
+  },
+  "golpe_escudo": {
+    "element": "Tierra",
+    "color": "#92400e",
+    "secondaryColor": "#78350f",
+    "scale": 1.1,
+    "cast": { "preset": "energy_ring", "duration": 0.24, "scale": 0.9 },
+    "hit": { "preset": "radial_impact", "duration": 0.35, "scale": 1.1 },
+    "explosion": { "preset": "particles", "duration": 0.4, "scale": 1.0 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "roca_veloz": {
+    "element": "Tierra",
+    "color": "#b45309",
+    "secondaryColor": "#d97706",
+    "scale": 1.15,
+    "projectile": { "preset": "projectile", "duration": 0.28, "scale": 1.1 },
+    "hit": { "preset": "explosion", "duration": 0.4, "scale": 1.15 },
+    "explosion": { "preset": "shockwave", "duration": 0.38, "scale": 1.1, "layer": "backFX" },
+    "cameraShake": { "intensity": 10, "duration": 0.24 }
+  },
+  "embate_granito": {
+    "element": "Tierra",
+    "color": "#78350f",
+    "secondaryColor": "#fde047",
+    "scale": 1.2,
+    "cast": { "preset": "trail", "duration": 0.28, "scale": 1.2 },
+    "hit": { "preset": "explosion", "duration": 0.42, "scale": 1.2 },
+    "explosion": { "preset": "shockwave", "duration": 0.42, "scale": 1.2, "layer": "backFX" },
+    "cameraShake": { "intensity": 12, "duration": 0.26 }
+  },
+  "terremoto_menor": {
+    "element": "Tierra",
+    "color": "#d97706",
+    "secondaryColor": "#92400e",
+    "scale": 1.2,
+    "charge": { "preset": "shockwave", "duration": 0.28, "scale": 1.0, "layer": "backFX" },
+    "hit": { "preset": "explosion", "duration": 0.4, "scale": 1.15 },
+    "explosion": { "preset": "shockwave", "duration": 0.44, "scale": 1.25, "layer": "backFX" },
+    "cameraShake": { "intensity": 13, "duration": 0.28 }
+  },
+  "terremoto": {
+    "element": "Tierra",
+    "color": "#d97706",
+    "secondaryColor": "#78350f",
+    "scale": 1.35,
+    "charge": { "preset": "shockwave", "duration": 0.32, "scale": 1.2, "layer": "backFX" },
+    "hit": { "preset": "explosion", "duration": 0.46, "scale": 1.3 },
+    "explosion": { "preset": "shockwave", "duration": 0.5, "scale": 1.45, "layer": "backFX" },
+    "cameraShake": { "intensity": 17, "duration": 0.4 }
+  },
+  "impacto_telurico": {
+    "element": "Tierra",
+    "color": "#b45309",
+    "secondaryColor": "#fde047",
+    "scale": 1.3,
+    "charge": { "preset": "energy_sphere", "duration": 0.3, "scale": 1.0 },
+    "hit": { "preset": "explosion", "duration": 0.45, "scale": 1.3 },
+    "explosion": { "preset": "shockwave", "duration": 0.48, "scale": 1.35, "layer": "backFX" },
+    "cameraShake": { "intensity": 15, "duration": 0.35 }
+  },
+  "fortaleza_terrestre": {
+    "element": "Tierra",
+    "color": "#78350f",
+    "secondaryColor": "#b45309",
+    "scale": 1.2,
+    "charge": { "preset": "energy_ring", "duration": 0.3, "scale": 1.1 },
+    "cast": { "preset": "aura", "duration": 0.42, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.45 }
+  },
+  "bastion_inquebrantable": {
+    "element": "Tierra",
+    "color": "#92400e",
+    "secondaryColor": "#fde047",
+    "scale": 1.25,
+    "charge": { "preset": "aura", "duration": 0.32, "scale": 1.15 },
+    "cast": { "preset": "energy_ring", "duration": 0.4, "scale": 1.25 },
+    "explosion": { "preset": "particles", "duration": 0.48 }
+  },
+  "machacada_ferrea": {
+    "element": "Tierra",
+    "color": "#78350f",
+    "secondaryColor": "#ffffff",
+    "scale": 1.25,
+    "cast": { "preset": "trail", "duration": 0.28, "scale": 1.25 },
+    "hit": { "preset": "radial_impact", "duration": 0.4, "scale": 1.25 },
+    "explosion": { "preset": "shockwave", "duration": 0.44, "scale": 1.25, "layer": "backFX" },
+    "cameraShake": { "intensity": 13, "duration": 0.3 }
+  },
+  "juicio_baluarte": {
+    "element": "Tierra",
+    "color": "#d97706",
+    "secondaryColor": "#fef08a",
+    "scale": 1.35,
+    "charge": { "preset": "aura", "duration": 0.32, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.44, "scale": 1.35 },
+    "explosion": { "preset": "shockwave", "duration": 0.48, "scale": 1.4, "layer": "backFX" },
+    "cameraShake": { "intensity": 16, "duration": 0.36 }
+  },
+  "burbuja_ki": {
+    "element": "Agua",
+    "color": "#0ea5e9",
+    "secondaryColor": "#7dd3fc",
+    "scale": 0.95,
+    "projectile": { "preset": "projectile", "duration": 0.28, "scale": 0.9 },
+    "hit": { "preset": "radial_impact", "duration": 0.3, "scale": 0.9 },
+    "explosion": { "preset": "particles", "duration": 0.4, "scale": 0.95 }
+  },
+  "pistola_agua": {
+    "element": "Agua",
+    "color": "#0284c7",
+    "secondaryColor": "#bae6fd",
+    "scale": 1.05,
+    "cast": { "preset": "energy_ring", "duration": 0.22, "scale": 0.7 },
+    "projectile": { "preset": "projectile", "duration": 0.3, "scale": 1.05 },
+    "hit": { "preset": "radial_impact", "duration": 0.34, "scale": 1.05 },
+    "explosion": { "preset": "particles", "duration": 0.42 },
+    "cameraShake": { "intensity": 7, "duration": 0.2 }
+  },
+  "chorro_presion": {
+    "element": "Agua",
+    "color": "#0284c7",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "charge": { "preset": "energy_ring", "duration": 0.24, "scale": 0.8 },
+    "cast": { "preset": "trail", "duration": 0.3, "scale": 1.25, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.15 },
+    "explosion": { "preset": "shockwave", "duration": 0.38, "scale": 1.1, "layer": "backFX" },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "hidropulso": {
+    "element": "Agua",
+    "color": "#0ea5e9",
+    "secondaryColor": "#38bdf8",
+    "scale": 1.15,
+    "charge": { "preset": "energy_sphere", "duration": 0.28, "scale": 0.9 },
+    "projectile": { "preset": "projectile", "duration": 0.32, "scale": 1.15 },
+    "hit": { "preset": "shockwave", "duration": 0.4, "scale": 1.15, "layer": "backFX" },
+    "explosion": { "preset": "particles", "duration": 0.45 },
+    "cameraShake": { "intensity": 9, "duration": 0.24 }
+  },
+  "surf_ki": {
+    "element": "Agua",
+    "color": "#0369a1",
+    "secondaryColor": "#7dd3fc",
+    "scale": 1.25,
+    "charge": { "preset": "spiral", "duration": 0.3, "scale": 1.1 },
+    "cast": { "preset": "vortex", "duration": 0.35, "scale": 1.2 },
+    "hit": { "preset": "shockwave", "duration": 0.44, "scale": 1.3, "layer": "backFX" },
+    "explosion": { "preset": "particles", "duration": 0.48, "scale": 1.2 },
+    "cameraShake": { "intensity": 12, "duration": 0.28 }
+  },
+  "hidrobomba": {
+    "element": "Agua",
+    "color": "#0284c7",
+    "secondaryColor": "#ffffff",
+    "scale": 1.35,
+    "charge": { "preset": "energy_sphere", "duration": 0.32, "scale": 1.1 },
+    "projectile": { "preset": "projectile", "duration": 0.34, "scale": 1.35 },
+    "hit": { "preset": "explosion", "duration": 0.48, "scale": 1.35 },
+    "explosion": { "preset": "shockwave", "duration": 0.46, "scale": 1.35, "layer": "backFX" },
+    "cameraShake": { "intensity": 15, "duration": 0.34 }
+  },
+  "tsunami_etereo": {
+    "element": "Agua",
+    "color": "#0ea5e9",
+    "secondaryColor": "#bae6fd",
+    "scale": 1.4,
+    "charge": { "preset": "spiral", "duration": 0.34, "scale": 1.2 },
+    "cast": { "preset": "vortex", "duration": 0.38, "scale": 1.3 },
+    "hit": { "preset": "shockwave", "duration": 0.5, "scale": 1.45, "layer": "backFX" },
+    "explosion": { "preset": "particles", "duration": 0.52, "scale": 1.35 },
+    "cameraShake": { "intensity": 17, "duration": 0.38 }
+  },
+  "velo_acuatico": {
+    "element": "Agua",
+    "color": "#38bdf8",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "charge": { "preset": "spiral", "duration": 0.3, "scale": 1.0 },
+    "cast": { "preset": "energy_ring", "duration": 0.38, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.44 }
+  },
+  "melodia_abismal": {
+    "element": "Agua",
+    "color": "#0369a1",
+    "secondaryColor": "#a5f3fc",
+    "scale": 1.2,
+    "charge": { "preset": "spiral", "duration": 0.32, "scale": 1.1 },
+    "cast": { "preset": "energy_ring", "duration": 0.4, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.46 }
+  },
+  "pulso_arrecife": {
+    "element": "Agua",
+    "color": "#0284c7",
+    "secondaryColor": "#38bdf8",
+    "scale": 1.25,
+    "charge": { "preset": "energy_sphere", "duration": 0.3, "scale": 1.0 },
+    "hit": { "preset": "shockwave", "duration": 0.44, "scale": 1.25, "layer": "backFX" },
+    "explosion": { "preset": "particles", "duration": 0.46, "scale": 1.2 }
+  },
+  "impactrueno": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#ffffff",
+    "scale": 1.05,
+    "cast": { "preset": "trail", "duration": 0.22, "scale": 1.1, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.32, "scale": 1.05 },
+    "explosion": { "preset": "particles", "duration": 0.42, "scale": 1.0 },
+    "cameraShake": { "intensity": 8, "duration": 0.2 }
+  },
+  "punotrueno": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#60a5fa",
+    "scale": 1.15,
+    "cast": { "preset": "trail", "duration": 0.24, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.45, "scale": 1.1 },
+    "cameraShake": { "intensity": 10, "duration": 0.22 }
+  },
+  "rayo_voltio": {
+    "element": "Eléctrico",
+    "color": "#eab308",
+    "secondaryColor": "#ffffff",
+    "scale": 1.2,
+    "charge": { "preset": "energy_ring", "duration": 0.22, "scale": 0.8 },
+    "cast": { "preset": "trail", "duration": 0.25, "scale": 1.25, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.46, "scale": 1.15 },
+    "cameraShake": { "intensity": 11, "duration": 0.24 }
+  },
+  "chispazo_zen": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#fef08a",
+    "scale": 1.25,
+    "charge": { "preset": "spiral", "duration": 0.26, "scale": 1.0 },
+    "cast": { "preset": "vortex", "duration": 0.32, "scale": 1.15 },
+    "hit": { "preset": "radial_impact", "duration": 0.38, "scale": 1.25 },
+    "explosion": { "preset": "particles", "duration": 0.48, "scale": 1.2 },
+    "cameraShake": { "intensity": 12, "duration": 0.26 }
+  },
+  "rayo": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#60a5fa",
+    "scale": 1.3,
+    "charge": { "preset": "energy_sphere", "duration": 0.28, "scale": 1.0 },
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.35, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.4, "scale": 1.3 },
+    "explosion": { "preset": "shockwave", "duration": 0.44, "scale": 1.25, "layer": "backFX" },
+    "cameraShake": { "intensity": 14, "duration": 0.3 }
+  },
+  "palma_tempestuosa": {
+    "element": "Eléctrico",
+    "color": "#eab308",
+    "secondaryColor": "#ffffff",
+    "scale": 1.28,
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.3 },
+    "hit": { "preset": "radial_impact", "duration": 0.38, "scale": 1.28 },
+    "explosion": { "preset": "shockwave", "duration": 0.42, "scale": 1.2, "layer": "backFX" },
+    "cameraShake": { "intensity": 13, "duration": 0.28 }
+  },
+  "trueno_celestial": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#ffffff",
+    "scale": 1.4,
+    "charge": { "preset": "spiral", "duration": 0.3, "scale": 1.15 },
+    "cast": { "preset": "trail", "duration": 0.28, "scale": 1.45, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.44, "scale": 1.4 },
+    "explosion": { "preset": "shockwave", "duration": 0.48, "scale": 1.4, "layer": "backFX" },
+    "cameraShake": { "intensity": 18, "duration": 0.38 }
+  },
+  "corte_sombra": {
+    "element": "Sombra",
+    "color": "#9333ea",
+    "secondaryColor": "#e9d5ff",
+    "scale": 1.1,
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.34, "scale": 1.1 },
+    "explosion": { "preset": "particles", "duration": 0.42, "scale": 1.0 },
+    "cameraShake": { "intensity": 8, "duration": 0.2 }
+  },
+  "tajo_umbrio": {
+    "element": "Sombra",
+    "color": "#7e22ce",
+    "secondaryColor": "#ffffff",
+    "scale": 1.2,
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.3 },
+    "hit": { "preset": "radial_impact", "duration": 0.38, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.45, "scale": 1.15 },
+    "cameraShake": { "intensity": 10, "duration": 0.22 }
+  },
+  "asesinato_ki": {
+    "element": "Sombra",
+    "color": "#6b21a8",
+    "secondaryColor": "#c084fc",
+    "scale": 1.25,
+    "charge": { "preset": "vortex", "duration": 0.28, "scale": 1.0 },
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.3 },
+    "hit": { "preset": "radial_impact", "duration": 0.38, "scale": 1.25 },
+    "explosion": { "preset": "particles", "duration": 0.46, "scale": 1.2 },
+    "cameraShake": { "intensity": 12, "duration": 0.25 }
+  },
+  "cuchillada_vacio": {
+    "element": "Sombra",
+    "color": "#581c87",
+    "secondaryColor": "#ffffff",
+    "scale": 1.3,
+    "charge": { "preset": "energy_sphere", "duration": 0.28, "scale": 1.0 },
+    "cast": { "preset": "trail", "duration": 0.28, "scale": 1.35 },
+    "hit": { "preset": "radial_impact", "duration": 0.4, "scale": 1.3 },
+    "explosion": { "preset": "shockwave", "duration": 0.42, "scale": 1.25, "layer": "backFX" },
+    "cameraShake": { "intensity": 13, "duration": 0.28 }
+  },
+  "segador_almas": {
+    "element": "Sombra",
+    "color": "#7e22ce",
+    "secondaryColor": "#e9d5ff",
+    "scale": 1.35,
+    "charge": { "preset": "aura", "duration": 0.32, "scale": 1.15 },
+    "cast": { "preset": "vortex", "duration": 0.36, "scale": 1.25 },
+    "hit": { "preset": "radial_impact", "duration": 0.42, "scale": 1.35 },
+    "explosion": { "preset": "particles", "duration": 0.5, "scale": 1.3 },
+    "cameraShake": { "intensity": 15, "duration": 0.32 }
+  },
+  "eclipse_mortal": {
+    "element": "Sombra",
+    "color": "#581c87",
+    "secondaryColor": "#f3e8ff",
+    "scale": 1.4,
+    "charge": { "preset": "vortex", "duration": 0.36, "scale": 1.25, "layer": "backFX" },
+    "cast": { "preset": "energy_sphere", "duration": 0.36, "scale": 1.3 },
+    "hit": { "preset": "radial_impact", "duration": 0.44, "scale": 1.4 },
+    "explosion": { "preset": "shockwave", "duration": 0.48, "scale": 1.45, "layer": "backFX" },
+    "cameraShake": { "intensity": 18, "duration": 0.4 }
+  },
+  "sigilo_nocturno": {
+    "element": "Sombra",
+    "color": "#6b21a8",
+    "secondaryColor": "#c084fc",
+    "scale": 1.15,
+    "charge": { "preset": "vortex", "duration": 0.3, "scale": 1.0 },
+    "cast": { "preset": "aura", "duration": 0.38, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.42 }
+  },
+  "golpe_bajo": {
+    "element": "Sombra",
+    "color": "#7e22ce",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "cast": { "preset": "trail", "duration": 0.24, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.34, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.4, "scale": 1.05 },
+    "cameraShake": { "intensity": 9, "duration": 0.2 }
+  },
+  "daga_venenosa": {
+    "element": "Sombra",
+    "color": "#a855f7",
+    "secondaryColor": "#22c55e",
+    "scale": 1.15,
+    "cast": { "preset": "trail", "duration": 0.26, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.44, "scale": 1.1 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "juicio_sagrado": {
+    "element": "Luz",
+    "color": "#fde047",
+    "secondaryColor": "#ffffff",
+    "scale": 1.4,
+    "charge": { "preset": "energy_ring", "duration": 0.32, "scale": 1.15 },
+    "cast": { "preset": "vortex", "duration": 0.36, "scale": 1.25, "layer": "backFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.44, "scale": 1.4 },
+    "explosion": { "preset": "shockwave", "duration": 0.5, "scale": 1.45, "layer": "backFX" },
+    "cameraShake": { "intensity": 16, "duration": 0.36 }
+  },
+  "rayo_puro": {
+    "element": "Luz",
+    "color": "#fef08a",
+    "secondaryColor": "#ffffff",
+    "scale": 1.25,
+    "charge": { "preset": "energy_sphere", "duration": 0.28, "scale": 1.0 },
+    "cast": { "preset": "trail", "duration": 0.3, "scale": 1.35, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.38, "scale": 1.25 },
+    "explosion": { "preset": "particles", "duration": 0.46, "scale": 1.2 },
+    "cameraShake": { "intensity": 11, "duration": 0.24 }
+  },
+  "hiperrayo_ki": {
+    "element": "Luz",
+    "color": "#ffffff",
+    "secondaryColor": "#fde047",
+    "scale": 1.45,
+    "charge": { "preset": "energy_sphere", "duration": 0.36, "scale": 1.25 },
+    "cast": { "preset": "trail", "duration": 0.38, "scale": 1.55, "layer": "projectileFX" },
+    "hit": { "preset": "explosion", "duration": 0.52, "scale": 1.45 },
+    "explosion": { "preset": "shockwave", "duration": 0.52, "scale": 1.5, "layer": "backFX" },
+    "cameraShake": { "intensity": 20, "duration": 0.45 }
+  },
+  "distorsion_realidad": {
+    "element": "Neutro",
+    "color": "#c084fc",
+    "secondaryColor": "#ffffff",
+    "scale": 1.35,
+    "charge": { "preset": "vortex", "duration": 0.34, "scale": 1.2 },
+    "cast": { "preset": "spiral", "duration": 0.38, "scale": 1.3 },
+    "hit": { "preset": "radial_impact", "duration": 0.42, "scale": 1.35 },
+    "explosion": { "preset": "shockwave", "duration": 0.48, "scale": 1.4, "layer": "backFX" },
+    "cameraShake": { "intensity": 16, "duration": 0.35 }
+  },
+  "anulacion_arcana": {
+    "element": "Neutro",
+    "color": "#94a3b8",
+    "secondaryColor": "#ffffff",
+    "scale": 1.25,
+    "charge": { "preset": "energy_ring", "duration": 0.3, "scale": 1.1 },
+    "cast": { "preset": "vortex", "duration": 0.36, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.48, "scale": 1.2 }
+  },
+  "impacto_ki": {
+    "element": "Neutro",
+    "color": "#c084fc",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "cast": { "preset": "energy_ring", "duration": 0.24, "scale": 0.9 },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.44, "scale": 1.1 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "aranazo": {
+    "element": "Neutro",
+    "color": "#cbd5e1",
+    "secondaryColor": "#ffffff",
+    "scale": 1.05,
+    "cast": { "preset": "trail", "duration": 0.24, "scale": 1.1 },
+    "hit": { "preset": "radial_impact", "duration": 0.3, "scale": 1.05 },
+    "explosion": { "preset": "particles", "duration": 0.38, "scale": 0.95 },
+    "cameraShake": { "intensity": 6, "duration": 0.18 }
+  },
+  "placaje": {
+    "element": "Neutro",
+    "color": "#cbd5e1",
+    "secondaryColor": "#ffffff",
+    "scale": 1.1,
+    "cast": { "preset": "trail", "duration": 0.24, "scale": 1.15 },
+    "hit": { "preset": "radial_impact", "duration": 0.34, "scale": 1.1 },
+    "explosion": { "preset": "shockwave", "duration": 0.36, "scale": 1.0, "layer": "backFX" },
+    "cameraShake": { "intensity": 8, "duration": 0.2 }
+  },
+  "mordisco": {
+    "element": "Sombra",
+    "color": "#9333ea",
+    "secondaryColor": "#3b0764",
+    "scale": 1.15,
+    "cast": { "preset": "trail", "duration": 0.25, "scale": 1.2 },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.42, "scale": 1.1 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "golpe_palma": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#fef08a",
+    "scale": 1.15,
+    "cast": { "preset": "energy_ring", "duration": 0.22, "scale": 0.8 },
+    "hit": { "preset": "radial_impact", "duration": 0.34, "scale": 1.15 },
+    "explosion": { "preset": "particles", "duration": 0.4, "scale": 1.1 },
+    "cameraShake": { "intensity": 9, "duration": 0.2 }
+  },
+  "foco_mental": {
+    "element": "Neutro",
+    "color": "#facc15",
+    "secondaryColor": "#ffffff",
+    "scale": 1.0,
+    "charge": { "preset": "energy_ring", "duration": 0.32, "scale": 0.9 },
+    "cast": { "preset": "aura", "duration": 0.48, "scale": 1.15 },
+    "cameraShake": { "intensity": 3, "duration": 0.15 }
+  },
+  "truco_mental": {
+    "element": "Neutro",
+    "color": "#38bdf8",
+    "secondaryColor": "#ffffff",
+    "scale": 1.0,
+    "charge": { "preset": "spiral", "duration": 0.3, "scale": 0.9 },
+    "cast": { "preset": "aura", "duration": 0.45, "scale": 1.1 },
+    "cameraShake": { "intensity": 3, "duration": 0.15 }
+  },
+  "maldicion_menor": {
+    "element": "Neutro",
+    "color": "#a855f7",
+    "secondaryColor": "#581c87",
+    "scale": 1.05,
+    "charge": { "preset": "vortex", "duration": 0.32, "scale": 0.85, "layer": "backFX" },
+    "projectile": { "preset": "trail", "duration": 0.28, "scale": 1.05, "layer": "projectileFX" },
+    "hit": { "preset": "vortex", "duration": 0.42, "scale": 1.1 },
+    "cameraShake": { "intensity": 6, "duration": 0.2 }
+  },
+  "rafaga_eter": {
+    "element": "Neutro",
+    "color": "#38bdf8",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "charge": { "preset": "energy_sphere", "duration": 0.26, "scale": 0.9 },
+    "projectile": { "preset": "beam", "duration": 0.32, "scale": 1.25, "layer": "projectileFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.36, "scale": 1.2 },
+    "explosion": { "preset": "particles", "duration": 0.46, "scale": 1.15 },
+    "cameraShake": { "intensity": 9, "duration": 0.22 }
+  },
+  "polimorfia_ki": {
+    "element": "Neutro",
+    "color": "#c084fc",
+    "secondaryColor": "#ffffff",
+    "scale": 1.05,
+    "cast": { "preset": "spiral", "duration": 0.28, "scale": 0.95 },
+    "projectile": { "preset": "projectile", "duration": 0.26, "scale": 0.9, "layer": "projectileFX" },
+    "hit": { "preset": "shockwave", "duration": 0.38, "scale": 1.05, "layer": "backFX" },
+    "cameraShake": { "intensity": 5, "duration": 0.18 }
+  },
+  "meditacion_ki": {
+    "element": "Eléctrico",
+    "color": "#facc15",
+    "secondaryColor": "#fef08a",
+    "scale": 1.05,
+    "charge": { "preset": "energy_ring", "duration": 0.3, "scale": 0.9 },
+    "cast": { "preset": "aura", "duration": 0.5, "scale": 1.2 },
+    "cameraShake": { "intensity": 4, "duration": 0.2 }
+  },
+  "grunido": {
+    "element": "Neutro",
+    "color": "#94a3b8",
+    "secondaryColor": "#ffffff",
+    "scale": 1.15,
+    "cast": { "preset": "shockwave", "duration": 0.35, "scale": 1.2, "layer": "backFX" },
+    "hit": { "preset": "radial_impact", "duration": 0.32, "scale": 1.05 },
+    "cameraShake": { "intensity": 7, "duration": 0.22 }
+  }
+}

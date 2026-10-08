@@ -201,7 +201,7 @@ export const INTERIOR_LAB_MAP: MapData = {
       x: 7,
       y: 11,
       targetMapId: 'villa_brote',
-      targetX: 22,
+      targetX: 29,
       targetY: 8,
       targetDirection: 'down',
       interactLabel: 'Salir',

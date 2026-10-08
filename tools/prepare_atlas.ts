@@ -11,6 +11,7 @@ import { execFileSync } from 'child_process';
 // @ts-ignore
 import jpeg from 'jpeg-js';
 import { PNG } from 'pngjs';
+import { generateAllSoulDollSheets } from './generate_souldoll_sheets';
 
 interface AtlasFrame {
   x: number;
@@ -757,15 +758,15 @@ export function prepareBattleSpritesheet(
     fs.writeFileSync(jsonFile, JSON.stringify(atlasJson, null, 2));
   });
 
-  console.log(`💾 [prepareBattleSpritesheet] Guardado en maga_battle_sheet.png (${totalOutWidth}x${totalOutHeight} px) y maga_battle_atlas.json\n`);
-  return true;
+export async function prepareBattleSpritesheet(): Promise<boolean> {
+  return await generateAllSoulDollSheets();
 }
 
-export function prepareAtlas(): boolean {
+export async function prepareAtlas(): Promise<boolean> {
   const tallerOk = prepareTallerAtlas();
   const mercadoOk = prepareMercadoAtlas();
   const decorOk = prepareOverworldDecorAtlas();
-  const battleOk = prepareBattleSpritesheet();
+  const battleOk = await prepareBattleSpritesheet();
   return tallerOk && mercadoOk && decorOk && battleOk;
 }
 

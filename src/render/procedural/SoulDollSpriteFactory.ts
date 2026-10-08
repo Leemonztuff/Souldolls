@@ -5,6 +5,18 @@ import { SOULDOLLS_SPRITES_MANIFEST } from '../../data/assetsManifest';
 
 export type ChassisMaterial = 'wood' | 'iron' | 'crystal' | 'stone' | 'clay' | 'bone';
 export type SpriteView =
+  | 'idle'
+  | 'relaxed'
+  | 'attack'
+  | 'attack_impact'
+  | 'attack_2'
+  | 'casting'
+  | 'casting_release'
+  | 'damage'
+  | 'hurt'
+  | 'down'
+  | 'faint'
+  | 'victory'
   | 'view_front34'
   | 'view_front'
   | 'view_side'
@@ -14,8 +26,7 @@ export type SpriteView =
   | 'back'
   | 'side_r'
   | 'side_l'
-  | 'icon'
-  | 'attack';
+  | 'icon';
 
 export interface LayeredRenderConfig {
   speciesId: string;
@@ -30,6 +41,16 @@ export interface LayeredRenderConfig {
 }
 
 export interface CreatureSpriteSet {
+  idle: HTMLCanvasElement;
+  relaxed?: HTMLCanvasElement;
+  attack?: HTMLCanvasElement;
+  attack_2?: HTMLCanvasElement;
+  attack_impact?: HTMLCanvasElement;
+  casting?: HTMLCanvasElement;
+  casting_release?: HTMLCanvasElement;
+  damage?: HTMLCanvasElement;
+  down?: HTMLCanvasElement;
+  victory?: HTMLCanvasElement;
   view_front34: HTMLCanvasElement;
   view_front: HTMLCanvasElement;
   view_side: HTMLCanvasElement;
@@ -40,7 +61,6 @@ export interface CreatureSpriteSet {
   side_r: HTMLCanvasElement;
   side_l: HTMLCanvasElement;
   icon: HTMLCanvasElement;
-  attack?: HTMLCanvasElement;
 }
 
 export interface IdleBustBox {
@@ -73,46 +93,112 @@ export class SoulDollSpriteFactory {
   private static speciesViewsCache: Map<string, Map<string, HTMLCanvasElement>> = new Map();
   private static speciesMetaCache: Map<string, Map<string, BattleFrameAtlasMeta>> = new Map();
   private static loadedSpeciesSheets: Set<string> = new Set();
+  private static loadingSpeciesSheets: Set<string> = new Set();
   private static onSheetReadyCallbacks: Array<() => void> = [];
 
   static {
     if (typeof window !== 'undefined') {
-      // 1. Preload default base sheet (maga_battle_sheet.png)
-      const pngImg = new Image();
-      pngImg.src = '/assets/souldolls/maga_battle_sheet.png';
-      pngImg.onload = () => {
-        this.customSpritesheet = pngImg;
-        this.customSpritesheetLoaded = true;
-        this.processLoadedSpritesheet(pngImg, true);
-        this.cache.clear();
-        this.onSheetReadyCallbacks.forEach((cb) => cb());
-      };
-
-      // 2. Preload dedicated battle sheets & atlases for all 14 Souldolls
-      Object.values(SOULDOLLS_SPRITES_MANIFEST).forEach((entry) => {
-        this.preloadSpeciesSheetAndAtlas(entry.speciesId, entry.sheetPath, entry.atlasPath);
+      // Priority pre-cache for starter and common active combat species immediately
+      const prioritySpecies = ['maga', 'ignis', 'aethel', 'lumina'];
+      prioritySpecies.forEach((speciesId, idx) => {
+        const entry = SOULDOLLS_SPRITES_MANIFEST[speciesId];
+        if (entry) {
+          setTimeout(() => {
+            this.preloadSpeciesSheetAndAtlas(entry.speciesId, entry.sheetPath, entry.atlasPath);
+          }, idx * 24);
+        }
       });
     }
   }
 
-  private static preloadSpeciesSheetAndAtlas(
+  public static ensureSpeciesLoaded(speciesId: string): void {
+    if (this.loadedSpeciesSheets.has(speciesId) || this.loadingSpeciesSheets.has(speciesId)) {
+      return;
+    }
+    const entry = SOULDOLLS_SPRITES_MANIFEST[speciesId];
+    if (entry) {
+      this.loadingSpeciesSheets.add(speciesId);
+      this.preloadSpeciesSheetAndAtlas(entry.speciesId, entry.sheetPath, entry.atlasPath).finally(() => {
+        this.loadingSpeciesSheets.delete(speciesId);
+      });
+    }
+  }
+
+  private static async preloadSpeciesSheetAndAtlas(
     speciesId: string,
     sheetPath: string,
     atlasPath: string
-  ): void {
-    const img = new Image();
-    img.src = sheetPath;
-    img.onload = () => {
-      fetch(atlasPath)
+  ): Promise<void> {
+    try {
+      const atlasPromise = fetch(atlasPath)
         .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)
-        .then((atlasJson) => {
-          this.processSpeciesSpritesheet(speciesId, img, atlasJson);
-          this.loadedSpeciesSheets.add(speciesId);
-          this.cache.clear();
-          this.onSheetReadyCallbacks.forEach((cb) => cb());
+        .catch((err) => {
+          console.warn(`[SoulDollSpriteFactory] Failed to fetch atlas for ${speciesId}:`, err);
+          return null;
         });
-    };
+
+      const imagePromise = new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        let resolved = false;
+        const finalize = async (success: boolean) => {
+          if (resolved) return;
+          resolved = true;
+          if (!success) {
+            resolve(null);
+            return;
+          }
+          try {
+            if ('decode' in img) {
+              await img.decode();
+            }
+            if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+              resolve(img);
+            } else {
+              resolve(null);
+            }
+          } catch {
+            // decode rejected (corrupt/broken data)
+            resolve(null);
+          }
+        };
+
+        img.onload = () => finalize(true);
+        img.onerror = (e) => {
+          console.warn(`[SoulDollSpriteFactory] Image load error for ${speciesId} at ${sheetPath}:`, e);
+          finalize(false);
+        };
+
+        img.src = sheetPath;
+
+        if (img.complete && img.naturalWidth > 0) {
+          finalize(true);
+        }
+      });
+
+      const [atlasJson, img] = await Promise.all([atlasPromise, imagePromise]);
+
+      if (!img || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+        console.warn(`[SoulDollSpriteFactory] Spritesheet not available or broken for ${speciesId}. Falling back to procedural rendering.`);
+        return;
+      }
+
+      this.processSpeciesSpritesheet(speciesId, img, atlasJson);
+      this.loadedSpeciesSheets.add(speciesId);
+      this.customSpritesheetLoaded = true;
+      this.cache.clear();
+
+      this.onSheetReadyCallbacks.forEach((cb) => {
+        try {
+          cb();
+        } catch (cbErr) {
+          console.error(`[SoulDollSpriteFactory] onSpritesheetReady callback error:`, cbErr);
+        }
+      });
+    } catch (err) {
+      console.warn(`[SoulDollSpriteFactory] Unexpected error loading species ${speciesId}:`, err);
+    }
   }
 
   private static processSpeciesSpritesheet(
@@ -120,26 +206,41 @@ export class SoulDollSpriteFactory {
     img: HTMLImageElement,
     atlasJson?: any
   ): void {
+    if (!img || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+      console.warn(`[SoulDollSpriteFactory] Cannot process broken image for species: ${speciesId}`);
+      return;
+    }
+
     const vMap = new Map<string, HTMLCanvasElement>();
     const mMap = new Map<string, BattleFrameAtlasMeta>();
 
     if (atlasJson && atlasJson.frames) {
       for (const [vName, frame] of Object.entries<any>(atlasJson.frames)) {
-        const fx = frame.x ?? 0;
-        const fy = frame.y ?? 0;
-        const fw = frame.w ?? img.width;
-        const fh = frame.h ?? img.height;
-        const { canvas, ctx } = this.createCanvas(fw, fh);
-        ctx.drawImage(img, fx, fy, fw, fh, 0, 0, fw, fh);
-        const trimmed = this.trimToOpaqueBoundingBox(canvas, 1);
-        vMap.set(vName, trimmed);
-        mMap.set(vName, {
-          anchor: frame.anchor || [0.5, 1.0],
-          mirrorSafe: Boolean(frame.mirrorSafe),
-          native: Boolean(frame.native),
-          note: frame.note || '',
-          idle: frame.idle,
-        });
+        const fx = Math.max(0, frame.x ?? 0);
+        const fy = Math.max(0, frame.y ?? 0);
+        const fw = Math.max(1, frame.w ?? img.naturalWidth ?? img.width);
+        const fh = Math.max(1, frame.h ?? img.naturalHeight ?? img.height);
+
+        if (fx >= img.naturalWidth || fy >= img.naturalHeight) {
+          console.warn(`[SoulDollSpriteFactory] Frame '${vName}' out of bounds for species '${speciesId}'`);
+          continue;
+        }
+
+        try {
+          const { canvas, ctx } = this.createCanvas(fw, fh);
+          ctx.drawImage(img, fx, fy, fw, fh, 0, 0, fw, fh);
+          const trimmed = this.trimToOpaqueBoundingBox(canvas, 1);
+          vMap.set(vName, trimmed);
+          mMap.set(vName, {
+            anchor: frame.anchor || [0.5, 1.0],
+            mirrorSafe: Boolean(frame.mirrorSafe),
+            native: Boolean(frame.native),
+            note: frame.note || '',
+            idle: frame.idle,
+          });
+        } catch (drawErr) {
+          console.warn(`[SoulDollSpriteFactory] drawImage failed for ${speciesId} frame ${vName}:`, drawErr);
+        }
       }
     }
 
@@ -159,10 +260,12 @@ export class SoulDollSpriteFactory {
   }
 
   public static onSpritesheetReady(cb: () => void): void {
-    if (this.customSpritesheetLoaded) {
-      cb();
-    } else {
+    // Always register the callback so subsequent species sheets finishing async load also notify listeners
+    if (!this.onSheetReadyCallbacks.includes(cb)) {
       this.onSheetReadyCallbacks.push(cb);
+    }
+    if (this.customSpritesheetLoaded || this.loadedSpeciesSheets.size > 0) {
+      cb();
     }
   }
 
@@ -175,10 +278,26 @@ export class SoulDollSpriteFactory {
     targetGreen: [number, number, number] = [26, 174, 6],
     tolerance = 58
   ): HTMLCanvasElement {
+    if (source instanceof HTMLImageElement) {
+      if (!source.complete || source.naturalWidth === 0 || source.naturalHeight === 0) {
+        console.warn(`[SoulDollSpriteFactory] keyOutGreen called with broken or incomplete HTMLImageElement`);
+        const { canvas } = this.createCanvas(1, 1);
+        return canvas;
+      }
+    }
     const w = source.width;
     const h = source.height;
+    if (w <= 0 || h <= 0) {
+      const { canvas } = this.createCanvas(1, 1);
+      return canvas;
+    }
     const { canvas, ctx } = this.createCanvas(w, h);
-    ctx.drawImage(source, 0, 0);
+    try {
+      ctx.drawImage(source, 0, 0);
+    } catch (err) {
+      console.warn(`[SoulDollSpriteFactory] keyOutGreen drawImage failed:`, err);
+      return canvas;
+    }
 
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
@@ -245,7 +364,12 @@ export class SoulDollSpriteFactory {
     const outH = cropH + padding * 2;
 
     const { canvas: outCanvas, ctx: outCtx } = this.createCanvas(outW, outH);
-    outCtx.drawImage(source, minX, minY, cropW, cropH, padding, padding, cropW, cropH);
+    try {
+      outCtx.drawImage(source, minX, minY, cropW, cropH, padding, padding, cropW, cropH);
+    } catch (err) {
+      console.warn(`[SoulDollSpriteFactory] trimToOpaqueBoundingBox drawImage failed:`, err);
+      return source;
+    }
     return outCanvas;
   }
 
@@ -680,57 +804,43 @@ export class SoulDollSpriteFactory {
       return this.cache.get(cacheKey)!;
     }
 
-    // CHECK IF DEDICATED PER-SPECIES SHEET OR CUSTOM BASE SPRITESHEET IS LOADED
+    // Ensure species sheet is loaded or trigger lazy load on demand
+    this.ensureSpeciesLoaded(speciesId);
+
+    // CHECK IF DEDICATED PER-SPECIES SHEET IS LOADED
     const spViewsMap = this.speciesViewsCache.get(speciesId);
     const hasDedicatedSheet = Boolean(spViewsMap && spViewsMap.size > 0);
-    const useRealSpritesheet =
-      hasDedicatedSheet ||
-      (this.customSpritesheetLoaded && this.keyedViewsCache.size > 0);
 
-    if (useRealSpritesheet && view !== 'icon') {
+    if (hasDedicatedSheet && view !== 'icon') {
       let targetView: SpriteView = view;
-      if (view === 'attack' || view === 'side_r') targetView = 'view_front34';
+      if (view === 'side_r') targetView = 'view_front34';
       else if (view === 'front') targetView = 'view_front';
       else if (view === 'back') targetView = 'view_back';
       else if (view === 'side_l') targetView = 'view_back34';
+      else if (view === 'hurt') targetView = 'damage';
+      else if (view === 'faint') targetView = 'down';
 
-      const sourceMap = hasDedicatedSheet ? spViewsMap! : this.keyedViewsCache;
+      const sourceMap = spViewsMap!;
 
-      // Req 2: Fallback si falta view_back34 -> view_back; si falta view_front34 -> view_front; si falta view_side -> view_front34
+      // Buscar coincidencia exacta o fallback dentro de la propia hoja de la especie
       let baseViewCanvas = sourceMap.get(targetView);
-      if (!baseViewCanvas && targetView === 'view_side') {
-        baseViewCanvas = sourceMap.get('view_front34') || sourceMap.get('view_front');
-      } else if (!baseViewCanvas && targetView === 'view_back34') {
-        baseViewCanvas = sourceMap.get('view_back');
-      } else if (!baseViewCanvas && targetView === 'view_front34') {
-        baseViewCanvas = sourceMap.get('view_front');
+      if (!baseViewCanvas && (targetView === 'view_front34' || targetView === 'view_front')) {
+        baseViewCanvas = sourceMap.get('idle') || sourceMap.get('view_front34') || sourceMap.get('view_front');
+      } else if (!baseViewCanvas && targetView === 'view_side') {
+        baseViewCanvas = sourceMap.get('relaxed') || sourceMap.get('view_side') || sourceMap.get('idle');
+      } else if (!baseViewCanvas && (targetView === 'view_back34' || targetView === 'view_back')) {
+        // Vista trasera temporalmente mapeada a frontal mientras se suministra spritesheet trasero
+        baseViewCanvas = sourceMap.get('view_back34') || sourceMap.get('view_back') || sourceMap.get('idle') || sourceMap.get('view_front34');
+      } else if (!baseViewCanvas && targetView === 'attack_2') {
+        baseViewCanvas = sourceMap.get('attack_impact') || sourceMap.get('attack');
       }
       if (!baseViewCanvas) {
-        baseViewCanvas =
-          sourceMap.get('view_front34') ||
-          sourceMap.get('view_front');
+        baseViewCanvas = sourceMap.get('idle') || sourceMap.get('view_front34') || sourceMap.get('view_front');
       }
 
       if (baseViewCanvas) {
         const { canvas: nativeCanvas, ctx: nCtx } = this.createCanvas(baseViewCanvas.width, baseViewCanvas.height);
         nCtx.drawImage(baseViewCanvas, 0, 0);
-
-        if (!hasDedicatedSheet) {
-          this.applySpeciesPaletteShift(nativeCanvas, speciesId);
-          this.drawSpeciesHeldWeaponOverlay(nCtx, nativeCanvas.width, nativeCanvas.height, speciesId, targetView);
-        }
-
-        if (outfitStyle === 'atrevido') {
-          nCtx.fillStyle = '#ff8fbb';
-          nCtx.globalAlpha = 0.18;
-          nCtx.fillRect(
-            Math.floor(baseViewCanvas.width * 0.25),
-            Math.floor(baseViewCanvas.height * 0.35),
-            Math.floor(baseViewCanvas.width * 0.5),
-            Math.floor(baseViewCanvas.height * 0.3)
-          );
-          nCtx.globalAlpha = 1.0;
-        }
 
         const trimmed = this.trimToOpaqueBoundingBox(nativeCanvas, 1);
         this.cache.set(cacheKey, trimmed);
@@ -803,15 +913,36 @@ export class SoulDollSpriteFactory {
   }
 
   /**
-   * Generates full sprite set (view_front34, view_front, view_back, view_back34, front, back, side_r, side_l, icon, attack)
+   * Generates full sprite set with all 9 poses and standard turnaround views
    */
   public static generateSpriteSet(species: any, mat: ChassisMaterial = 'wood'): CreatureSpriteSet {
+    const idle = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'idle' });
+    const relaxed = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'relaxed' });
+    const attack = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'attack' });
+    const attack_2 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'attack_2' });
+    const attack_impact = attack_2;
+    const casting = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'casting' });
+    const casting_release = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'casting_release' });
+    const damage = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'damage' });
+    const down = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'down' });
+    const victory = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'victory' });
+
     const view_front34 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_front34' });
     const view_front = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_front' });
     const view_side = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_side' });
     const view_back = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_back' });
     const view_back34 = this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'view_back34' });
     return {
+      idle,
+      relaxed,
+      attack,
+      attack_2,
+      attack_impact,
+      casting,
+      casting_release,
+      damage,
+      down,
+      victory,
       view_front34,
       view_front,
       view_side,
@@ -822,7 +953,6 @@ export class SoulDollSpriteFactory {
       side_r: view_front34,
       side_l: view_back34,
       icon: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'icon' }),
-      attack: this.generateLayeredCanvas({ speciesId: species.id, chassisMaterial: mat, view: 'attack', frame: 1 }),
     };
   }
 
@@ -898,13 +1028,25 @@ export class SoulDollSpriteFactory {
     ctx.fillRect(cx + 3, cy + 27, 5, 3);
 
     // Arms
-    if (isArmsBroken) {
+    if (isArmsBroken || view === 'down' || view === 'faint') {
       ctx.fillStyle = '#090d16';
       ctx.fillRect(cx - 15, cy + 4, 5, 16);
       ctx.fillRect(cx + 10, cy + 4, 5, 16);
       ctx.fillStyle = shadowCol;
       ctx.fillRect(cx - 14, cy + 5, 3, 14);
       ctx.fillRect(cx + 11, cy + 5, 3, 14);
+    } else if (view === 'victory') {
+      // Celebratory raised arms for victory pose
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(cx - 15, cy - 12, 5, 16);
+      ctx.fillRect(cx + 10, cy - 12, 5, 16);
+      ctx.fillStyle = baseCol;
+      ctx.fillRect(cx - 14, cy - 11, 3, 14);
+      ctx.fillRect(cx + 11, cy - 11, 3, 14);
+
+      ctx.fillStyle = jointCol;
+      ctx.fillRect(cx - 14, cy + 1, 4, 4);
+      ctx.fillRect(cx + 10, cy + 1, 4, 4);
     } else {
       ctx.fillStyle = '#090d16';
       ctx.fillRect(cx - 15, cy + 1, 5, 18);

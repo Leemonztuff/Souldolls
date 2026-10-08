@@ -21,7 +21,7 @@
     "enemy": "left"
   },
   "battleViews": {
-    "ally": { "view": "view_back34", "flipX": true },
+    "ally": { "view": "view_back34", "flipX": false },
     "enemy": { "view": "view_front34", "flipX": true }
   },
   "roleViews": {

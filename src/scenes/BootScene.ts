@@ -51,6 +51,7 @@ export class BootScene implements IScene {
   private targetScene: 'Overworld' | 'Title' = 'Title';
   private fallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private kiMotes: KiMote[] = [];
+  private logoSprite!: Sprite;
 
   public async enter(params?: BootSceneParams): Promise<void> {
     this.elapsed = 0;
@@ -77,15 +78,20 @@ export class BootScene implements IScene {
       await GlobalPixiRenderer.init(pixiContainer, w, h);
     }
 
-    // 2. Build Branded Loading Screen UI
+    // 2. Build Branded Loading Screen UI immediately (frame 1)
     this.buildLoadingUI();
 
-    // 3. Preload logo texture asynchronously
-    try {
-      await Assets.load('/assets/SoulDollslogo.png');
-    } catch {
-      // Ignored if fallback is used
-    }
+    // 3. Preload logo texture asynchronously in background without blocking BootScene UI
+    Assets.load('/assets/SoulDollslogo.png')
+      .then((tex: Texture) => {
+        if (tex && this.logoSprite && !this.logoSprite.destroyed) {
+          const width = GlobalPixiRenderer.width || 960;
+          const targetW = Math.min(280, width - 48);
+          this.logoSprite.texture = tex;
+          this.logoSprite.scale.set(targetW / (tex.width || 520));
+        }
+      })
+      .catch(() => {});
 
     // 4. Execute staged boot sequence & resource verification
     await this.runBootSequence();
@@ -143,30 +149,27 @@ export class BootScene implements IScene {
     try {
       if (Assets.cache.has('/assets/SoulDollslogo.png')) {
         logoTexture = Assets.get('/assets/SoulDollslogo.png');
-      } else {
-        logoTexture = Texture.from('/assets/SoulDollslogo.png');
       }
     } catch {
       logoTexture = null;
     }
 
-    let logoSprite: Sprite;
     if (logoTexture && logoTexture.width > 10) {
-      logoSprite = new Sprite(logoTexture);
-      logoSprite.anchor.set(0.5);
+      this.logoSprite = new Sprite(logoTexture);
+      this.logoSprite.anchor.set(0.5);
       const targetW = Math.min(280, width - 48);
-      logoSprite.scale.set(targetW / logoTexture.width);
+      this.logoSprite.scale.set(targetW / logoTexture.width);
     } else {
       const generatedTex = this.generateFallbackLogoTexture();
-      logoSprite = new Sprite(generatedTex);
-      logoSprite.anchor.set(0.5);
+      this.logoSprite = new Sprite(generatedTex);
+      this.logoSprite.anchor.set(0.5);
       const targetW = Math.min(300, width - 48);
-      logoSprite.scale.set(targetW / 520);
+      this.logoSprite.scale.set(targetW / 520);
     }
 
     const logoY = Math.max(80, Math.round(height * 0.22));
-    logoSprite.position.set(Math.round(width / 2), logoY);
-    this.container.addChild(logoSprite);
+    this.logoSprite.position.set(Math.round(width / 2), logoY);
+    this.container.addChild(this.logoSprite);
 
     // Subtitle & System Badge
     const subTitle = new Text({
@@ -181,7 +184,7 @@ export class BootScene implements IScene {
     });
     subTitle.roundPixels = true;
     subTitle.anchor.set(0.5, 0);
-    subTitle.position.set(Math.round(width / 2), logoY + Math.round(logoSprite.height / 2) + 12);
+    subTitle.position.set(Math.round(width / 2), logoY + Math.round(this.logoSprite.height / 2) + 12);
     this.container.addChild(subTitle);
 
     // Progress Card Frame
@@ -269,26 +272,31 @@ export class BootScene implements IScene {
     }
   }
 
+  private nextFrame(): Promise<void> {
+    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  }
+
   private async runBootSequence(): Promise<void> {
-    // Step 1: Verify Three.js & PixiJS Renderers
-    this.targetProgress = 15;
-    await this.sleep(120);
+    // Yield one frame so the loading screen is painted immediately
+    await this.nextFrame();
 
     if (!GlobalThreeRenderer.isReady() || !GlobalPixiRenderer.isReady()) {
       throw new Error('[BootScene] Three.js or PixiJS renderer failed to initialize.');
     }
     this.statusText.text = 'Validando esquemas de datos y motor de combate...';
     this.detailText.text = `WebGL2 + PixiJS v8 (${GlobalPixiRenderer.width}x${GlobalPixiRenderer.height}) OK`;
-    this.targetProgress = 40;
-    await this.sleep(120);
+    this.targetProgress = 35;
+    this.updateProgressBarUI(35);
+    await this.nextFrame();
 
-    // Step 2: Validate Data Integrity
+    // Step 2: Validate Data Integrity (once)
     DataValidator.validateAll();
     this.targetProgress = 65;
-    await this.sleep(100);
+    this.updateProgressBarUI(65);
+    this.statusText.text = 'Cargando y verificando atlas de tilesets y sprites...';
+    await this.nextFrame();
 
     // Step 3: Initialize & Verify Assets (Creatures, Characters, Baked Tileset Atlas)
-    this.statusText.text = 'Cargando y verificando atlas de tilesets y sprites...';
     GlobalAssetRegistry.initAll();
     const bakedIdx = GlobalTileRegistry.getBakedAtlasIndex();
     await GlobalAssetLoader.loadCrispTexture(`${bakedIdx.packId}/baked_atlas`, bakedIdx.imagePng);
@@ -297,21 +305,19 @@ export class BootScene implements IScene {
       throw new Error('[BootScene] AssetRegistry verification failed: missing textures.');
     }
     this.detailText.text = `Almas: ${assetStatus.creaturesCount} · Personajes: ${assetStatus.charactersCount} · Tilesets: ${assetStatus.tilesCount}`;
-    this.targetProgress = 88;
-    await this.sleep(120);
+    this.targetProgress = 92;
+    this.updateProgressBarUI(92);
 
-    // Step 4: Initialize Save State
+    // Step 4: Initialize Save State & transition immediately
     this.statusText.text = 'Cargando estado del mundo Anima...';
     GlobalSaveService.init();
     this.targetProgress = 100;
+    this.displayProgress = 100;
+    this.updateProgressBarUI(100);
     this.statusText.text = '¡Recursos verificados! Entrando al mundo Anima...';
 
     this.isReadyToTransition = true;
-
-    // Fallback transition timer
-    this.fallbackTimer = setTimeout(() => {
-      this.transitionToNextScene();
-    }, 250);
+    this.transitionToNextScene();
   }
 
   private transitionToNextScene(): void {

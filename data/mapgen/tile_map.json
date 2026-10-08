@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "description": "Tabla de equivalencia de celdas horneadas de mapgen (Bloque 47) a tiles existentes y servicios de interior",
+  "cells": {
+    "void": {
+      "ground": "grass",
+      "decor": "tree",
+      "walkable": false
+    },
+    "ground": {
+      "ground": "grass",
+      "decor": null,
+      "walkable": true
+    },
+    "path_main": {
+      "ground": "cobble",
+      "decor": null,
+      "walkable": true
+    },
+    "path_secondary": {
+      "ground": "path",
+      "decor": null,
+      "walkable": true
+    },
+    "path_trail": {
+      "ground": "path",
+      "decor": null,
+      "walkable": true
+    },
+    "water": {
+      "ground": "water",
+      "decor": null,
+      "walkable": false
+    },
+    "tall_grass": {
+      "ground": "tall_grass",
+      "decor": null,
+      "encounter": "tall_grass",
+      "walkable": true
+    },
+    "flowers": {
+      "ground": "flowers",
+      "decor": null,
+      "walkable": true
+    },
+    "clearing": {
+      "ground": "grass",
+      "decor": null,
+      "walkable": true
+    },
+    "garden": {
+      "ground": "sand",
+      "decor": null,
+      "walkable": true
+    },
+    "border": {
+      "ground": "grass",
+      "decor": "tree",
+      "walkable": false
+    },
+    "stamp_block": {
+      "ground": "cobble",
+      "decor": "building_wall",
+      "walkable": false
+    },
+    "stamp_walk": {
+      "ground": "plaza",
+      "decor": null,
+      "walkable": true
+    },
+    "door": {
+      "ground": "cobble",
+      "decor": "door",
+      "walkable": true
+    }
+  },
+  "borderMaterialDecor": {
+    "tree": "tree",
+    "rock": "rock",
+    "cliff": "rock",
+    "water": null
+  },
+  "services": {
+    "workshop": {
+      "targetMapId": "interior_center",
+      "targetX": 6,
+      "targetY": 10,
+      "targetDirection": "up",
+      "exitDoors": [
+        { "x": 6, "y": 11 }
+      ]
+    },
+    "market": {
+      "targetMapId": "interior_shop",
+      "targetX": 5,
+      "targetY": 8,
+      "targetDirection": "up",
+      "exitDoors": [
+        { "x": 5, "y": 9 },
+        { "x": 6, "y": 9 }
+      ]
+    },
+    "lab": {
+      "targetMapId": "interior_lab",
+      "targetX": 7,
+      "targetY": 10,
+      "targetDirection": "up",
+      "exitDoors": [
+        { "x": 7, "y": 11 }
+      ]
+    },
+    "house": {
+      "targetMapId": "interior_house",
+      "targetX": 4,
+      "targetY": 6,
+      "targetDirection": "up",
+      "exitDoors": [
+        { "x": 4, "y": 7 }
+      ]
+    },
+    "cave": {
+      "targetMapId": "bosque_eco",
+      "targetX": 14,
+      "targetY": 24,
+      "targetDirection": "up",
+      "exitDoors": []
+    }
+  },
+  "biomePalettes": {
+    "meadow": { "category": "town", "skyColor": 3718648, "sunlightColor": 16773322, "ambientMusic": "town" },
+    "town": { "category": "town", "skyColor": 3718648, "sunlightColor": 16773322, "ambientMusic": "town" },
+    "forest": { "category": "forest", "skyColor": 1981242, "sunlightColor": 13499102, "ambientMusic": "forest" },
+    "coastal": { "category": "route", "skyColor": 3718648, "sunlightColor": 16774638, "ambientMusic": "town" },
+    "mountain": { "category": "route", "skyColor": 4675945, "sunlightColor": 16768685, "ambientMusic": "route" },
+    "cave": { "category": "cave", "skyColor": 988458, "sunlightColor": 9671679, "ambientMusic": "cave" }
+  }
+}

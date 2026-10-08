@@ -1,7 +1,7 @@
 # BLOQUE 47: Entidades de Almas Errantes con Efecto Metaball / Fluido Orgánico en el Overworld
 - Depende de: B4, B36, B45
 - Modifica: OverworldScene.ts, STATUS.md
-- Estado: EN CURSO · Spec: v1.0
+- Estado: COMPLETO · Spec: v1.0
 ## Objetivo
 Renderizar almas silvestres y latentes en la hierba alta y cuevas del overworld 3D (Three.js) mediante una técnica de metaballs / fluidos orgánicos dinámicos que se fusionan y estiran, con bordes brillantes y colores de la paleta oficial de Souldolls, moviéndose de forma errática.
 

@@ -43,24 +43,19 @@ export class BattlePlayer {
         // Lunge animation
         await this.scene.animateAttackerLunge(side);
 
-        // Play move VFX from weapon hotspot to defender torso hotspot (both reflected with flipX)
+        // Play move VFX from weapon hotspot to target torso hotspot (both reflected with flipX)
         const attackerPos = this.scene.getPartHotspotWorldPos(side, 'weapon');
-        const defenderPos = this.scene.getPartHotspotWorldPos(side === 'player' ? 'opponent' : 'player', 'torso');
+        const isSelfTarget = move?.target === 'self';
+        const defenderPos = isSelfTarget
+          ? this.scene.getPartHotspotWorldPos(side, 'torso')
+          : this.scene.getPartHotspotWorldPos(side === 'player' ? 'opponent' : 'player', 'torso');
 
         const preset = move?.vfx?.preset || 'burst';
         const colA = move?.vfx?.colorA || '#38bdf8';
         const colB = move?.vfx?.colorB || '#ffffff';
 
         GlobalAudioService.playSfx('attack_normal');
-        await GlobalVFXSystem.playPresetVfx(
-          preset,
-          attackerPos.x,
-          attackerPos.y,
-          defenderPos.x,
-          defenderPos.y,
-          colA,
-          colB
-        );
+        await this.scene.playMoveCombatFX(event.moveId || '', attackerPos, defenderPos);
         break;
       }
 
@@ -212,7 +207,7 @@ export class BattlePlayer {
 
       case 'EXP_GAINED': {
         GlobalAudioService.playSfx('exp_gain');
-        await this.scene.updateExpBarAnimated(event.currentExp || 0, event.maxExp || 100);
+        await this.scene.updateExpBarAnimated(event.currentExp ?? 0, event.maxExp ?? 100);
         break;
       }
 
@@ -220,7 +215,18 @@ export class BattlePlayer {
         GlobalAudioService.playSfx('levelUp');
         await GlobalVFXSystem.screenFlash(0xfcd34d, 250);
         this.scene.updateLevelBadge('player', event.newLevel || 1);
-        await this.sleep(500);
+        await this.sleep(450);
+        break;
+      }
+
+      case 'LOOT_GAINED': {
+        // Loot items are displayed in the post-battle summary component after the victory animation completes
+        break;
+      }
+
+      case 'BATTLE_VICTORY': {
+        this.scene.setCombatPose('player', 'victory');
+        await this.sleep(250);
         break;
       }
 

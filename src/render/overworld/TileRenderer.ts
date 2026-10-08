@@ -345,10 +345,12 @@ export class TileRenderer {
             const isWater = resolved.flags.category === 'water';
             const posY = isWater && !this.classicFlatMode ? -0.04 : 0;
 
-            const x0 = x - 0.5;
-            const x1 = x + 0.5;
-            const z0 = y - 0.5;
-            const z1 = y + 0.5;
+            // Micro-overlap (0.0005) eliminates subpixel rasterizer seams between adjacent ground tiles
+            const SEAM_OVERLAP = 0.0005;
+            const x0 = x - 0.5 - SEAM_OVERLAP;
+            const x1 = x + 0.5 + SEAM_OVERLAP;
+            const z0 = y - 0.5 - SEAM_OVERLAP;
+            const z1 = y + 0.5 + SEAM_OVERLAP;
 
             // 4 vertices for tile quad on XZ plane
             positions.push(
@@ -463,9 +465,13 @@ export class TileRenderer {
             continue;
           }
 
-          // Skip procedural building blocks for the special Taller and Mercado custom facades in villa_brote
+          // Skip procedural building blocks for the special Taller, Mercado and Lab custom facades in villa_brote
           if (map.id === 'villa_brote') {
-            if ((x >= 4 && x <= 10 && y >= 13 && y <= 17) || (x >= 19 && x <= 25 && y >= 13 && y <= 17)) {
+            if (
+              (x >= 4 && x <= 11 && y >= 11 && y <= 15) ||
+              (x >= 24 && x <= 31 && y >= 11 && y <= 15) ||
+              (x >= 25 && x <= 31 && y >= 3 && y <= 7)
+            ) {
               continue;
             }
           }
@@ -858,10 +864,26 @@ export class TileRenderer {
           }
         }
 
-        // Skip if this is one of the two custom sprite facades in villa_brote (Taller & Mercado)
-        if (map.id === 'villa_brote' && minY >= 12) {
-          for (const [cx, cy] of cells) handled.add(`${cx}_${cy}`);
-          continue;
+        // Skip custom landmark buildings in villa_brote / aldea_marioneta / landmarkHints that are built by MapRenderer
+        if (map.id === 'villa_brote' || map.id === 'aldea_marioneta' || map.landmarkHints) {
+          const hints = map.landmarkHints;
+          const matchesDoorHint = (door?: { x: number; y: number }) =>
+            Boolean(door && door.x >= minX && door.x <= maxX && door.y >= minY && door.y <= maxY);
+
+          const isWorkshop = hints
+            ? matchesDoorHint(hints.workshopDoor)
+            : minX <= 12 && minY >= 10 && minY <= 16;
+          const isMarket = hints
+            ? matchesDoorHint(hints.marketDoor)
+            : minX >= 23 && minY >= 10 && minY <= 16;
+          const isLab = hints
+            ? matchesDoorHint(hints.labDoor)
+            : minX >= 23 && minY >= 2 && minY <= 8;
+
+          if (isWorkshop || isMarket || isLab) {
+            for (const [cx, cy] of cells) handled.add(`${cx}_${cy}`);
+            continue;
+          }
         }
 
         for (const [cx, cy] of cells) {
@@ -893,8 +915,9 @@ export class TileRenderer {
         const shadowPad = scaleSpec.contactShadowPadding || 0.4;
         this.addContactShadow(bw + shadowPad * 2, bd + shadowPad * 2, 0.44, centerX, 0.01, centerZ);
 
-        // 2. Cuerpo de paredes (entramado cálido con vigas de madera)
-        const wallColor = bw >= 7 ? 0xe2e8f0 : bw === 6 ? 0xf5ebd6 : 0xf3e5c8;
+        // 2. Cuerpo de paredes según estilo arquitectónico de la referencia
+        const isRightWoodHouse = map.id === 'villa_brote' && minX >= 16;
+        const wallColor = isRightWoodHouse ? 0x854d0e : bw >= 7 ? 0xe2e8f0 : bw === 6 ? 0xfef08a : 0xfef9c3;
         const wallMat = new THREE.MeshStandardMaterial({
           color: wallColor,
           roughness: 0.85,
@@ -910,7 +933,7 @@ export class TileRenderer {
         occludableMeshes.push(wallMesh);
 
         // Zócalo de piedra inferior y vigas de madera
-        const plinthMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.9 });
+        const plinthMat = new THREE.MeshStandardMaterial({ color: isRightWoodHouse ? 0x451a03 : 0x64748b, roughness: 0.9 });
         const plinthGeo = new THREE.BoxGeometry(bw + 0.06, 0.32, bd + 0.06);
         plinthGeo.translate(0, 0.16, 0);
         const plinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
@@ -918,8 +941,17 @@ export class TileRenderer {
         houseGroup.add(plinthMesh);
         occludableMeshes.push(plinthMesh);
 
-        // 3. Tejado inclinado a dos aguas con aleros (overhang) en grupo starOverlay para pasar sobre el jugador detrás
-        const roofColor = bw >= 7 ? 0x1e40af : bw === 6 ? 0x1e7a6d : 0xb45309;
+        // 3. Tejado a dos aguas (Paja dorada en casas de la izquierda, teja marrón en casas de la derecha)
+        const isLeftThatchedHouse = map.id === 'villa_brote' && minX < 12;
+        const roofColor = isLeftThatchedHouse
+          ? 0xca8a04
+          : isRightWoodHouse
+          ? 0x78350f
+          : bw >= 7
+          ? 0x1e40af
+          : bw === 6
+          ? 0x1e7a6d
+          : 0xb45309;
         const roofMat = new THREE.MeshStandardMaterial({
           color: roofColor,
           roughness: 0.72,

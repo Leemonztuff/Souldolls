@@ -8,6 +8,7 @@ import { OverworldCamera } from '../render/overworld/OverworldCamera';
 import { OverworldPlayer } from '../systems/OverworldPlayer';
 import { BillboardCharacter } from '../render/overworld/BillboardCharacter';
 import { WorldGraph } from '../data/maps/worldGraph';
+import { MapLoader } from '../data/maps/MapLoader';
 import { MapData, MapNPC, MapWarp } from '../types/maps';
 import { GlobalInput } from '../core/Input';
 import { GlobalAudioService } from '../services/AudioService';
@@ -218,7 +219,7 @@ export class OverworldScene implements IScene {
         battleType: 'wild',
         playerParty: saveState.party,
         opponentParty: [wildCreature],
-        onBattleEnd: (_victory: boolean, capturedCreature?: CreatureInstance) => {
+        onBattleEnd: async (_victory: boolean, capturedCreature?: CreatureInstance) => {
           if (capturedCreature) {
             PokedexSystem.markCaught(capturedCreature.speciesId);
             GlobalEventBus.emit('creature:caught', {
@@ -237,7 +238,7 @@ export class OverworldScene implements IScene {
             }
             GlobalSaveService.save();
           }
-          GlobalSceneManager.popScene();
+          await GlobalSceneManager.popScene();
         },
       });
     };
@@ -282,26 +283,48 @@ export class OverworldScene implements IScene {
     // 2. Initialize Quests
     GlobalQuestSystem.ensureQuestsInitialized();
 
-    // 3. Load Saved or Initial Map
+    // 3. Load Saved or Initial Map (allowing ?map=<id> override for mapgen/example inspection)
     const savedState = GlobalSaveService.getCurrentState();
-    const mapIdToLoad = params?.mapId || savedState.player.mapId || 'villa_brote';
-    const spawnX = params?.x !== undefined ? params.x : (savedState.player.position.x !== undefined ? savedState.player.position.x : 6);
-    const spawnY = params?.y !== undefined ? params.y : (savedState.player.position.z !== undefined ? savedState.player.position.z : 8);
-    const spawnDir = params?.dir || savedState.player.direction || 'down';
+    const urlMapParam =
+      typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('map') : null;
+    const mapIdToLoad = urlMapParam || params?.mapId || savedState.player.mapId || 'aldea_marioneta';
+    const targetMapDef = WorldGraph.getMap(mapIdToLoad);
+    const defaultSpawn = targetMapDef.spawnPoints?.default || { x: 7, y: 8, direction: 'down' as Direction };
+    const spawnX =
+      params?.x !== undefined
+        ? params.x
+        : urlMapParam
+        ? defaultSpawn.x
+        : savedState.player.position.x !== undefined
+        ? savedState.player.position.x
+        : defaultSpawn.x;
+    const spawnY =
+      params?.y !== undefined
+        ? params.y
+        : urlMapParam
+        ? defaultSpawn.y
+        : savedState.player.position.z !== undefined
+        ? savedState.player.position.z
+        : defaultSpawn.y;
+    const spawnDir = params?.dir || (urlMapParam ? defaultSpawn.direction : savedState.player.direction) || 'down';
 
     await this.loadMap(mapIdToLoad, spawnX, spawnY, spawnDir, true);
 
     // Bloque 43 Req. 2: Dynamically load debug overlays ONLY if DEBUG mode is active
     if (isDebugEnabled()) {
-      const [camDebugMod, atlasDebugMod] = await Promise.all([
-        import('../render/overworld/CameraDebugOverlay'),
-        import('../render/overworld/AtlasDebugOverlay'),
-      ]);
-      this.cameraDebugOverlay = new camDebugMod.CameraDebugOverlay();
-      this.atlasDebugOverlay = atlasDebugMod.GlobalAtlasDebugOverlay;
-      this.atlasDebugOverlay.setCamera(GlobalThreeRenderer.camera);
-      (window as any).__activeMapRenderer = this.mapRenderer;
-      (window as any).runDiagnosticScan = () => this.runDiagnosticScan();
+      try {
+        const [camDebugMod, atlasDebugMod] = await Promise.all([
+          import('../render/overworld/CameraDebugOverlay'),
+          import('../render/overworld/AtlasDebugOverlay'),
+        ]);
+        this.cameraDebugOverlay = new camDebugMod.CameraDebugOverlay();
+        this.atlasDebugOverlay = atlasDebugMod.GlobalAtlasDebugOverlay;
+        this.atlasDebugOverlay?.setCamera(GlobalThreeRenderer.camera);
+        (window as any).__activeMapRenderer = this.mapRenderer;
+        (window as any).runDiagnosticScan = () => this.runDiagnosticScan();
+      } catch (err) {
+        console.warn('[OverworldScene] Optional debug overlays could not be loaded:', err);
+      }
     }
 
     // 4. Build Pixi HUD
@@ -619,7 +642,10 @@ export class OverworldScene implements IScene {
     if (this.isWarping) return;
 
     // Guardia de salida hacia Ruta Claro si el jugador nuevo aún no tiene su primera Souldoll
-    if (this.currentMap?.id === 'villa_brote' && params.targetMapId === 'ruta_claro') {
+    if (
+      (this.currentMap?.id === 'villa_brote' || this.currentMap?.id === 'aldea_marioneta') &&
+      params.targetMapId === 'ruta_claro'
+    ) {
       const state = GlobalSaveService.getCurrentState();
       if (!state.flags?.body_linked && (state.party?.length || 0) === 0) {
         GlobalAudioService.playSfx('cancel');
@@ -630,7 +656,10 @@ export class OverworldScene implements IScene {
     }
 
     // Bloque 35 Caso límite 1 y R4.5: Bloqueo al salir del Laboratorio sin Souldoll o reto del rival
-    if (this.currentMap?.id === 'interior_lab' && params.targetMapId === 'villa_brote') {
+    if (
+      this.currentMap?.id === 'interior_lab' &&
+      (params.targetMapId === 'villa_brote' || params.targetMapId === 'aldea_marioneta')
+    ) {
       const state = GlobalSaveService.getCurrentState();
       if (!state.flags?.body_linked) {
         GlobalAudioService.playSfx('cancel');
@@ -642,6 +671,32 @@ export class OverworldScene implements IScene {
         this.triggerRivalTutorialBattle();
         return;
       }
+    }
+
+    // Bloque 47: Si entramos desde un mapa exterior a un mapa interior, registrar la casilla de aproximación como punto de retorno
+    if (this.currentMap && !this.currentMap.indoor && params.targetMapId.startsWith('interior_')) {
+      const enterDir = this.player.character.direction;
+      const dx = enterDir === 'left' ? 1 : enterDir === 'right' ? -1 : 0;
+      const dy = enterDir === 'up' ? 1 : enterDir === 'down' ? -1 : 1;
+      const returnDir: Direction =
+        enterDir === 'up' ? 'down' : enterDir === 'down' ? 'up' : enterDir === 'left' ? 'right' : 'left';
+      // Si el warp se disparó por interacción a 1 casilla de distancia, el jugador ya está en la casilla de aproximación;
+      // si se disparó al pisar la casilla de puerta (gridX, gridY), la casilla de aproximación es (gridX + dx, gridY + dy).
+      const steppedOntoDoor =
+        this.currentMap.warps?.some(
+          (w) =>
+            w.targetMapId === params.targetMapId &&
+            w.x === this.player.gridX &&
+            w.y === this.player.gridY
+        ) ?? false;
+      const retX = steppedOntoDoor ? this.player.gridX + dx : this.player.gridX;
+      const retY = steppedOntoDoor ? this.player.gridY + dy : this.player.gridY;
+      MapLoader.recordInteriorEntry(params.targetMapId, {
+        returnMapId: this.currentMap.id,
+        returnX: retX,
+        returnY: retY,
+        returnDirection: returnDir,
+      });
     }
 
     this.isWarping = true;
@@ -928,6 +983,13 @@ export class OverworldScene implements IScene {
     const scene = GlobalThreeRenderer.scene;
 
     // 0. Clear any residual overlay state and ensure layers are interactive
+    this.isWarping = false;
+    if (this.player) {
+      this.player.isMoving = false;
+    }
+    if (GlobalPixiRenderer.transitionLayer) {
+      GlobalPixiRenderer.transitionLayer.removeChildren();
+    }
     if (GlobalPixiRenderer.menuLayer) {
       GlobalPixiRenderer.menuLayer.removeChildren();
     }
@@ -1126,8 +1188,8 @@ export class OverworldScene implements IScene {
               battleType: 'boss',
               playerParty: saveState.party,
               opponentParty: bossParty,
-              onBattleEnd: (victory: boolean) => {
-                GlobalSceneManager.popScene();
+              onBattleEnd: async (victory: boolean) => {
+                await GlobalSceneManager.popScene();
                 if (victory) {
                   saveState.flags.bosque_eco_boss = true;
                   saveState.flags.defeated_forest_boss = true;
@@ -1136,7 +1198,7 @@ export class OverworldScene implements IScene {
                   saveState.player.money += 2500;
                   GlobalQuestSystem.completeQuest('main_3_forest_boss');
                   GlobalSaveService.save();
-                  GlobalSceneManager.pushScene('Credits');
+                  await GlobalSceneManager.pushScene('Credits');
                 } else {
                   this.showToast('El Guardián del Eco te ha derrotado. Entrena y reintenta.', 3500);
                 }
@@ -1410,10 +1472,10 @@ export class OverworldScene implements IScene {
       tutorialPartsBattle: true,
       playerParty: state.party,
       opponentParty: [rivalDoll],
-      onBattleEnd: (victory: boolean) => {
+      onBattleEnd: async (victory: boolean) => {
         StarterLabSystem.completeRivalTutorial(state, victory);
         GlobalSaveService.save();
-        GlobalSceneManager.popScene();
+        await GlobalSceneManager.popScene();
         this.mapRenderer.rebuildCurrentMap();
         this.overworldHud?.refreshObjectiveHint();
         this.openSimpleDialogue('Aprendiz Kael', [

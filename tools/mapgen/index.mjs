@@ -288,23 +288,23 @@ export function bakeMapFromSpec(spec) {
     const sh = stamp.height || 4;
 
     if (stamp.prefab === 'fountain_plaza') {
-      // Organic rounded plaza with central 2x2 water basin and soft grass/flower corners
+      // Cobblestone plaza with central statue at upper-center and water fountain at lower-center
+      const plazaTile = stamp.groundTile || 'cobble';
       for (let dy = 0; dy < sh; dy++) {
         for (let dx = 0; dx < sw; dx++) {
           const tx = sx + dx;
           const ty = sy + dy;
           if (tx < 0 || tx >= W || ty < 0 || ty >= H) continue;
           isStampFootprint[ty][tx] = true;
-          const isCorner = (dx === 0 || dx === sw - 1) && (dy === 0 || dy === sh - 1);
-          const isWaterBasin = dx >= 2 && dx <= sw - 3 && dy >= 1 && dy <= sh - 2;
+          ground[ty][tx] = plazaTile;
+          const isStatuePedestal = dy === 1 && (dx === Math.floor(sw / 2) - 1 || dx === Math.floor(sw / 2));
+          const isWaterBasin = dy >= sh - 3 && dy <= sh - 2 && dx >= Math.floor(sw / 2) - 1 && dx <= Math.floor(sw / 2);
           if (isWaterBasin) {
             ground[ty][tx] = 'water';
             collision[ty][tx] = true;
-          } else if (isCorner) {
-            ground[ty][tx] = 'flowers';
-            collision[ty][tx] = false;
+          } else if (isStatuePedestal) {
+            collision[ty][tx] = true;
           } else {
-            ground[ty][tx] = 'path';
             collision[ty][tx] = false;
             isPathLane[ty][tx] = true;
           }
@@ -843,6 +843,11 @@ export function runMapgenPipeline(options = { writeFiles: true }) {
   for (const file of files) {
     const srcPath = path.join(SRC_MAPS_DIR, file);
     const spec = JSON.parse(fs.readFileSync(srcPath, 'utf8'));
+
+    // Bloque 47: Los mapas fuente con schema: 1 son validados y horneados por /systems/mapgen y MapLoader
+    if (spec.schema === 1) {
+      continue;
+    }
 
     const baked = bakeMapFromSpec(spec);
     const validation = validateMapDesignAndAesthetics(spec, baked, scaleConfig);

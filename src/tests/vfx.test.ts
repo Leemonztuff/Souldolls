@@ -61,6 +61,55 @@ vfx.emitStatChangeFeedback(150, 150, 'speed', -1);
 vfx.update(0.016);
 console.log('  ✓ Columnas ascendentes para buffs y lluvia de miasma para debuffs probados');
 
+// Test 5: PixiJS v8 CombatFXSystem - 11 Procedural FX Modules
+console.log('\n🔹 TEST 5: PixiJS v8 CombatFXSystem - 11 Módulos FX Procedurales');
+const { CombatFXSystem } = await import('../render/vfx/CombatFXSystem');
+const combatStage = new Container();
+const combatFx = new CombatFXSystem(combatStage);
+
+const fxPresets = [
+  'energy_ring',
+  'spiral',
+  'trail',
+  'particles',
+  'energy_sphere',
+  'shockwave',
+  'aura',
+  'explosion',
+  'vortex',
+  'projectile',
+  'radial_impact',
+];
+
+for (const preset of fxPresets) {
+  const fxObj = combatFx.spawnFX(preset, {
+    position: { x: 200, y: 200 },
+    from: { x: 100, y: 100 },
+    to: { x: 300, y: 300 },
+    color: 0xff5522,
+    secondaryColor: 0xffaa00,
+  });
+  assert(fxObj !== null, `Módulo FX "${preset}" debe spawnearse`);
+}
+assert(combatFx.activeCount === 11, 'Deben haber 11 efectos activos registrados');
+combatFx.update(0.05);
+console.log('  ✓ Los 11 módulos de CombatFXSystem funcionan y actualizan en el ticker');
+
+// Test 6: CombatFXSystem - Pipeline de Skills Data-Driven (skillFx.json)
+console.log('\n🔹 TEST 6: Pipeline Data-Driven de Habilidades (skillFx.json)');
+const registered = combatFx.getSkill('chispa_ignea');
+assert(registered !== undefined, 'Habilidad data-driven "chispa_ignea" debe existir en la base');
+assert(registered?.element === 'Fuego', 'Elemento debe ser Fuego');
+
+// Test playSkill invocation
+await combatFx.playSkill('chispa_ignea', { x: 150, y: 250 }, { x: 450, y: 200 });
+combatFx.update(0.1);
+combatFx.clear();
+assert(combatFx.activeCount === 0, 'clear() debe vaciar los efectos activos');
+
+combatFx.destroy();
+console.log('  ✓ Secuencia data-driven y ciclo de vida de CombatFXSystem probados');
+
 console.log('\n========================================');
 console.log('✅ TODOS LOS TESTS DE VFX Y PARTÍCULAS HAN PASADO EXITOSAMENTE!');
 console.log('========================================\n');

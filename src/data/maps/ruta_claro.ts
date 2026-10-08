@@ -5128,16 +5128,16 @@ export const RUTA_CLARO_MAP: MapData = {
       "x": 20,
       "y": 29,
       "targetMapId": "villa_brote",
-      "targetX": 14,
-      "targetY": 1,
+      "targetX": 18,
+      "targetY": 2,
       "targetDirection": "down"
     },
     {
       "x": 21,
       "y": 29,
       "targetMapId": "villa_brote",
-      "targetX": 15,
-      "targetY": 1,
+      "targetX": 19,
+      "targetY": 2,
       "targetDirection": "down"
     },
     {

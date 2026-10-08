@@ -9,9 +9,26 @@ import { INTERIOR_HOUSE_MAP } from './interior_house';
 import { PUEBLO_COSTERO_MAP } from './pueblo_costero';
 import { CIUDAD_GIMNASIO_MAP } from './ciudad_gimnasio';
 import { RUTA_MONTANA_MAP } from './ruta_montana';
+import aldeaMarionetaSrc from './src/aldea_marioneta.map.json';
+import { MapLoader } from './MapLoader';
+import { MapSourceSchemaV1 } from '../../systems/mapgen';
+
+let cachedAldeaMarionetaMap: MapData | null = null;
+
+function getAldeaMarionetaMap(): MapData {
+  if (!cachedAldeaMarionetaMap) {
+    cachedAldeaMarionetaMap = MapLoader.loadMapData(
+      aldeaMarionetaSrc as unknown as MapSourceSchemaV1
+    ).mapData;
+  }
+  return cachedAldeaMarionetaMap;
+}
 
 export const MAP_REGISTRY: Record<string, MapData> = {
   villa_brote: VILLA_BROTE_MAP,
+  get aldea_marioneta(): MapData {
+    return getAldeaMarionetaMap();
+  },
   ruta_claro: RUTA_CLARO_MAP,
   bosque_eco: BOSQUE_ECO_MAP,
   interior_lab: INTERIOR_LAB_MAP,
@@ -24,11 +41,32 @@ export const MAP_REGISTRY: Record<string, MapData> = {
 };
 
 export class WorldGraph {
+  /**
+   * Registra o actualiza en caliente un mapa en el grafo del mundo (aceptando tanto MapSourceSchemaV1 como MapData).
+   */
+  public static registerMap(input: MapSourceSchemaV1 | MapData): MapData {
+    const { mapData } = MapLoader.loadMapData(input);
+    if (mapData.id === 'aldea_marioneta') {
+      cachedAldeaMarionetaMap = mapData;
+    } else {
+      Object.defineProperty(MAP_REGISTRY, mapData.id, {
+        value: mapData,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+    return mapData;
+  }
+
   public static getMap(id: string): MapData {
     const map = MAP_REGISTRY[id];
     if (!map) {
       console.warn(`[WorldGraph] Map "${id}" not found. Falling back to "villa_brote".`);
       return VILLA_BROTE_MAP;
+    }
+    if (map.indoor) {
+      return MapLoader.syncInteriorReturnWarps(map);
     }
     return map;
   }

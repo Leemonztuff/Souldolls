@@ -2,33 +2,35 @@
   "speciesId": "espectro",
   "name": "Espectro",
   "element": "Sombra",
+  "sourceRawSheet": "assets/raw/spritesheets/frame_013.png",
   "image": "/assets/souldolls/espectro_battle_sheet.png",
   "size": [
-    305,
-    162
+    711,
+    122
   ],
-  "nativeTargetHeightPx": 160,
+  "nativeTargetHeightPx": 122,
   "mirrorSafe": false,
-  "asymmetryNote": "El brazo del guantelete cambia de lado al espejar horizontalmente (flipX: true).",
+  "asymmetryNote": "El brazo del arma cambia de lado al espejar horizontalmente (flipX: true).",
+  "hasBackSheet": false,
   "frames": {
-    "view_front": {
+    "idle": {
       "x": 0,
       "y": 0,
-      "w": 62,
-      "h": 162,
+      "w": 55,
+      "h": 122,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        24,
-        1,
-        96,
-        255
+        39,
+        9,
+        53,
+        120
       ],
       "mirrorSafe": false,
-      "native": false,
-      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "native": true,
+      "note": "Pose idle definitiva",
       "idle": {
         "neck": 0.31,
         "waist": 0.48,
@@ -40,24 +42,24 @@
         }
       }
     },
-    "view_front34": {
-      "x": 64,
+    "relaxed": {
+      "x": 57,
       "y": 0,
-      "w": 61,
-      "h": 162,
+      "w": 83,
+      "h": 122,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        172,
-        1,
-        94,
-        255
+        154,
+        9,
+        81,
+        120
       ],
       "mirrorSafe": false,
-      "native": false,
-      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "native": true,
+      "note": "Pose relaxed definitiva",
       "idle": {
         "neck": 0.3,
         "waist": 0.48,
@@ -69,80 +71,403 @@
         }
       }
     },
-    "view_side": {
-      "x": 127,
+    "attack": {
+      "x": 142,
       "y": 0,
       "w": 53,
-      "h": 162,
+      "h": 122,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        319,
-        1,
-        82,
-        255
+        297,
+        9,
+        51,
+        120
       ],
       "mirrorSafe": false,
-      "native": false,
-      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "native": true,
+      "note": "Pose attack definitiva"
+    },
+    "attack_impact": {
+      "x": 197,
+      "y": 0,
+      "w": 97,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        17,
+        138,
+        95,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Pose attack_impact definitiva"
+    },
+    "casting": {
+      "x": 296,
+      "y": 0,
+      "w": 105,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        142,
+        138,
+        103,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Pose casting definitiva"
+    },
+    "casting_release": {
+      "x": 403,
+      "y": 0,
+      "w": 74,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        287,
+        138,
+        72,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Pose casting_release definitiva"
+    },
+    "damage": {
+      "x": 479,
+      "y": 0,
+      "w": 79,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        27,
+        267,
+        77,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Pose damage definitiva"
+    },
+    "victory": {
+      "x": 560,
+      "y": 0,
+      "w": 86,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        152,
+        267,
+        84,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Pose victory definitiva"
+    },
+    "down": {
+      "x": 648,
+      "y": 0,
+      "w": 61,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        293,
+        267,
+        59,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Pose down definitiva"
+    },
+    "view_front34": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "3/4 Frontal (Frame 1 idle)",
       "idle": {
-        "neck": 0.3,
+        "neck": 0.31,
         "waist": 0.48,
         "bust": {
-          "y0": 0.33,
+          "y0": 0.34,
           "y1": 0.46,
-          "x0": 0.22,
-          "x1": 0.65
+          "x0": 0.3,
+          "x1": 0.7
         }
       }
     },
-    "view_back34": {
-      "x": 182,
+    "view_front": {
+      "x": 0,
       "y": 0,
-      "w": 58,
-      "h": 162,
+      "w": 55,
+      "h": 122,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        457,
-        1,
-        90,
-        255
+        39,
+        9,
+        53,
+        120
       ],
       "mirrorSafe": false,
-      "native": false,
-      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "native": true,
+      "note": "Frontal (alias a 3/4 frontal / Frame 1 idle)",
       "idle": {
-        "neck": 0.3,
-        "waist": 0.48
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      }
+    },
+    "view_side": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Lateral (alias a 3/4 frontal / Frame 1 idle)",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
       }
     },
     "view_back": {
-      "x": 242,
+      "x": 0,
       "y": 0,
-      "w": 63,
-      "h": 162,
+      "w": 55,
+      "h": 122,
       "anchor": [
         0.5,
         1
       ],
       "sourceRect": [
-        600,
-        1,
-        97,
-        255
+        39,
+        9,
+        53,
+        120
       ],
       "mirrorSafe": false,
-      "native": false,
-      "note": "Asimetría de diseño: el brazo del guantelete/arma cambia de lado al aplicar flipX.",
+      "native": true,
+      "note": "Vista trasera configurada provisionalmente con frontal 3/4 (preparada para switch futuro)",
       "idle": {
-        "neck": 0.3,
-        "waist": 0.48
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      },
+      "isBackFallback": true
+    },
+    "view_back34": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Vista 3/4 trasera configurada provisionalmente con frontal 3/4 (preparada para switch futuro)",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      },
+      "isBackFallback": true
+    },
+    "front": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "3/4 Frontal (Frame 1 idle)",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
       }
+    },
+    "back": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Vista 3/4 trasera configurada provisionalmente con frontal 3/4 (preparada para switch futuro)",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      },
+      "isBackFallback": true
+    },
+    "side_r": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "3/4 Frontal (Frame 1 idle)",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      }
+    },
+    "side_l": {
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 122,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "sourceRect": [
+        39,
+        9,
+        53,
+        120
+      ],
+      "mirrorSafe": false,
+      "native": true,
+      "note": "Vista 3/4 trasera configurada provisionalmente con frontal 3/4 (preparada para switch futuro)",
+      "idle": {
+        "neck": 0.31,
+        "waist": 0.48,
+        "bust": {
+          "y0": 0.34,
+          "y1": 0.46,
+          "x0": 0.3,
+          "x1": 0.7
+        }
+      },
+      "isBackFallback": true
     }
   }
 }

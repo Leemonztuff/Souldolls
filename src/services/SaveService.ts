@@ -65,7 +65,7 @@ export class SaveService {
       playtimeSeconds: 0,
       player: {
         name: playerName,
-        position: { x: 6, y: 0.5, z: 8 },
+        position: { x: 7, y: 0.5, z: 8 },
         direction: 'down',
         mapId: 'villa_brote',
         money: 3000,

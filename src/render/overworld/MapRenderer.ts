@@ -3,6 +3,7 @@ import { MapData } from '../../types/maps';
 import { GlobalTallerAtlas } from './TallerAtlas';
 import { GlobalMercadoAtlas } from './MercadoAtlas';
 import { GlobalLabAtlas } from './LabAtlas';
+import { GlobalVillageDecorAtlas } from './VillageDecorAtlas';
 import { GlobalOverworldDecor } from './DecorRenderer';
 import { GlobalTileRenderer } from './TileRenderer';
 import { GlobalSaveService } from '../../services/SaveService';
@@ -26,6 +27,14 @@ interface AnimatedSign {
   mesh: THREE.Mesh;
   baseRotationZ: number;
   speed: number;
+}
+
+/**
+ * Snaps floating-point world coordinates to eliminate subpixel rounding jitter,
+ * precision drift, and visible seams across arbitrary viewport resolutions.
+ */
+export function snapCoord(val: number, precision = 10000): number {
+  return Math.round(val * precision) / precision;
 }
 
 export class MapRenderer {
@@ -78,11 +87,12 @@ export class MapRenderer {
     // --- COEXISTENCE WITH CUSTOM ATLASES (BLOQUES 33 / 34 / 36) ---
     const stage = GlobalTileRenderer.getAuthoringStage();
     if (!GlobalTileRenderer.isClassicFlatMode()) {
-      // Special custom facades in Villa Brote (shown in Normal mode or Authoring Stage >= 3)
-      if (map.id === 'villa_brote' && (stage === 0 || stage >= 3)) {
-        this.createWorkshopExteriorFacade(7, 17);
-        this.createShopExteriorFacade(22, 17);
-        this.createLabExteriorFacade(22, 7);
+      // Special custom facades in Villa Brote / Aldea Marioneta or any Schema 1 map with landmarkHints
+      if (
+        (map.id === 'villa_brote' || map.id === 'aldea_marioneta' || map.landmarkHints) &&
+        (stage === 0 || stage >= 3)
+      ) {
+        this.buildMarionetteVillageReferenceLandmarks(map);
       }
 
       // Special Workshop Interior Props (Bloque 33)
@@ -191,6 +201,483 @@ export class MapRenderer {
   }
 
   /**
+   * BLOQUE 45: CONSTRUCCIÓN COMPLETA DE HITOS Y ARQUITECTURA DE ALDEA MARIONETA
+   * Reproduce fielmente la referencia F2:
+   * 1. Arco de Piedra Norte (Stone Archway Exit) y Acantilado
+   * 2. Laboratorio de ladrillo con Cúpula de Cobre y Torreta de Ki
+   * 3. Taller con Tejado Verde, Chimenea con Humo y Patio de Artífices con engranajes
+   * 4. Plaza Central con Estatua de Marioneta y Fuente Circular de piedra
+   * 5. Mercado de Artífices con 4 Puestos de toldo rayado rojo/amarillo y cajas
+   * 6. Huertos vallados, cultivos y tendederos de ropa
+   */
+  private buildMarionetteVillageReferenceLandmarks(map?: MapData): void {
+    const hints = map?.landmarkHints;
+
+    // 1. Arco de Piedra Norte y Muro de Acantilado
+    const gateX = hints?.northGateCenter?.x ?? 18.0;
+    const gateZ = hints?.northGateCenter?.y ?? 1.5;
+    this.createStoneArchwayExit(gateX, gateZ);
+
+    // 2. Laboratorio del Maestro Artífice
+    if (!hints || hints.labDoor) {
+      const labX = hints?.labDoor?.x ?? 29;
+      const labZ = hints?.labDoor?.y ?? 7;
+      this.createLabExteriorFacade(labX, labZ);
+    }
+
+    // 3. Taller de Artífices y Patio Exterior de Forja
+    if (!hints || hints.workshopDoor) {
+      const wsX = hints?.workshopDoor?.x ?? 9;
+      const wsZ = hints?.workshopDoor?.y ?? 15;
+      this.createWorkshopExteriorFacade(wsX, wsZ);
+      this.createOutdoorArtisanYard(wsX - 3.0, wsZ + 1.5);
+    }
+
+    // 4. Plaza Central: Estatua de Marioneta y Fuente Circular
+    if (!hints || hints.fountainCenter) {
+      this.createCentralPlazaLandmarks();
+    }
+
+    // 5. Mercado de Artífices: Puestos con toldos a rayas y barriles
+    if (!hints || hints.marketDoor) {
+      const mkX = hints?.marketDoor?.x ?? 27;
+      const mkZ = hints?.marketDoor?.y ?? 14;
+      this.createMarketSquareStalls(mkX, mkZ);
+    }
+
+    // 6. Huertos, vallas de madera y tendederos
+    this.createVillageFencesAndGardens();
+
+    // 7. Embellecimiento con fachadas, faroles de ki, pozo de piedra y props del nuevo atlas
+    this.buildVillageDecorAtlasProps();
+  }
+
+  /**
+   * 7. PROPS Y EMBELLECIMIENTO DEL ATLAS DE ALDEA MARIONETA
+   */
+  private buildVillageDecorAtlasProps(): void {
+    const villageAtlasGroup = new THREE.Group();
+    villageAtlasGroup.name = 'VillageDecorAtlasProps';
+
+    // A. Elementos exteriores del Refugio del Protagonista (spawn)
+    // Buzón de madera en la entrada del refugio
+    const mailbox = GlobalVillageDecorAtlas.createPropMesh('village_mailbox', 120, true);
+    mailbox.position.set(8.5, 0, 7.8);
+    villageAtlasGroup.add(mailbox);
+    this.billboardProps.push(mailbox);
+    this.decorEntries.push({ x: 8, z: 8, meshes: [mailbox] });
+
+    // Jardinera con flores en la ventana
+    const flowerbox1 = GlobalVillageDecorAtlas.createPropMesh('flowerbox_purple', 125, true);
+    flowerbox1.position.set(5.8, 0, 7.8);
+    villageAtlasGroup.add(flowerbox1);
+    this.billboardProps.push(flowerbox1);
+
+    // Maceteros junto a la entrada
+    const potSpawn = GlobalVillageDecorAtlas.createPropMesh('potted_plant_small', 125, true);
+    potSpawn.position.set(5.2, 0, 8.2);
+    villageAtlasGroup.add(potSpawn);
+    this.billboardProps.push(potSpawn);
+
+    // B. Barrio residencial Oeste (plantas y flores)
+    const potW1 = GlobalVillageDecorAtlas.createPropMesh('potted_plant_medium', 125, true);
+    potW1.position.set(8.2, 0, 20.6);
+    villageAtlasGroup.add(potW1);
+    this.billboardProps.push(potW1);
+
+    const fboxW = GlobalVillageDecorAtlas.createPropMesh('flowerbox_orange', 125, true);
+    fboxW.position.set(5.6, 0, 20.6);
+    villageAtlasGroup.add(fboxW);
+    this.billboardProps.push(fboxW);
+
+    // Tendedero de ropa en patio oeste
+    const clothesline = GlobalVillageDecorAtlas.createPropMesh('clothesline_linens', 115, true);
+    clothesline.position.set(9.5, 0, 24.2);
+    villageAtlasGroup.add(clothesline);
+    this.billboardProps.push(clothesline);
+
+    // C. Barrio residencial Este (maceteros y cajas)
+    const potE1 = GlobalVillageDecorAtlas.createPropMesh('potted_plant_tall', 125, true);
+    potE1.position.set(25.5, 0, 20.6);
+    villageAtlasGroup.add(potE1);
+    this.billboardProps.push(potE1);
+
+    const cratesE = GlobalVillageDecorAtlas.createPropMesh('wooden_crates_stacked', 120, true);
+    cratesE.position.set(24.6, 0, 24.2);
+    villageAtlasGroup.add(cratesE);
+    this.billboardProps.push(cratesE);
+
+    // D. Pozo de piedra rústico en el huerto norte
+    const well = GlobalVillageDecorAtlas.createPropMesh('stone_well_village', 115, true);
+    well.position.set(12.0, 0, 6.8);
+    villageAtlasGroup.add(well);
+    this.billboardProps.push(well);
+    this.decorEntries.push({ x: 12, z: 7, meshes: [well] });
+
+    // E. Faroles de la Aldea (sprites fijos y consistentes como el resto de decorados)
+    const lanternSpots = [
+      { x: 5.2, z: 8.6 },   // Frente al refugio del jugador (spawn inicial)
+      { x: 9.0, z: 8.6 },   // Esquina este del refugio
+      { x: 15.6, z: 11.2 }, // Plaza central esquina noroeste
+      { x: 20.4, z: 11.2 }, // Plaza central esquina noreste
+      { x: 15.6, z: 16.8 }, // Plaza central esquina suroeste
+      { x: 20.4, z: 16.8 }, // Plaza central esquina sureste
+      { x: 17.0, z: 3.5 },  // Entrada Arco norte lado izquierdo
+      { x: 19.0, z: 3.5 },  // Entrada Arco norte lado derecho
+      { x: 17.0, z: 22.0 }, // Avenida sur
+      { x: 19.0, z: 22.0 }, // Avenida sur
+    ];
+
+    lanternSpots.forEach(({ x, z }, idx) => {
+      const lampName = idx % 2 === 0 ? 'lamppost_ki_teal' : 'lamppost_ki_cyan';
+      const lamp = GlobalVillageDecorAtlas.createPropMesh(lampName, 120, true);
+      lamp.position.set(x, 0, z);
+      villageAtlasGroup.add(lamp);
+      this.billboardProps.push(lamp);
+
+      this.decorEntries.push({ x: Math.round(x), z: Math.round(z), meshes: [lamp] });
+    });
+
+    // F. Tablón de anuncios en la plaza
+    const board = GlobalVillageDecorAtlas.createPropMesh('bulletin_notice_board', 115, true);
+    board.position.set(20.8, 0, 14.8);
+    villageAtlasGroup.add(board);
+    this.billboardProps.push(board);
+    this.decorEntries.push({ x: 21, z: 15, meshes: [board] });
+
+    // G. Bancos de madera en la plaza y junto al refugio
+    const benchSpawn = GlobalVillageDecorAtlas.createPropMesh('village_wood_bench', 115, true);
+    benchSpawn.position.set(5.2, 0, 9.8);
+    villageAtlasGroup.add(benchSpawn);
+    this.billboardProps.push(benchSpawn);
+    this.decorEntries.push({ x: 5, z: 10, meshes: [benchSpawn] });
+
+    const benchL = GlobalVillageDecorAtlas.createPropMesh('village_wood_bench', 115, true);
+    benchL.position.set(15.2, 0, 14.0);
+    villageAtlasGroup.add(benchL);
+    this.billboardProps.push(benchL);
+    this.decorEntries.push({ x: 15, z: 14, meshes: [benchL] });
+
+    // H. Soporte de marionetas suspendidas junto al Taller
+    const puppetRack = GlobalVillageDecorAtlas.createPropMesh('puppet_display_rack', 115, true);
+    puppetRack.position.set(4.8, 0, 14.8);
+    villageAtlasGroup.add(puppetRack);
+    this.billboardProps.push(puppetRack);
+    this.decorEntries.push({ x: 5, z: 15, meshes: [puppetRack] });
+
+    // I. Setos verdes a lo largo de las vallas
+    const hedge1 = GlobalVillageDecorAtlas.createPropMesh('green_hedge_bush_1', 115, true);
+    hedge1.position.set(14.8, 0, 9.8);
+    villageAtlasGroup.add(hedge1);
+    this.billboardProps.push(hedge1);
+
+    const hedge2 = GlobalVillageDecorAtlas.createPropMesh('green_hedge_bush_2', 115, true);
+    hedge2.position.set(21.2, 0, 9.8);
+    villageAtlasGroup.add(hedge2);
+    this.billboardProps.push(hedge2);
+
+    this.mapGroup.add(villageAtlasGroup);
+  }
+
+  /**
+   * 1. Arco de Piedra Norte (Stone Archway Exit)
+   */
+  private createStoneArchwayExit(centerX: number, centerZ: number): void {
+    const archGroup = new THREE.Group();
+    archGroup.name = 'StoneArchwayExit';
+
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.88,
+      metalness: 0.05,
+    });
+    const darkStoneMat = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      roughness: 0.92,
+    });
+
+    // Pilares laterales
+    const pillarGeo = new THREE.BoxGeometry(1.2, 4.2, 1.4);
+    pillarGeo.translate(0, 2.1, 0);
+
+    const leftPillar = new THREE.Mesh(pillarGeo, stoneMat);
+    leftPillar.position.set(centerX - 1.8, 0, centerZ);
+    leftPillar.castShadow = true;
+    archGroup.add(leftPillar);
+
+    const rightPillar = new THREE.Mesh(pillarGeo, stoneMat);
+    rightPillar.position.set(centerX + 1.8, 0, centerZ);
+    rightPillar.castShadow = true;
+    archGroup.add(rightPillar);
+
+    // Dintel / Puente del Arco Superior
+    const lintelGeo = new THREE.BoxGeometry(4.8, 1.2, 1.5);
+    lintelGeo.translate(0, 3.8, 0);
+    const lintel = new THREE.Mesh(lintelGeo, stoneMat);
+    lintel.position.set(centerX, 0, centerZ);
+    lintel.castShadow = true;
+    archGroup.add(lintel);
+
+    // Almenas superiores decorativas
+    for (let bx = -2.1; bx <= 2.1; bx += 1.05) {
+      const battlement = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 1.55), darkStoneMat);
+      battlement.position.set(centerX + bx, 4.6, centerZ);
+      archGroup.add(battlement);
+    }
+
+    // Paredes de acantilado rocoso a los lados del arco norte
+    const cliffGeoLeft = new THREE.BoxGeometry(15, 3.8, 1.8);
+    cliffGeoLeft.translate(0, 1.9, 0);
+    const cliffLeft = new THREE.Mesh(cliffGeoLeft, darkStoneMat);
+    cliffLeft.position.set(8.5, 0, centerZ - 0.2);
+    archGroup.add(cliffLeft);
+
+    const cliffGeoRight = new THREE.BoxGeometry(15, 3.8, 1.8);
+    cliffGeoRight.translate(0, 1.9, 0);
+    const cliffRight = new THREE.Mesh(cliffGeoRight, darkStoneMat);
+    cliffRight.position.set(27.5, 0, centerZ - 0.2);
+    archGroup.add(cliffRight);
+
+    this.mapGroup.add(archGroup);
+  }
+
+  /**
+   * 4. Plaza Central: Fuente Circular de Marioneta de piedra y agua cristalina
+   */
+  private createCentralPlazaLandmarks(): void {
+    const plazaGroup = new THREE.Group();
+    plazaGroup.name = 'CentralPlazaLandmarks';
+
+    // Fuente de marioneta sprite (proporcionada y centrada en la plaza)
+    const fountainSprite = GlobalVillageDecorAtlas.createPropMesh('fountain_puppet_water_1', 115, true);
+    fountainSprite.position.set(18.0, 0, 14.0);
+    plazaGroup.add(fountainSprite);
+    this.billboardProps.push(fountainSprite);
+
+    // Sombra de contacto suave bajo la base de la fuente
+    const shadowGeo = new THREE.PlaneGeometry(2.6, 1.8);
+    shadowGeo.rotateX(-Math.PI / 2);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.position.set(18.0, 0.012, 14.0);
+    shadowMesh.renderOrder = 1;
+    plazaGroup.add(shadowMesh);
+
+    // Luz acuática de ki en el centro de la fuente
+    const fountainLight = new THREE.PointLight(0x38bdf8, 2.0, 7);
+    fountainLight.position.set(18.0, 1.2, 14.0);
+    plazaGroup.add(fountainLight);
+
+    this.mapGroup.add(plazaGroup);
+    this.decorEntries.push({ x: 18, z: 14, meshes: [fountainSprite] });
+  }
+
+  /**
+   * 3. Patio Exterior de Forja y Carpintería del Taller de Artífices
+   */
+  private createOutdoorArtisanYard(centerX: number, centerZ: number): void {
+    const yardGroup = new THREE.Group();
+    yardGroup.name = 'ArtisanYard';
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.75, roughness: 0.35 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.25 });
+
+    // Banco de trabajo con planos / herramientas
+    const table = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.75, 0.9), woodMat);
+    table.position.set(centerX - 0.6, 0.38, centerZ - 0.4);
+    yardGroup.add(table);
+
+    // Yunque sobre tocón de roble
+    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.6, 10), woodMat);
+    stump.position.set(centerX + 0.8, 0.3, centerZ - 0.3);
+    yardGroup.add(stump);
+
+    const anvil = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.25), metalMat);
+    anvil.position.set(centerX + 0.8, 0.75, centerZ - 0.3);
+    yardGroup.add(anvil);
+
+    // Engranajes de marioneta en el suelo
+    const gearLarge = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.08, 16), woodMat);
+    gearLarge.position.set(centerX - 1.2, 0.05, centerZ + 0.5);
+    gearLarge.rotation.x = 0.1;
+    yardGroup.add(gearLarge);
+
+    const gearBrass = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.08, 12), brassMat);
+    gearBrass.position.set(centerX - 0.6, 0.06, centerZ + 0.7);
+    yardGroup.add(gearBrass);
+
+    // Valla perimetral de madera
+    const fenceMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.9 });
+    const fenceW = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.75, 2.6), fenceMat);
+    fenceW.position.set(centerX - 1.9, 0.38, centerZ);
+    yardGroup.add(fenceW);
+
+    const fenceS = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.75, 0.1), fenceMat);
+    fenceS.position.set(centerX - 0.1, 0.38, centerZ + 1.3);
+    yardGroup.add(fenceS);
+
+    this.mapGroup.add(yardGroup);
+  }
+
+  /**
+   * 5. Mercado de Artífices: 4 Puestos con toldo rayado rojo/amarillo y cajas
+   */
+  private createMarketSquareStalls(centerX: number, centerZ: number): void {
+    const marketGroup = new THREE.Group();
+    marketGroup.name = 'MarketStalls';
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
+    const stripedRedMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.6 });
+    const stripedYellowMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.6 });
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.9 });
+
+    // 4 puestos de mercado (2 en fila norte, 2 en fila sur)
+    const stallOffsets = [
+      { x: -1.6, z: -1.4 },
+      { x: 1.4, z: -1.4 },
+      { x: -1.6, z: 1.2 },
+      { x: 1.4, z: 1.2 },
+    ];
+
+    stallOffsets.forEach(({ x, z }, idx) => {
+      const sx = centerX + x;
+      const sz = centerZ + z;
+
+      // Mostrador de madera
+      const counter = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.8, 0.9), woodMat);
+      counter.position.set(sx, 0.4, sz);
+      counter.castShadow = true;
+      marketGroup.add(counter);
+
+      // Postes del toldo
+      const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.1, 6), woodMat);
+      postL.position.set(sx - 0.75, 1.05, sz - 0.35);
+      marketGroup.add(postL);
+
+      const postR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.1, 6), woodMat);
+      postR.position.set(sx + 0.75, 1.05, sz - 0.35);
+      marketGroup.add(postR);
+
+      // Toldo a rayas inclinadas
+      const canopyW = 1.85;
+      const canopyD = 1.2;
+      const canopyY = 2.05;
+      const canopyAngle = 0.22;
+
+      for (let s = 0; s < 4; s++) {
+        const stripeMat = (s + idx) % 2 === 0 ? stripedRedMat : stripedYellowMat;
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(canopyW / 4, 0.06, canopyD), stripeMat);
+        stripe.position.set(sx - canopyW / 2 + (canopyW / 8) * (2 * s + 1), canopyY - s * 0.01, sz);
+        stripe.rotation.x = canopyAngle;
+        stripe.castShadow = true;
+        marketGroup.add(stripe);
+      }
+
+      // Cajas / barriles junto a cada puesto
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), crateMat);
+      crate.position.set(sx + (idx % 2 === 0 ? -1.1 : 1.1), 0.25, sz + 0.2);
+      marketGroup.add(crate);
+
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.65, 10), woodMat);
+      barrel.position.set(sx + (idx % 2 === 0 ? -1.1 : 1.1), 0.33, sz - 0.4);
+      marketGroup.add(barrel);
+    });
+
+    // Faroles de mercado en los postes centrales
+    const marketLight = new THREE.PointLight(0xfef08a, 2.2, 10);
+    marketLight.position.set(centerX, 2.4, centerZ);
+    marketGroup.add(marketLight);
+
+    this.mapGroup.add(marketGroup);
+    const marketMeshes = marketGroup.children.filter((c): c is THREE.Mesh => (c as any).isMesh);
+    this.decorEntries.push({ x: 27, z: 14, meshes: marketMeshes });
+  }
+
+  /**
+   * 6. Huertos con cultivos, vallas y tendederos de ropa en los vecindarios
+   */
+  private createVillageFencesAndGardens(): void {
+    const gardenGroup = new THREE.Group();
+    gardenGroup.name = 'VillageGardens';
+
+    const fenceMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.9 });
+    const soilMat = new THREE.MeshStandardMaterial({ color: 0x3f2e21, roughness: 0.95 });
+    const cropMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.65 });
+    const whiteLinenMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.8 });
+    const blueLinenMat = new THREE.MeshStandardMaterial({ color: 0x60a5fa, roughness: 0.8 });
+
+    // Parches de huerto con cultivos
+    const gardenSpots = [
+      { x: 3.5, z: 6.0, w: 2.2, d: 3.2 },
+      { x: 11.5, z: 24.5, w: 2.4, d: 2.2 },
+      { x: 23.5, z: 24.5, w: 2.2, d: 2.0 },
+      { x: 33.5, z: 17.0, w: 2.2, d: 2.2 },
+    ];
+
+    gardenSpots.forEach(({ x, z, w, d }) => {
+      // Lecho de tierra cultivada
+      const soil = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), soilMat);
+      soil.position.set(x, 0.04, z);
+      gardenGroup.add(soil);
+
+      // Surcos con brotes verdes
+      for (let rx = -w / 2 + 0.35; rx <= w / 2 - 0.35; rx += 0.55) {
+        for (let rz = -d / 2 + 0.35; rz <= d / 2 - 0.35; rz += 0.55) {
+          const crop = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), cropMat);
+          crop.position.set(x + rx, 0.16, z + rz);
+          crop.scale.set(1.0, 0.8, 1.0);
+          gardenGroup.add(crop);
+        }
+      }
+
+      // Valla de madera alrededor del huerto
+      const fN = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.65, 0.08), fenceMat);
+      fN.position.set(x, 0.33, z - d / 2 - 0.15);
+      gardenGroup.add(fN);
+
+      const fW = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.65, d + 0.4), fenceMat);
+      fW.position.set(x - w / 2 - 0.15, 0.33, z);
+      gardenGroup.add(fW);
+    });
+
+    // Tendederos de ropa (x: 11.5, z: 6.0 y x: 23.5, z: 21.0)
+    const clotheslines = [
+      { x: 11.5, z: 6.0 },
+      { x: 23.5, z: 21.0 },
+    ];
+
+    clotheslines.forEach(({ x, z }) => {
+      const poleL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 6), fenceMat);
+      poleL.position.set(x - 1.1, 0.9, z);
+      gardenGroup.add(poleL);
+
+      const poleR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 6), fenceMat);
+      poleR.position.set(x + 1.1, 0.9, z);
+      gardenGroup.add(poleR);
+
+      const rope = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.03, 0.03), fenceMat);
+      rope.position.set(x, 1.6, z);
+      gardenGroup.add(rope);
+
+      const cloth1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.65, 0.02), whiteLinenMat);
+      cloth1.position.set(x - 0.4, 1.25, z);
+      gardenGroup.add(cloth1);
+
+      const cloth2 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.55, 0.02), blueLinenMat);
+      cloth2.position.set(x + 0.4, 1.3, z);
+      gardenGroup.add(cloth2);
+    });
+
+    this.mapGroup.add(gardenGroup);
+  }
+
+  /**
    * FACHADA DEL TALLER EXTERIOR (VILLA BROTE)
    * Req. 4: la fachada del edificio NO rota (queda fija mirando a la cámara base).
    * Un único sprite vertical para la fachada exterior completa.
@@ -198,7 +685,7 @@ export class MapRenderer {
   private createWorkshopExteriorFacade(doorX: number, doorZ: number): void {
     // Single unified facade sprite from taller_atlas (house_exterior)
     const fachada = GlobalTallerAtlas.createPropMesh('house_exterior', 68, false);
-    // Positioned centered at the workshop building front: x: 7.0, z: 17.48
+    // Positioned centered at the workshop building front: x: 7.0, z: doorZ
     fachada.position.set(doorX, 0, doorZ + 0.48);
     fachada.rotation.y = 0; // Fixed facing south towards base camera (DOES NOT ROTATE)
     this.mapGroup.add(fachada);
@@ -691,6 +1178,7 @@ export class MapRenderer {
     GlobalTallerAtlas.clearRegisteredMeshes();
     GlobalMercadoAtlas.clearRegisteredMeshes();
     GlobalLabAtlas.clearRegisteredMeshes();
+    GlobalVillageDecorAtlas.clearRegisteredMeshes();
     GlobalOverworldDecor.clear();
     GlobalTileRenderer.clearMaterials();
   }

@@ -921,8 +921,28 @@ export class OverworldDecorManager {
     return mat;
   }
 
-  public getBiomeForMap(map: MapData): BiomeConfig | null {
+  public getBiomeByName(biomeName?: string): BiomeConfig | null {
+    if (!biomeName) return null;
+    if (biomeName === 'town') return this.biomesData.biomes.aldea_marioneta || null;
+    if (biomeName === 'meadow') return this.biomesData.biomes.aldea_marioneta || this.biomesData.biomes.ruta_claro || null;
+    if (biomeName === 'forest') return this.biomesData.biomes.bosque_eco || null;
+    if (biomeName === 'coastal') return this.biomesData.biomes.ruta_claro || null;
+    if (biomeName === 'mountain') return this.biomesData.biomes.ruta_claro || null;
+    if (biomeName === 'cave') return this.biomesData.biomes.cueva_eco || null;
+    return this.biomesData.biomes[biomeName] || null;
+  }
+
+  public getBiomeForMap(map: MapData, tileX?: number, tileZ?: number): BiomeConfig | null {
     if (map.indoor) return null;
+    if (
+      tileX !== undefined &&
+      tileZ !== undefined &&
+      map.regionBiomes &&
+      map.regionBiomes[tileZ]?.[tileX]
+    ) {
+      const regionBiome = this.getBiomeByName(map.regionBiomes[tileZ][tileX]);
+      if (regionBiome) return regionBiome;
+    }
     for (const biome of Object.values(this.biomesData.biomes)) {
       if (biome.mapIds.includes(map.id)) {
         return biome;
@@ -991,7 +1011,7 @@ export class OverworldDecorManager {
    * Returns list of rules that apply to a specific tile (used by F2 Cursor Tile Inspector - Req. 8)
    */
   public getRulesForTile(map: MapData, x: number, z: number): string[] {
-    const biome = this.getBiomeForMap(map);
+    const biome = this.getBiomeForMap(map, x, z);
     if (!biome || x < 0 || z < 0 || x >= map.width || z >= map.height) return [];
 
     const groundType = map.ground[z][x];
@@ -1050,13 +1070,14 @@ export class OverworldDecorManager {
       for (let x = 0; x < map.width; x++) {
         if (totalCount >= maxBudget) break;
 
+        const tileBiome = this.getBiomeForMap(map, x, z) || biome;
         const groundType = map.ground[z][x];
         const isEncounter = map.encounters?.[z]?.[x] === 'tall_grass';
         const isShore = this.isWaterShore(map, x, z);
         const chunkKey = `${Math.floor(x / CHUNK_SIZE)}_${Math.floor(z / CHUNK_SIZE)}`;
 
-        for (let rIdx = 0; rIdx < biome.rules.length; rIdx++) {
-          const rule = biome.rules[rIdx];
+        for (let rIdx = 0; rIdx < tileBiome.rules.length; rIdx++) {
+          const rule = tileBiome.rules[rIdx];
 
           if (rule.layer === 'fireflies') continue; // Fireflies handled as floating particles below
           if (!rule.tileTypes.includes(groundType)) continue;

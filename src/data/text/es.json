@@ -36,7 +36,15 @@
   "dialogue": {
     "welcome": "¡Te damos la bienvenida al mundo de Anima, donde el ki fluye y las marionetas cobran alma!",
     "choose_starter": "Elige tu primera Soul Bottle para infundir ki eterno en tu cuerpo contenedor.",
-    "saved": "¡Progreso de vinculación guardado en los anales del Gremio de Artífices!"
+    "saved": "¡Progreso de vinculación guardado en los anales del Gremio de Artífices!",
+    "interior_house": {
+      "map_name": "Refugio del Soultrainer",
+      "tv_sign": "CRISTAL DE CRÓNICAS\n\"Un boletín del Gremio de Artífices sobre la resonancia de las Souldolls.\"",
+      "bed_sign": "LECHO DE DESCANSO\n\"Un jergón cálido y tranquilo para reponer las fuerzas del Soultrainer.\"",
+      "caretaker_name": "Matrona Clara",
+      "caretaker_line_1": "¡Buenos días, joven Soultrainer! El Maestro Artífice te espera en su Laboratorio.",
+      "caretaker_line_2": "Recuerda que si tus Souldolls sufren daños en combate, puedes acudir al Taller de Artífices."
+    }
   },
   "battle": {
     "wild_appeared": "¡Un alma salvaje de {name} ha despertado!",
@@ -447,6 +455,27 @@
         "sec_party": "CAMBIAR SOULDOLL ACTIVA",
         "empty_bag": "No tienes objetos utilizables en combate.",
         "empty_party": "No hay otras Souldolls disponibles."
+      },
+      "battle_summary": {
+        "title_victory": "VICTORIA — EXPERIENCIA Y BOTÍN",
+        "title_capture": "CAPTURA Y BOTÍN DE COMBATE",
+        "sec_exp": "EXPERIENCIA Y PROGRESO DE UNIDAD",
+        "sec_capture": "ALMA VINCULADA EN ENCUENTRO",
+        "sec_loot": "BOTÍN OBTENIDO EN COMBATE",
+        "loot_hint": "Toca o pasa el cursor sobre un equipable para comparar atributos",
+        "no_loot": "Sin objetos adicionales obtenidos en este encuentro.",
+        "exp_gained_fmt": "+{exp} EXP",
+        "next_level_fmt": "Siguiente nivel: {cur}/{max} EXP ({pct}%)",
+        "level_up_badge": "¡NIVEL {level} ALCANZADO!",
+        "sync_bonus": "+5 SINCRONÍA",
+        "btn_sheet": "VER FICHA",
+        "btn_compare": "COMPARAR",
+        "btn_continue": "CONTINUAR",
+        "cat_weapon": "ARMA",
+        "cat_relic": "RELIQUIA",
+        "cat_crystal": "CRISTAL",
+        "cat_fragment": "FRAGMENTO",
+        "cat_consumable": "CONSUMIBLE"
       },
       "evolution": {
         "title": "ASCENSO DE ALMA",

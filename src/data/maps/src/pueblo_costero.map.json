@@ -198,7 +198,7 @@
       "y": 11,
       "targetMapId": "villa_brote",
       "targetX": 1,
-      "targetY": 11,
+      "targetY": 16,
       "targetDirection": "right"
     },
     {
@@ -206,7 +206,7 @@
       "y": 12,
       "targetMapId": "villa_brote",
       "targetX": 1,
-      "targetY": 12,
+      "targetY": 17,
       "targetDirection": "right"
     }
   ],

@@ -3320,7 +3320,7 @@ export const PUEBLO_COSTERO_MAP: MapData = {
       "y": 11,
       "targetMapId": "villa_brote",
       "targetX": 1,
-      "targetY": 11,
+      "targetY": 16,
       "targetDirection": "right"
     },
     {
@@ -3328,7 +3328,7 @@ export const PUEBLO_COSTERO_MAP: MapData = {
       "y": 12,
       "targetMapId": "villa_brote",
       "targetX": 1,
-      "targetY": 12,
+      "targetY": 17,
       "targetDirection": "right"
     }
   ],

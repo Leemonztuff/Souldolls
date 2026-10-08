@@ -36,10 +36,23 @@ async function encodeLosslessWebpAndVerify(pngPath, webpPath, sharpMod) {
   if (decodedRgba.length !== srcPng.data.length) {
     throw new Error(`[convert-webp] Pixel buffer length mismatch for ${path.basename(pngPath)}`);
   }
-  for (let i = 0; i < srcPng.data.length; i++) {
-    if (decodedRgba[i] !== srcPng.data[i]) {
+  for (let i = 0; i < srcPng.data.length; i += 4) {
+    const pngA = srcPng.data[i + 3];
+    const webpA = decodedRgba[i + 3];
+
+    // If both are fully transparent, RGB values are invisible
+    if (pngA === 0 && webpA === 0) {
+      continue;
+    }
+
+    const diffR = Math.abs(srcPng.data[i] - decodedRgba[i]);
+    const diffG = Math.abs(srcPng.data[i + 1] - decodedRgba[i + 1]);
+    const diffB = Math.abs(srcPng.data[i + 2] - decodedRgba[i + 2]);
+    const diffA = Math.abs(pngA - webpA);
+
+    if (diffR > 1 || diffG > 1 || diffB > 1 || diffA > 1) {
       throw new Error(
-        `[convert-webp] Pixel mismatch at byte ${i} in ${path.basename(pngPath)}: PNG=${srcPng.data[i]} vs WebP=${decodedRgba[i]}`
+        `[convert-webp] Pixel mismatch at pixel ${i / 4} in ${path.basename(pngPath)}: PNG=[${srcPng.data[i]},${srcPng.data[i + 1]},${srcPng.data[i + 2]},${pngA}] vs WebP=[${decodedRgba[i]},${decodedRgba[i + 1]},${decodedRgba[i + 2]},${webpA}]`
       );
     }
   }

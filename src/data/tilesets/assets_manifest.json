@@ -1,7 +1,6 @@
 {
-  "generatedAt": "2026-10-07T18:06:49.013Z",
+  "generatedAt": "2026-10-07T19:31:17.402Z",
   "losslessOnly": true,
-  "webpGenerated": true,
   "assets": {
     "anima_core/Dungeon_A4": {
       "id": "anima_core/Dungeon_A4",
@@ -174,7 +173,7 @@
         {
           "type": "webp",
           "file": "/assets/tilesets/anima_core/baked_atlas.webp",
-          "bytes": 1048438
+          "bytes": 1049910
         },
         {
           "type": "png",

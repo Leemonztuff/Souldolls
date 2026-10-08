@@ -38,7 +38,7 @@ export const MOVES_DATA: Record<string, Move> = {
   },
   ascuas: {
     id: 'ascuas',
-    name: 'Ascuas',
+    name: 'Brasas Ígneas',
     type: 'Fuego',
     category: 'special',
     power: 45,
@@ -53,7 +53,7 @@ export const MOVES_DATA: Record<string, Move> = {
       { type: 'status', condition: 'burn', chance: 0.15 },
     ],
     vfx: { preset: 'projectile', colorA: '#ea580c', colorB: '#f97316', soundName: 'hit_effective' },
-    description: 'Lanza brasas ardientes que pueden quemar el chasis del oponente.',
+    description: 'Lanza brasas ardientes que pueden quemar el cuerpo del oponente.',
   },
   orbe_flamigero: {
     id: 'orbe_flamigero',
@@ -813,7 +813,7 @@ export const MOVES_DATA: Record<string, Move> = {
   },
   impactrueno: {
     id: 'impactrueno',
-    name: 'Impactrueno',
+    name: 'Descarga Eléctrica',
     type: 'Eléctrico',
     category: 'special',
     power: 45,
@@ -828,11 +828,11 @@ export const MOVES_DATA: Record<string, Move> = {
       { type: 'status', condition: 'paralysis', chance: 0.2 },
     ],
     vfx: { preset: 'lightning', colorA: '#eab308', colorB: '#ca8a04', soundName: 'hit_effective' },
-    description: 'Lanza una descarga de voltaje que puede paralizar el chasis enemigo.',
+    description: 'Lanza una descarga de voltaje que puede paralizar el cuerpo enemigo.',
   },
   punotrueno: {
     id: 'punotrueno',
-    name: 'Puño Trueno',
+    name: 'Puño Voltio',
     type: 'Eléctrico',
     category: 'physical',
     power: 75,
@@ -1117,7 +1117,7 @@ export const MOVES_DATA: Record<string, Move> = {
   },
   placaje: {
     id: 'placaje',
-    name: 'Placaje',
+    name: 'Embestida de Ki',
     type: 'Neutro',
     category: 'physical',
     power: 40,
@@ -1129,7 +1129,7 @@ export const MOVES_DATA: Record<string, Move> = {
     tags: ['contact'],
     effect: [{ type: 'damage' }],
     vfx: { preset: 'burst', colorA: '#e2e8f0', colorB: '#cbd5e1', soundName: 'hit_normal' },
-    description: 'Una embestida directa con todo el cuerpo del chasis.',
+    description: 'Una embestida directa con todo el cuerpo canalizando ki.',
   },
   grunido: {
     id: 'grunido',
@@ -1149,7 +1149,7 @@ export const MOVES_DATA: Record<string, Move> = {
   },
   mordisco: {
     id: 'mordisco',
-    name: 'Mordisco',
+    name: 'Fauces Umbrías',
     type: 'Sombra',
     category: 'physical',
     power: 60,
@@ -1246,7 +1246,7 @@ export const MOVES_DATA: Record<string, Move> = {
   juicio_sagrado: {
     id: 'juicio_sagrado',
     name: 'Juicio Sagrado',
-    type: 'Planta',
+    type: 'Neutro',
     category: 'special',
     power: 110,
     accuracy: 90,
@@ -1254,9 +1254,9 @@ export const MOVES_DATA: Record<string, Move> = {
     priority: 0,
     target: 'single',
     partTargeting: { head: 25, torso: 55, arms: 10, legs: 10 },
-    tags: ['weapon', 'spell', 'beam', 'plant'],
+    tags: ['weapon', 'spell', 'beam', 'divine'],
     effect: [{ type: 'damage' }],
-    vfx: { preset: 'beam', colorA: '#eab308', colorB: '#22c55e', soundName: 'hit_effective' },
+    vfx: { preset: 'beam', colorA: '#eab308', colorB: '#ffffff', soundName: 'hit_effective' },
     description: 'Haz ancestral de ki consagrado que purifica y sobrecarga el núcleo del adversario.',
   },
 };
