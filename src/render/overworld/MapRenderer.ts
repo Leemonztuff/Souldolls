@@ -110,11 +110,10 @@ export class MapRenderer {
         this.buildLabInteriorProps();
       }
 
-      // Bloque 36: Chunked InstancedMesh billboards, flowers, mushrooms, fireflies & interactives
-      // En el flujo de autoría F2 (Bloque 45 Req. 1), el decorado de bioma aparece en las etapas 5 y 6 (o vista normal 0)
-      if (!map.indoor && (stage === 0 || stage >= 5)) {
-        GlobalOverworldDecor.buildForMap(map, this.mapGroup);
-      }
+      // Bloque 36: Props y decorados 3D externos eliminados por petición del usuario (excepto casas)
+      // if (!map.indoor && (stage === 0 || stage >= 5)) {
+      //   GlobalOverworldDecor.buildForMap(map, this.mapGroup);
+      // }
     }
 
     // 3. Indoor Cozy Lighting & Ki Ambiance

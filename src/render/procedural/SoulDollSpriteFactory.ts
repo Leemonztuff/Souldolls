@@ -818,7 +818,8 @@ export class SoulDollSpriteFactory {
       else if (view === 'back') targetView = 'view_back';
       else if (view === 'side_l') targetView = 'view_back34';
       else if (view === 'hurt') targetView = 'damage';
-      else if (view === 'faint') targetView = 'down';
+      else if (view === 'faint' || view === 'down') targetView = 'victory';
+      else if (view === 'victory') targetView = 'down';
 
       const sourceMap = spViewsMap!;
 
@@ -941,8 +942,8 @@ export class SoulDollSpriteFactory {
       casting,
       casting_release,
       damage,
-      down,
-      victory,
+      down: victory,
+      victory: down,
       view_front34,
       view_front,
       view_side,

@@ -298,7 +298,7 @@ export class TileRenderer {
       for (let x = 0; x < W; x++) {
         const rawCell = map.ground[y]?.[x] || 'grass';
         const hasEncounterGrass = map.encounters?.[y]?.[x] === 'tall_grass';
-        const effectiveRaw = (hasEncounterGrass || rawCell === 'tall_grass') ? 'grass' : rawCell;
+        const effectiveRaw = (rawCell === 'tall_grass' || hasEncounterGrass) ? 'tall_grass' : rawCell;
         row.push(GlobalTileRegistry.resolveTile(String(effectiveRaw), 'ground', map.category));
       }
       resolvedGround.push(row);
@@ -918,11 +918,14 @@ export class TileRenderer {
         // 2. Cuerpo de paredes según estilo arquitectónico de la referencia
         const isRightWoodHouse = map.id === 'villa_brote' && minX >= 16;
         const wallColor = isRightWoodHouse ? 0x854d0e : bw >= 7 ? 0xe2e8f0 : bw === 6 ? 0xfef08a : 0xfef9c3;
+        const wallTex = this.createProceduralHouseTexture(isRightWoodHouse ? 'wood' : 'plaster', wallColor);
         const wallMat = new THREE.MeshStandardMaterial({
           color: wallColor,
+          map: wallTex,
           roughness: 0.85,
           metalness: 0.04,
         });
+        this.activeMaterials.push(wallMat);
         const wallGeo = new THREE.BoxGeometry(bw, wallH, bd);
         wallGeo.translate(0, wallH / 2, 0);
         const wallMesh = new THREE.Mesh(wallGeo, wallMat);
@@ -933,7 +936,14 @@ export class TileRenderer {
         occludableMeshes.push(wallMesh);
 
         // Zócalo de piedra inferior y vigas de madera
-        const plinthMat = new THREE.MeshStandardMaterial({ color: isRightWoodHouse ? 0x451a03 : 0x64748b, roughness: 0.9 });
+        const plinthColor = isRightWoodHouse ? 0x451a03 : 0x64748b;
+        const plinthTex = this.createProceduralHouseTexture('stone', plinthColor);
+        const plinthMat = new THREE.MeshStandardMaterial({
+          color: plinthColor,
+          map: plinthTex,
+          roughness: 0.9,
+        });
+        this.activeMaterials.push(plinthMat);
         const plinthGeo = new THREE.BoxGeometry(bw + 0.06, 0.32, bd + 0.06);
         plinthGeo.translate(0, 0.16, 0);
         const plinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
@@ -952,11 +962,14 @@ export class TileRenderer {
           : bw === 6
           ? 0x1e7a6d
           : 0xb45309;
+        const roofTex = this.createProceduralHouseTexture('roof', roofColor);
         const roofMat = new THREE.MeshStandardMaterial({
           color: roofColor,
+          map: roofTex,
           roughness: 0.72,
           metalness: 0.08,
         });
+        this.activeMaterials.push(roofMat);
         const roofW = bw + overhang * 2;
         const roofD = bd + overhang * 2;
         const slopeLen = Math.hypot(roofD / 2, roofH);
@@ -1217,6 +1230,37 @@ export class TileRenderer {
     geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
     geo.attributes.uv.needsUpdate = true;
     return geo;
+  }
+
+  private createProceduralHouseTexture(
+    type: 'wood' | 'stone' | 'roof' | 'plaster',
+    baseHex: number
+  ): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = `#${baseHex.toString(16).padStart(6, '0')}`;
+      ctx.fillRect(0, 0, 32, 32);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+      if (type === 'wood') {
+        for (let y = 0; y < 32; y += 8) ctx.fillRect(0, y, 32, 1);
+      } else if (type === 'stone') {
+        for (let y = 0; y < 32; y += 8) {
+          ctx.fillRect(0, y, 32, 1);
+          for (let x = (y / 8) % 2 === 0 ? 0 : 8; x < 32; x += 16) ctx.fillRect(x, y, 1, 8);
+        }
+      } else if (type === 'roof') {
+        for (let y = 0; y < 32; y += 4) ctx.fillRect(0, y, 32, 1);
+      }
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
   }
 
   public update(dt: number, cameraYaw: number): void {
